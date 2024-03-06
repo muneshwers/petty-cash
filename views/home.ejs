@@ -6,10 +6,17 @@
     <title>Document</title>
     <script src="//unpkg.com/alpinejs" defer></script>
 </head>
+<style>
+    .error {
+        border : 1px solid red;
+    }
+</style>
 <body x-data="{ 
         tab : 'Create Transaction', 
         balance: 0, 
-    }">
+    }"
+    x-init=" fetch('/balance').then(data => data.json()).then(json => balance = json.balance) "
+    >
     <header>
         <h1>Muneshwers Petty Cash</h1>
         <nav x-on:click="tab = 'Create Transaction' " >Create Transaction</nav>
@@ -25,20 +32,52 @@
                     description : '',
                     amount : '',
                 },
+                errorMessage : '', 
                 validate() {
-                    if (!this.input.recipient) { return false }
-                    if (!this.input.description) {return false }
-                    if (this.input.amount <= 0) {return false }
-                    if (!this.input.date) {return false}
+                    errorMessage = ''
+                    if (!this.input.recipient) { 
+                        errorMessage = 'Recipient required'
+                        return false 
+                    }
+                    if (!this.input.description) {
+                        this.errorMessage = 'Description required'
+                        return false 
+                    }
+                    if (this.input.amount <= 0) {
+                        this.errorMessage = 'Amount required'
+                        return false 
+                    }
+                    if (!this.input.date) {
+                        this.errorMessage = 'Date required'
+                        return false
+                    }
+                    if (this.balance - this.input.amount  < 0 ) {
+                        this.errorMessage = 'Insufficient balance'
+                        return false
+                    }
+                    this.errorMessage = ''
                     return true
                 }
             }
             " >
+
+                <div>
+                    <span x-text="'Current Balance $'+balance" ></span>
+                    <br>
+                    <span x-text=" 'Amount $'+(input.amount || 0)"></span>
+                    <br>
+                    <span x-text="'Remainder $' + (balance - input.amount) " ></span>
+                    <br>
+                </div>
                 <form>
-                    <input x-on:input="validate()"  placeholder="Recipient..." type="text" x-model="input.recipient" name="recipient">
-                    <input x-on:input="validate()"  placeholder="Description..." type="text" x-model="input.description" name="description">
-                    <input x-on:input="validate()"  placeholder="Amount..." type="number" x-model="input.amount"  name="amount">
-                    <input x-on:input="validate()"  type="date" name="date" x-model="input.date" >
+                    <div x-show="errorMessage">
+                        <span style="color: red;"  x-text="errorMessage"></span>
+                    </div>
+                    <br>
+                    <input x-on:input="validate()" class=""   placeholder="Recipient..." type="text" x-model="input.recipient" name="recipient">
+                    <input x-on:input="validate()" class=""   placeholder="Description..." type="text" x-model="input.description" name="description">
+                    <input x-on:input="validate()" class=""   placeholder="Amount..." type="number" x-model="input.amount"  name="amount">
+                    <input x-on:input="validate()" class=""   type="date" name="date" x-model="input.date" >
                     <div x-show="validate()" >
                         <button type="button">Submit</button>
                     </div>
