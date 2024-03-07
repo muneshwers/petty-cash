@@ -6,11 +6,7 @@
     <title>Document</title>
     <script src="//unpkg.com/alpinejs" defer></script>
 </head>
-<style>
-    .error {
-        border : 1px solid red;
-    }
-</style>
+<link rel="stylesheet" href="../styles/style.css">
 <body x-data="{ 
         tab : 'Create Transaction', 
         balance: 0, 
@@ -18,9 +14,11 @@
     x-init=" fetch('/balance').then(data => data.json()).then(json => balance = json.balance) "
     >
     <header>
-        <h1>Muneshwers Petty Cash</h1>
-        <nav x-on:click="tab = 'Create Transaction' " >Create Transaction</nav>
-        <nav x-on:click="tab = 'Reimburse' " >Reimburse</nav>
+        <h1><span class="company" >Muneshwers</span> Petty Cash</h1>
+        <div class="navbar">
+            <nav :class="(tab == 'Create Transaction' ) ? 'current' : '' "  x-on:click="tab = 'Create Transaction' " >Create Transaction</nav>
+            <nav :class="(tab == 'Reimburse' ) ? 'current' : '' "  x-on:click="tab = 'Reimburse' " >Reimburse</nav>
+        </div>
     </header>
     <main>
         <h2 x-text="tab"></h2>
@@ -32,30 +30,38 @@
                     description : '',
                     amount : '',
                 },
-                errorMessage : '', 
+                errorMessage : '',
+                errorField : '', 
+                initial : false,
                 validate() {
-                    errorMessage = ''
+                    if (!this.initial) { return false }
                     if (!this.input.recipient) { 
-                        errorMessage = 'Recipient required'
+                        this.errorMessage = 'Recipient required'
+                        this.errorField = 'recipient'
                         return false 
                     }
                     if (!this.input.description) {
                         this.errorMessage = 'Description required'
+                        this.errorField = 'description'
                         return false 
                     }
                     if (this.input.amount <= 0) {
                         this.errorMessage = 'Amount required'
+                        this.errorField = 'amount'
                         return false 
                     }
                     if (!this.input.date) {
                         this.errorMessage = 'Date required'
+                        this.errorField = 'date'
                         return false
                     }
                     if (this.balance - this.input.amount  < 0 ) {
                         this.errorMessage = 'Insufficient balance'
+                        this.errorField = 'balance'
                         return false
                     }
                     this.errorMessage = ''
+                    this.errorField = ''
                     return true
                 }
             }
@@ -70,14 +76,15 @@
                     <br>
                 </div>
                 <form>
+                    <span x-text="initial" ></span>
                     <div x-show="errorMessage">
                         <span style="color: red;"  x-text="errorMessage"></span>
                     </div>
                     <br>
-                    <input x-on:input="validate()" class=""   placeholder="Recipient..." type="text" x-model="input.recipient" name="recipient">
-                    <input x-on:input="validate()" class=""   placeholder="Description..." type="text" x-model="input.description" name="description">
-                    <input x-on:input="validate()" class=""   placeholder="Amount..." type="number" x-model="input.amount"  name="amount">
-                    <input x-on:input="validate()" class=""   type="date" name="date" x-model="input.date" >
+                    <input x-on:input="initial = true; validate()" :class="{'error' : errorField == 'recipient' }"   placeholder="Recipient..." type="text" x-model="input.recipient" name="recipient">
+                    <input x-on:input="initial = true; validate()" :class="{'error' : errorField == 'description' }"   placeholder="Description..." type="text" x-model="input.description" name="description">
+                    <input x-on:input="initial = true; validate()" :class="{'error' : errorField == 'amount' }"   placeholder="Amount..." type="number" x-model="input.amount"  name="amount">
+                    <input x-on:input="initial = true; validate()" :class="{'error' : errorField == 'date' }"   type="date" name="date" x-model="input.date" >
                     <div x-show="validate()" >
                         <button type="button">Submit</button>
                     </div>

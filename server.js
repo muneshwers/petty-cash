@@ -3,6 +3,7 @@ import express from "express"
 const app = express()
 const PORT = process.env.PORT || 3000
 app.set("view engine", "ejs")
+app.use("/styles", express.static("styles"))
 
 app.get("/",(req, res) => {
   res.render("home", {message: "hello godfrey"})
