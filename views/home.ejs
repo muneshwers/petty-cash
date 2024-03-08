@@ -226,12 +226,11 @@
                         { field: 'make' },
                         { field: 'model' },
                         { field: 'price' },
-                        { field: 'electric' }
+                        { field: 'electric'}
                     ],
-
                 },
                 init() {
-                    this.grid = agGrid.createGrid(this.$refs.myGrid, gridOptions),
+                    this.grid = agGrid.createGrid(this.$refs.myGrid, this.gridOptions)
                 },
             }"
         >
