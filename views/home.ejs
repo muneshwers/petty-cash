@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
     <script src="//unpkg.com/alpinejs" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/ag-grid-community/dist/ag-grid-community.min.js"></script>
 </head>
 <link rel="stylesheet" href="../styles/style.css">
 <body x-data="{ 
@@ -211,7 +212,31 @@
                 </form>
             </div>
         </div>
+        <div 
+            x-show="tab == 'Reimburse'"
+            x-data="{
+                grid: null,
+                gridOptions : {
+                    rowData : [
+                        { make: 'Tesla', model: 'Model Y', price: 64950, electric: true },
+                        { make: 'Ford', model: 'F-Series', price: 33850, electric: false },
+                        { make: 'Toyota', model: 'Corolla', price: 29600, electric: false },
+                    ],
+                    columnDefs : [
+                        { field: 'make' },
+                        { field: 'model' },
+                        { field: 'price' },
+                        { field: 'electric' }
+                    ],
 
+                },
+                init() {
+                    this.grid = agGrid.createGrid(this.$refs.myGrid, gridOptions),
+                },
+            }"
+        >
+            <div x-ref="myGrid"  class="ag-theme-quartz" style="height: 500px"></div>
+        </div>
     </main>
 </body>
 </html>
