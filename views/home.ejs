@@ -9,7 +9,9 @@
 <link rel="stylesheet" href="../styles/style.css">
 <body x-data="{ 
         tab : 'Create Transaction', 
-        balance: 0, 
+        balance: 0,
+        user: 'Stephon Fraser',
+        transactionLog : ''
     }"
     x-init=" fetch('/balance').then(data => data.json()).then(json => balance = json.balance) "
     >
@@ -47,6 +49,27 @@
                         minimumFractionDigits: 0,
                         maximumFractionDigits: 0,
                     }).format(number)
+                },
+                sendData(inputs) {
+                    console.log('Send data works!');
+                    fetch('/transactions', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            recipient : inputs.recipient.value,
+                            description : inputs.description.value,
+                            amount : inputs.amount.value,
+                            date : inputs.date.value,
+                            createdBy : user,
+                        }),
+                    })
+                    .then((res) => {
+                        console.log('This works!');
+                        return res.json();
+                    })
+                    .then((data) => console.log('From browser input: '+data));
                 }
             }
             " >
@@ -184,7 +207,7 @@
                             >
                         </div>
                     </div>
-                    <button class="submit-button" type="submit" :disabled="!validate()" >Submit</button>
+                    <button class="submit-button" type="submit" :disabled="!validate()" x-on:click="sendData(inputs)" >Submit</button>
                 </form>
             </div>
         </div>
