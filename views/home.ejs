@@ -24,70 +24,167 @@
         <h2 x-text="tab"></h2>
         <div x-show="tab == 'Create Transaction' " >
             <div x-data="{
-                input : {
-                    date :  (new Date()).toISOString().split('T')[0],
-                    recipient : '',
-                    description : '',
-                    amount : '',
+                inputs : {
+                    amount :  {value: '', valid: false},
+                    recipient : {value: '', valid: false},
+                    description : {value: '', valid: false},
+                    date : {value: (new Date()).toISOString().split('T')[0], valid: true},
                 },
-                errorMessage : '',
-                errorField : '', 
-                initial : false,
                 validate() {
-                    if (!this.initial) { return false }
-                    if (!this.input.recipient) { 
-                        this.errorMessage = 'Recipient required'
-                        this.errorField = 'recipient'
-                        return false 
+                    console.log(this.inputs)
+                    let keys = Object.keys(this.inputs)
+                    for (let key of keys) {
+                        if (!this.inputs[key].valid) {
+                            return false
+                        }
                     }
-                    if (!this.input.description) {
-                        this.errorMessage = 'Description required'
-                        this.errorField = 'description'
-                        return false 
-                    }
-                    if (this.input.amount <= 0) {
-                        this.errorMessage = 'Amount required'
-                        this.errorField = 'amount'
-                        return false 
-                    }
-                    if (!this.input.date) {
-                        this.errorMessage = 'Date required'
-                        this.errorField = 'date'
-                        return false
-                    }
-                    if (this.balance - this.input.amount  < 0 ) {
-                        this.errorMessage = 'Insufficient balance'
-                        this.errorField = 'balance'
-                        return false
-                    }
-                    this.errorMessage = ''
-                    this.errorField = ''
                     return true
+                },
+                formatDollar(number) {
+                    return new Intl.NumberFormat('en-US', {
+                        style: 'currency',
+                        currency : 'USD',
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0,
+                    }).format(number)
                 }
             }
             " >
-
-                <div>
-                    <span x-text="'Current Balance $'+balance" ></span>
-                    <br>
-                    <span x-text=" 'Amount $'+(input.amount || 0)"></span>
-                    <br>
-                    <span x-text="'Remainder $' + (balance - input.amount) " ></span>
-                    <br>
+                <div class="amount-box">
+                    <div class="amount"><div>Current Balance </div> <span style="color: green;"  x-text="formatDollar(balance)" ></span></div>
+                    <div class="amount"><div>Amount </div> <span style="color: red;" x-text="formatDollar(Math.abs(inputs.amount.value) || 0)"></span></div>
+                    <div class="amount"><div>Remainder </div> <span  x-text="formatDollar(balance - inputs.amount.value)" ></span></div>
                 </div>
                 <form>
-                    <span x-text="initial" ></span>
-                    <div x-show="errorMessage">
-                        <span style="color: red;"  x-text="errorMessage"></span>
+                    <div class="transaction-form">
+                        <div 
+                            @validation="
+                                inputs[$event.detail.field].value = $event.detail.input; 
+                                inputs[$event.detail.field].valid = $event.detail.valid;"
+                            class="item" 
+                            x-data="{
+                                input : '',
+                                errorMessage : '',
+                                initialized : false,
+                                validate() {
+                                    this.initialized = true
+                                    if (!this.input) {
+                                        this.errorMessage = 'recipient required'
+                                        return false
+                                    }
+                                    this.errorMessage = ''
+                                    return true
+                                }
+                        }">
+                            <span class="errorMessage"  x-text="errorMessage"></span>
+                            <input
+                                x-on:input="let valid = validate(); $dispatch('validation', {valid, field : 'recipient', input})"
+                                x-model="input"
+                                x-bind:class="{'error' : errorMessage}"
+                                placeholder="Recipient..."
+                                type="text"
+                                name="recipient"
+                                id="recipient"
+                            >
+                        </div>
+                        <div @validation="
+                            inputs[$event.detail.field].value = $event.detail.input; 
+                            inputs[$event.detail.field].valid = $event.detail.valid;
+                            " 
+                            class="item" x-data="{
+                            input : '',
+                            errorMessage : '',
+                            initialized : false,
+                            validate() {
+                                this.initialized = true
+                                if (!this.input) {
+                                    this.errorMessage = 'description required'
+                                    return false
+                                }
+                                this.errorMessage = ''
+                                return true
+                            }
+                        }">
+                            <span class="errorMessage" x-text="errorMessage"></span>
+                            <input
+                                x-on:input="let valid = validate(); $dispatch('validation', {valid, field : 'description', input})"
+                                x-model="input"
+                                x-bind:class="{'error' : errorMessage}"
+                                placeholder="Description..."
+                                type="text"
+                                name="description"
+                                id="description"
+                            >
+                        </div>
+                        <div
+                            @validation="
+                            inputs[$event.detail.field].value = $event.detail.input; 
+                            inputs[$event.detail.field].valid = $event.detail.valid;
+                            "
+                            class="item" 
+                            x-data="{
+                                input : '',
+                                errorMessage : '',
+                                initialized : false,
+                                validate() {
+                                    this.initialized = true
+                                    if (!this.input) {
+                                        this.errorMessage = 'amount required'
+                                        return false
+                                    }
+                                    if (!Number(this.input)) {
+                                        this.errorMessage = 'number required'
+                                        return false
+                                    }
+                                    if (this.input < 0) {
+                                        this.errorMessage = 'posivite values'
+                                        return false
+                                    }
+                                    if (this.balance - this.input < 0) {
+                                        this.errorMessage = 'Insufficient funds'
+                                        return false
+                                    }
+                                    this.errorMessage = ''
+                                    return true
+                                }
+                        }">
+                            <span class="errorMessage" x-text="errorMessage"></span>
+                            <input
+                                x-on:input="let valid = validate(); $dispatch('validation', {valid, field : 'amount', input})"
+                                x-model="input"
+                                x-bind:class="{'error' : errorMessage}"
+                                type="number"
+                                placeholder="Amount..."
+                                name="amount"
+                                id="amount"
+                            >
+                        </div>
+                        <div class="item" x-data="{
+                            input : (new Date()).toISOString().split('T')[0],
+                            errorMessage : '',
+                            initialized : false,
+                            validate() {
+                                this.initialized = true
+                                if (!this.input) {
+                                    this.errorMessage = 'date required'
+                                    return false
+                                }
+                                this.errorMessage = ''
+                                return true
+                            }
+                        }">
+                            <span class="errorMessage" x-text="errorMessage"></span>
+                            <input
+                                x-on:input="let valid = validate(); $dispatch('validation', {valid, field : 'date', input})"
+                                x-model="input"
+                                x-bind:class="{'error' : errorMessage}"
+                                type="date"
+                                name="date"
+                                id="date"
+                            >
+                        </div>
                     </div>
-                    <br>
-                    <input x-on:input="initial = true; validate()" :class="{'error' : errorField == 'recipient' }"   placeholder="Recipient..." type="text" x-model="input.recipient" name="recipient">
-                    <input x-on:input="initial = true; validate()" :class="{'error' : errorField == 'description' }"   placeholder="Description..." type="text" x-model="input.description" name="description">
-                    <input x-on:input="initial = true; validate()" :class="{'error' : errorField == 'amount' }"   placeholder="Amount..." type="number" x-model="input.amount"  name="amount">
-                    <input x-on:input="initial = true; validate()" :class="{'error' : errorField == 'date' }"   type="date" name="date" x-model="input.date" >
-                    <div x-show="validate()" >
-                        <button type="button">Submit</button>
-                    </div>
+                    <button class="submit-button" type="submit" :disabled="!validate()" >Submit</button>
                 </form>
             </div>
         </div>

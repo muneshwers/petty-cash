@@ -6,9 +6,40 @@
     <title>Alpine</title>
     <script src="//unpkg.com/alpinejs" defer></script>
 </head>
-<body>
-    <div>
-       <input type="text" name="test" id="test"> 
+<body>     
+    <div x-data="{
+        inputs: {
+            test: false
+        }
+    }">
+        <div @validation="console.log($event.detail)"  
+        x-data="{
+            input : '',
+            errorMessage : '',
+            initialized : false,
+            validate() {
+                this.initialized = true
+                if (!this.input) {
+                    this.errorMessage = 'input required'
+                    return false
+                }
+                this.errorMessage = ''
+                return true
+            }
+        }">
+                <span class="errorMessage"  x-text="errorMessage" ></span>
+                <input
+                    x-on:input="let valid = validate(); $dispatch('validation', {valid, field : 'test', input})"
+                    x-model="input"
+                    x-bind:class="{'error' : errorMessage}"
+                    type="text"
+                    name="test"
+                    id="test"
+                >
+        </div>
+        <div x-show="inputs.test" >
+            <button type="button">Submit</button>
+        </div>
     </div>
 </body>
 </html>

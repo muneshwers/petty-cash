@@ -40,11 +40,93 @@ nav.current:hover {
     color : #0047ab 
 }
 
-input.error {
-    border : 1px solid red;
+main {
+    margin: 7vw;
+    margin-top: 0;
+
 }
 
-input.error:focus {
-    outline: 1px solid red ;
-    border : 1px solid red; 
+input {
+    background: #fff;
+    border: 1px solid #999;
+    float: left;
+    font-size: 15px;
+    height: 15px;
+    margin: 0;
+    padding: 8px;
+}
+
+input.error {
+    background-color: #fce4e4;
+    border: 1px solid #cc0033;
+    outline: none;
+}
+
+.transaction-form {
+    display: flex;
+    flex-direction: row;
+}
+
+.transaction-form .item {
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+    padding-left: 0;
+}
+
+.transaction-form .item .errorMessage {
+    color: #cc0033;
+    display: inline-block;
+    font-size: 15px;
+    line-height: 15px;
+    margin: 5px 0 0;
+    margin-bottom: 5px;
+    height: 15px;
+}
+
+.amount-box {
+    display: flex;
+    flex-direction: column;
+    font-size: larger;
+    margin-top: 5vh;
+    margin-bottom: 5vh;
+    max-width: 800px;
+    background-color: #f0f0f0; 
+    border-radius: 10px; 
+    padding: 20px; 
+}
+
+.amount-box .amount {
+    display: flex;
+    flex-direction: row;
+}
+
+.amount-box .amount div {
+    width: 15vw;
+}
+
+.submit-button {
+    background-color: #0047ab;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    font-size: 15px;
+    cursor: pointer;
+}
+
+.submit-button:hover {
+    background-color: #003580;
+}
+
+.submit-button:disabled {
+    background-color: #d3d3d3;
+    color: #a9a9a9;
+    cursor: not-allowed;
+}
+
+input{
+    border-radius: 15px;
+}
+button{
+    border-radius: 15px;
 }
