@@ -12,9 +12,29 @@
         tab : 'Create Transaction', 
         balance: 0,
         user: 'Stephon Fraser',
-        transactionLog : ''
+        transactionLog : '',
+        grid: null,
+        gridOptions : {
+            rowData : [
+                { description: 'Tesla', amount: 500, recipient: 'Christina Aguilera', createdBy: 'Stephon Fraser', date: '2024-03-10' },
+                { description: 'Abobo', amount: 300, recipient: 'Christina Bankole', createdBy: 'Stephon Fraser', date: '2024-03-10' },
+                { description: 'Chrysler', amount: 800, recipient: 'Markein Aguilera', createdBy: 'Stephon Fraser', date: '2024-03-10' },
+                { description: 'Cheese', amount: 200, recipient: 'Holara Banana', createdBy: 'Stephon Fraser', date: '2024-03-10' }
+            ],
+            columnDefs : [
+                { field: 'description' },
+                { field: 'amount' },
+                { field: 'recipient' },
+                { field: 'createdBy' },
+                { field: 'date'}
+            ],
+        },
     }"
-    x-init=" fetch('/balance').then(data => data.json()).then(json => balance = json.balance) "
+    x-init=" 
+    fetch('/balance').then(data => data.json()).then(json => balance = json.balance);
+    fetch('/transactions').then(data => data.json()).then(js => transactionLog = Alpine.raw(js.transactionLog));
+    // fetch('/transactions').then(data => data.json()).then(js => console.log(Alpine.raw(js.transactionLog)));
+    "
     >
     <header>
         <h1><span class="company" >Muneshwers</span> Petty Cash</h1>
@@ -215,21 +235,27 @@
         <div 
             x-show="tab == 'Reimburse'"
             x-data="{
-                grid: null,
-                gridOptions : {
-                    rowData : [
-                        { make: 'Tesla', model: 'Model Y', price: 64950, electric: true },
-                        { make: 'Ford', model: 'F-Series', price: 33850, electric: false },
-                        { make: 'Toyota', model: 'Corolla', price: 29600, electric: false },
-                    ],
-                    columnDefs : [
-                        { field: 'make' },
-                        { field: 'model' },
-                        { field: 'price' },
-                        { field: 'electric'}
-                    ],
-                },
+                // grid: null,
+                // gridOptions : {
+                //     rowData : [
+                //         { description: 'Tesla', amount: 500, recipient: 'Christina Aguilera', createdBy: 'Stephon Fraser', date: '2024-03-10' },
+                //         { description: 'Abobo', amount: 300, recipient: 'Christina Bankole', createdBy: 'Stephon Fraser', date: '2024-03-10' },
+                //         { description: 'Chrysler', amount: 800, recipient: 'Markein Aguilera', createdBy: 'Stephon Fraser', date: '2024-03-10' },
+                //         { description: 'Cheese', amount: 200, recipient: 'Holara Banana', createdBy: 'Stephon Fraser', date: '2024-03-10' }
+                //     ],
+                //     columnDefs : [
+                //         { field: 'description' },
+                //         { field: 'amount' },
+                //         { field: 'recipient' },
+                //         { field: 'createdBy' },
+                //         { field: 'date'}
+                //     ],
+                // },
                 init() {
+                    // transactionLog.map( transaction => {
+                    //     let transData = { description: transaction.description, amount: transaction.amount, recipient: transaction.recipient, createdBy: transaction.createdBy, date: transaction.date}
+                    //     this.rowData.push(transData);
+                    // })
                     this.grid = agGrid.createGrid(this.$refs.myGrid, this.gridOptions)
                 },
             }"
