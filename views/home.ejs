@@ -12,28 +12,10 @@
         tab : 'Create Transaction', 
         balance: 0,
         user: 'Stephon Fraser',
-        transactionLog : '',
         grid: null,
-        gridOptions : {
-            rowData : [
-                { description: 'Tesla', amount: 500, recipient: 'Christina Aguilera', createdBy: 'Stephon Fraser', date: '2024-03-10' },
-                { description: 'Abobo', amount: 300, recipient: 'Christina Bankole', createdBy: 'Stephon Fraser', date: '2024-03-10' },
-                { description: 'Chrysler', amount: 800, recipient: 'Markein Aguilera', createdBy: 'Stephon Fraser', date: '2024-03-10' },
-                { description: 'Cheese', amount: 200, recipient: 'Holara Banana', createdBy: 'Stephon Fraser', date: '2024-03-10' }
-            ],
-            columnDefs : [
-                { field: 'description' },
-                { field: 'amount' },
-                { field: 'recipient' },
-                { field: 'createdBy' },
-                { field: 'date'}
-            ],
-        },
     }"
     x-init=" 
     fetch('/balance').then(data => data.json()).then(json => balance = json.balance);
-    fetch('/transactions').then(data => data.json()).then(js => transactionLog = Alpine.raw(js.transactionLog));
-    // fetch('/transactions').then(data => data.json()).then(js => console.log(Alpine.raw(js.transactionLog)));
     "
     >
     <header>
@@ -54,7 +36,7 @@
                     date : {value: (new Date()).toISOString().split('T')[0], valid: true},
                 },
                 validate() {
-                    console.log(this.inputs)
+                    // console.log(this.inputs)
                     let keys = Object.keys(this.inputs)
                     for (let key of keys) {
                         if (!this.inputs[key].valid) {
@@ -235,29 +217,26 @@
         <div 
             x-show="tab == 'Reimburse'"
             x-data="{
-                // grid: null,
-                // gridOptions : {
-                //     rowData : [
-                //         { description: 'Tesla', amount: 500, recipient: 'Christina Aguilera', createdBy: 'Stephon Fraser', date: '2024-03-10' },
-                //         { description: 'Abobo', amount: 300, recipient: 'Christina Bankole', createdBy: 'Stephon Fraser', date: '2024-03-10' },
-                //         { description: 'Chrysler', amount: 800, recipient: 'Markein Aguilera', createdBy: 'Stephon Fraser', date: '2024-03-10' },
-                //         { description: 'Cheese', amount: 200, recipient: 'Holara Banana', createdBy: 'Stephon Fraser', date: '2024-03-10' }
-                //     ],
-                //     columnDefs : [
-                //         { field: 'description' },
-                //         { field: 'amount' },
-                //         { field: 'recipient' },
-                //         { field: 'createdBy' },
-                //         { field: 'date'}
-                //     ],
-                // },
-                init() {
-                    // transactionLog.map( transaction => {
-                    //     let transData = { description: transaction.description, amount: transaction.amount, recipient: transaction.recipient, createdBy: transaction.createdBy, date: transaction.date}
-                    //     this.rowData.push(transData);
-                    // })
-                    this.grid = agGrid.createGrid(this.$refs.myGrid, this.gridOptions)
-                },
+                transactionLog : [],
+                init(){
+                    fetch('/transactions')
+                        .then(data => data.json())
+                        .then(js => Alpine.raw(js.transactionLog))
+                        .then(transactions => 
+                            grid = agGrid.createGrid(this.$refs.myGrid, {
+                                rowData : transactions,
+                                columnDefs : [
+                                    { field: 'description' },
+                                    { field: 'amount' },
+                                    { field: 'recipient' },
+                                    { field: 'createdBy' },
+                                    { field: 'date'}
+                                ]
+                            })
+                        )
+                    console.log('This is running: ',this.transactionLog);
+                    
+                }
             }"
         >
             <div x-ref="myGrid"  class="ag-theme-quartz" style="height: 500px"></div>
