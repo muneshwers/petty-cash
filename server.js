@@ -23,7 +23,7 @@ function getUsers() {
   const usersData = fs.readFileSync('./database/users.json');
   const usersJsonString = usersData.toString('utf-8');
   const users = JSON.parse(usersJsonString).users; 
-  return users;
+  return users
 }
 
 
@@ -71,6 +71,10 @@ app.post("/login/user", (req, res) => {
     req.session.username = username;
     res.render("create_transaction")
   }
+})
+
+app.get("/reimburse", (req, res) => {
+  res.render("reimburse")
 })
 
 app.listen(PORT, () => {

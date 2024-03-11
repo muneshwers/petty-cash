@@ -1,5 +1,4 @@
-<div x-data="{ 
-        tab : 'Create Transaction', 
+<div id="root" x-data="{ 
         balance: 0, 
     }"
     x-init=" fetch('/balance').then(data => data.json()).then(json => balance = json.balance) "
@@ -7,13 +6,12 @@
     <header>
         <h1><span class="company" >Muneshwers</span> Petty Cash</h1>
         <div class="navbar">
-            <nav :class="(tab == 'Create Transaction' ) ? 'current' : '' "  x-on:click="tab = 'Create Transaction' " >Create Transaction</nav>
-            <nav :class="(tab == 'Reimburse' ) ? 'current' : '' "  x-on:click="tab = 'Reimburse' " >Reimburse</nav>
+            <nav class="current" >Create Transaction</nav>
+            <nav hx-get="/reimburse" hx-target="#root" hx-swap="outerHTML">Reimburse</nav>
         </div>
     </header>
     <main>
-        <h2 x-text="tab"></h2>
-        <div x-show="tab == 'Create Transaction' " >
+        <h2> Create Transaction </h2>
             <div x-data="{
                 inputs : {
                     amount :  {value: '', valid: false},
@@ -179,7 +177,6 @@
                     <button class="submit-button" type="submit" :disabled="!validate()" >Submit</button>
                 </form>
             </div>
-        </div>
 
     </main>
 </div>
