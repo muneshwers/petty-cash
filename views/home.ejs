@@ -36,7 +36,6 @@
                     date : {value: (new Date()).toISOString().split('T')[0], valid: true},
                 },
                 validate() {
-                    // console.log(this.inputs)
                     let keys = Object.keys(this.inputs)
                     for (let key of keys) {
                         if (!this.inputs[key].valid) {
@@ -54,7 +53,6 @@
                     }).format(number)
                 },
                 sendData(inputs) {
-                    console.log('Send data works!');
                     fetch('/transactions', {
                         method: 'POST',
                         headers: {
@@ -69,10 +67,8 @@
                         }),
                     })
                     .then((res) => {
-                        console.log('This works!');
                         return res.json();
-                    })
-                    .then((data) => console.log('From browser input: '+data));
+                    });
                 }
             }
             " >
@@ -234,7 +230,6 @@
                                 ]
                             })
                         )
-                    console.log('This is running: ',this.transactionLog);
                     
                 }
             }"
