@@ -14,7 +14,7 @@ app.use(expressSession({
   secret: 'hi123',
   resave: false,
   saveUninitialized: false
-}));
+}))
 
 let balance = 5000;
 let transactions = [];
@@ -34,20 +34,21 @@ app.get("/balance", (req, res) => {
 app.post("/balance", (req ,res) => {
   const {balance, receipient, description, amount, date} = req.body
   console.log(req.body)
-  res.redirect("/")
-  //update balance number
-  //update transactions array
-  //add to the current transactions 
+  res.render("create_transaction")
 })
 
 
 app.get("/", (req, res) => {
+  res.render("home")
+})
+
+app.get("/home", (req, res) => {
   if (!req.session.loggedIn) {
-    res.redirect("/login");
+    res.render("login", {errorMessage : ''});
   } else {
-    res.render("home", { balance, transactions, currentUser: req.session.username });
+    res.render("create_transaction", { balance, transactions, currentUser: req.session.username });
   }
-});
+})
 
 app.get("/login", (req, res) => {
   res.render("login", { errorMessage: '' });
@@ -68,23 +69,9 @@ app.post("/login/user", (req, res) => {
   } else {
     req.session.loggedIn = true;
     req.session.username = username;
-    res.redirect("/");
+    res.render("create_transaction")
   }
-});
-
-
-
-
-app.get("/logout/user", (req, res) => {
-  req.session.destroy((err) => {
-    if (err) {
-      console.error("Error destroying session:", err);
-      res.sendStatus(500);
-    } else {
-      res.redirect("/login");
-    }
-  });
-});
+})
 
 app.listen(PORT, () => {
   console.log(`App is running on port ${PORT}`);
