@@ -20,7 +20,7 @@ let balance = 5000;
 let transactions = [];
 
 function getUsers() {
-  const usersData = fs.readFileSync('C:/Users/gtaylor/Documents/GitHub/petty-cash/database/users.json');
+  const usersData = fs.readFileSync('./database/users.json');
   const usersJsonString = usersData.toString('utf-8');
   const users = JSON.parse(usersJsonString).users; 
   return users;
@@ -28,8 +28,16 @@ function getUsers() {
 
 
 app.get("/balance", (req, res) => {
-  let balance = 5000
   res.json({balance})
+})
+
+app.post("/balance", (req ,res) => {
+  const {balance, receipient, description, amount, date} = req.body
+  console.log(req.body)
+  res.redirect("/")
+  //update balance number
+  //update transactions array
+  //add to the current transactions 
 })
 
 
@@ -45,8 +53,9 @@ app.get("/login", (req, res) => {
   res.render("login", { errorMessage: '' });
 });
 
-app.get("/login/user", (req, res) => {
+app.post("/login/user", (req, res) => {
   const { username, password } = req.body;
+  console.log(req.body)
   const users = getUsers();
 
   let errorMessage = ''; 

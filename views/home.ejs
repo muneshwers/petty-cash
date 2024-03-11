@@ -55,7 +55,7 @@
                     <div class="amount"><div>Amount </div> <span style="color: red;" x-text="formatDollar(Math.abs(inputs.amount.value) || 0)"></span></div>
                     <div class="amount"><div>Remainder </div> <span  x-text="formatDollar(balance - inputs.amount.value)" ></span></div>
                 </div>
-                <form>
+                <form action="/balance" method="post">
                     <div class="transaction-form">
                         <div 
                             @validation="
@@ -69,7 +69,7 @@
                                 validate() {
                                     this.initialized = true
                                     if (!this.input) {
-                                        this.errorMessage = 'recipient required'
+                                        this.errorMessage = 'Recipient required'
                                         return false
                                     }
                                     this.errorMessage = ''
@@ -81,6 +81,7 @@
                                 x-on:input="let valid = validate(); $dispatch('validation', {valid, field : 'recipient', input})"
                                 x-model="input"
                                 x-bind:class="{'error' : errorMessage}"
+                                
                                 placeholder="Recipient..."
                                 type="text"
                                 name="recipient"
@@ -98,7 +99,7 @@
                             validate() {
                                 this.initialized = true
                                 if (!this.input) {
-                                    this.errorMessage = 'description required'
+                                    this.errorMessage = 'Description required'
                                     return false
                                 }
                                 this.errorMessage = ''
@@ -129,15 +130,15 @@
                                 validate() {
                                     this.initialized = true
                                     if (!this.input) {
-                                        this.errorMessage = 'amount required'
+                                        this.errorMessage = 'Amount required'
                                         return false
                                     }
                                     if (!Number(this.input)) {
-                                        this.errorMessage = 'number required'
+                                        this.errorMessage = 'Number required'
                                         return false
                                     }
                                     if (this.input < 0) {
-                                        this.errorMessage = 'posivite values'
+                                        this.errorMessage = 'Posivite values'
                                         return false
                                     }
                                     if (this.balance - this.input < 0) {
