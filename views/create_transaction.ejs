@@ -1,18 +1,18 @@
-<div id="root" x-data="{ 
+
+<div x-data="{ 
         balance: 0, 
-    }"
-    x-init=" fetch('/balance').then(data => data.json()).then(json => balance = json.balance) "
-    >
+        user: 'Stephon Fraser',
+    }" x-init=" fetch('/balance').then(data => data.json()).then(json => balance = json.balance) ">
     <header>
-        <h1><span class="company" >Muneshwers</span> Petty Cash</h1>
+        <h1><span class="company">Muneshwers</span> Petty Cash</h1>
         <div class="navbar">
-            <nav class="current" >Create Transaction</nav>
+            <nav class="current" hx-get="/home" hx-swap="outerHTML">Create Transaction</nav>
             <nav hx-get="/reimburse" hx-target="#root" hx-swap="outerHTML">Reimburse</nav>
         </div>
     </header>
-    <main>
+    <main id="root">
         <h2> Create Transaction </h2>
-            <div x-data="{
+        <div x-data="{
                 inputs : {
                     amount :  {value: '', valid: false},
                     recipient : {value: '', valid: false},
@@ -36,6 +36,7 @@
                         minimumFractionDigits: 0,
                         maximumFractionDigits: 0,
                     }).format(number)
+
                 }
             }
             " >

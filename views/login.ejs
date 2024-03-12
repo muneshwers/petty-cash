@@ -1,4 +1,4 @@
-<main class="login" >
+<main class="login">
     <div class="login-container">
         <h2><span class="company">Muneshwer</span> Petty Cash</h2>
         <form hx-post="/login/user">
@@ -12,12 +12,9 @@
             </div>
             <button type="submit">Login</button>
             <% if(errorMessage) { %>
+
                 <p class="error-message"><%= errorMessage %></p>
             <% } %>
         </form>
     </div>
 </main>
-
-
-
-
