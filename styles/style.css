@@ -179,7 +179,6 @@ button {
     font-size: 18px;
     transition: background-color 0.3s;
 }
-
 .login-container button[type="submit"]:hover {
     background-color: #003580;
 }
