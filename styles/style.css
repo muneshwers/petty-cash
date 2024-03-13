@@ -182,3 +182,7 @@ button {
 .login-container button[type="submit"]:hover {
     background-color: #003580;
 }
+
+.ag-center-cols-viewport {
+    min-height: unset !important;
+}
