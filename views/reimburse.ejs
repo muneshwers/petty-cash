@@ -14,7 +14,8 @@
                     rowData : transactions,
                     domLayout: 'autoHeight',
                     columnDefs : [
-                        { field: 'description', checkboxSelection: true},
+                        { field: 'transactionId', checkboxSelection: true},
+                        { field: 'description'},
                         { field: 'amount' },
                         { field: 'recipient' },
                         { field: 'createdBy' },
@@ -60,6 +61,19 @@
     },
     refreshGrid2() {
         this.grid2.setRowData(this.toBeReimbursed);
+    },
+    sendReimbursedTotal(reimbursedTotal, toBeReimbursed) {
+        fetch('/reimburseBalance', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                reimbursedTotal,
+                toBeReimbursed
+            }),
+        });
+        console.log('Sending reimbursed total')
     }
 }">
     
@@ -73,7 +87,7 @@
             <div style="display: flex; align-items: center; column-gap: 20px;">
                 <h2>To Be Reimbursed</h2>
                 <h2 x-text="'$'+reimbursedTotal" style="font-weight: bold;"></h2>
-                <button type="button">Reimburse</button>
+                <button type="button" x-on:click="sendReimbursedTotal(reimbursedTotal, toBeReimbursed)">Reimburse</button>
             </div>
             
             <div x-show="toBeReimbursed.length > 0">
