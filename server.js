@@ -40,11 +40,18 @@ function getCurrentBalance() {
 }
 
 function updateBalance(amount) {
-  console.log("Balance is updating")
   const existingBalance = getCurrentBalance();
   existingBalance.balance = existingBalance.balance-amount;
   fs.writeFileSync('database\\currentBalance.json', JSON.stringify(existingBalance));
 }
+
+function updateBalancefromReimburse(reimburseTotal) {
+  console.log("Balance is updating")
+  const existingBalance = getCurrentBalance();
+  existingBalance.balance = existingBalance.balance+reimburseTotal;
+  fs.writeFileSync('database\\currentBalance.json', JSON.stringify(existingBalance));
+}
+
 
 function updateTransactionsFile(newTransaction) {
   
@@ -86,7 +93,7 @@ app.get("/balance", (req, res) => {
 
 //Receives form input and updates balance current value
 app.post("/balance", (req ,res) => {
-  const {recipient, description, amount, date} = req.body
+  const {recipient, description, amount, date,reimburseTotal} = req.body
   let data = {
     recipient,
     description,
@@ -112,6 +119,10 @@ app.get("/login", (req, res) => {
   res.render("login", { errorMessage: '' });
 });
 
+app.post("/reimburseBalance",(req,res)=>{
+  const{reimburseTotal} = req.body
+  updateBalancefromReimburse(reimburseTotal)
+})
 app.post("/login/user", (req, res) => {
   const { username, password } = req.body;
   console.log(req.body)
