@@ -5,8 +5,8 @@ import fs from "fs";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const transactions = [];
-let balance = 5000; //Initializes balance with 5000 when server starts
+// const transactions = [];
+// let balance = 5000; //Initializes balance with 5000 when server starts
 
 app.set("view engine", "ejs");
 app.use(bodyParser.json());
@@ -27,11 +27,43 @@ function getUsers() {
   return users
 }
 
+function getCurrentBalance() {
+  try {
+    const balanceData = fs.readFileSync('database\\currentBalance.json');
+    const balanceJsonString = balanceData.toString('utf-8');
+    const balance = JSON.parse(balanceJsonString);
+    return balance;
+  } catch (error) {
+    console.error("Error reading current balance:", error);
+    return 0;
+  }
+}
 
-app.get("/balance", (req, res) => {
-  res.json({balance})
-})
+function updateBalance(amount) {
+  console.log("Balance is updating")
+  const existingBalance = getCurrentBalance();
+  existingBalance.balance = existingBalance.balance-amount;
+  fs.writeFileSync('database\\currentBalance.json', JSON.stringify(existingBalance));
+}
 
+function updateTransactionsFile(newTransaction) {
+  
+  const existingTransactions = JSON.parse(fs.readFileSync('database/currentTransactions.json'));
+  existingTransactions.transactions.push(newTransaction);
+  fs.writeFileSync('database/currentTransactions.json', JSON.stringify(existingTransactions));
+}
+
+function getTransactionsFile() {
+    try {
+      const transactionsData = fs.readFileSync('database/currentTransactions.json');
+      const transactionsJsonString = transactionsData.toString('utf-8');
+      const transactions = JSON.parse(transactionsJsonString);
+      return transactions;
+    } catch (error) {
+      console.error("Error reading current transactions:", error);
+      return 0;
+    }
+}
 
 app.get("/", (req, res) => {
   res.render("home")
@@ -41,12 +73,14 @@ app.get("/home", (req, res) => {
   if (!req.session.loggedIn) {
     res.render("login", {errorMessage : ''});
   } else {
-    res.render("create_transaction", { balance, transactions, currentUser: req.session.username });
+    res.render("create_transaction", { currentUser: req.session.username });
   }
 })
 
 //Sends current balance to homepage
 app.get("/balance", (req, res) => {
+  const balanceObj = getCurrentBalance();
+  const balance = balanceObj.balance
   res.json({balance})
 })
 
@@ -60,22 +94,18 @@ app.post("/balance", (req ,res) => {
     date,
     createdBy : req.session.username
   }
-  balance = balance - amount;
-  transactions.push(data);
+  updateBalance(amount);
+  updateTransactionsFile(data);
+
+  //Seeing balance updates on server
+  const balanceObj = getCurrentBalance();
+  const balance = balanceObj.balance
+  const transactions = getTransactionsFile();
   console.log(transactions);
   console.log("(Server Action) Balance is now $" + balance);
   console.log("(Server Action) Data Received: "+ recipient + " , " + description  + " , " + amount  + " , " + date + " , " + req.session.username);
   // console.log(req.body)
   res.render("create_transaction")
-})
-
-//Checks 
-app.get("/home", (req, res) => {
-  if (!req.session.loggedIn) {
-    res.render("login", {errorMessage : ''});
-  } else {
-    res.render("create_transaction", { balance, transactions, currentUser: req.session.username });
-  }
 })
 
 app.get("/login", (req, res) => {
@@ -105,19 +135,11 @@ app.get("/reimburse", (req, res) => {
   res.render("reimburse")
 })
 
-//Receives data from form body and pushes to transactionLog array
-// app.post("/transactions", async (req, res) => {
-//   const data = await req.body;
-//   const {recipient, description, amount, date, createdBy } = data;
-//   balance = balance - amount;
-//   transactionLog.push(data);
-//   console.log(transactionLog);
-//   console.log("(Server Action) Balance is now $" + balance);
-//   console.log("(Server Action) Data Received: "+ recipient + " , " + description  + " , " + amount  + " , " + date + " , " + createdBy);
-// })
 
-//Sends the transactionLog to client
+//Sends the transactions array to reimbursed table
 app.get("/transactions", async (req, res) => {
+  let transactionsObj = getTransactionsFile()
+  let transactions = transactionsObj.transactions;
   res.json({transactions})
   console.log("(Server Action) Returning transactions log")
   console.log(transactions);
