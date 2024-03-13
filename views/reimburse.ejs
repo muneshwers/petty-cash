@@ -3,6 +3,7 @@
     toBeReimbursed : [],
     grid : null,
     grid2 : null,
+    reimbursedTotal: 0,
     init(){
         fetch('/transactions')
             .then(data => data.json())
@@ -11,6 +12,7 @@
                 {   
                     this.grid = agGrid.createGrid(this.$refs.myGrid, {
                     rowData : transactions,
+                    domLayout: 'autoHeight',
                     columnDefs : [
                         { field: 'description', checkboxSelection: true},
                         { field: 'amount' },
@@ -23,6 +25,7 @@
                         if(event.node.isSelected()) {
                             console.log(event.node.data, ' :Selected and added to ', this.toBeReimbursed);
                             this.toBeReimbursed.push(event.node.data);
+                            this.reimbursedTotal = this.reimbursedTotal + Number(event.node.data.amount);
                             this.grid2.setRowData(this.toBeReimbursed)
                             this.grid2.refreshCells()
                         } else {
@@ -31,6 +34,7 @@
 
                             if (index > -1) {
                                 this.toBeReimbursed.splice(index, 1);
+                                this.reimbursedTotal = this.reimbursedTotal - Number(event.node.data.amount);
                             }
                             console.log('Reimbused list now: ', this.toBeReimbursed);
                         }
@@ -41,6 +45,7 @@
                 console.log(transactions)
                 this.grid2 = agGrid.createGrid(this.$refs.myGrid2, {
                     rowData : this.toBeReimbursed,
+                    domLayout: 'autoHeight',
                     columnDefs : [
                         { field: 'description'},
                         { field: 'amount' },
@@ -57,8 +62,23 @@
         this.grid2.setRowData(this.toBeReimbursed);
     }
 }">
-    <div x-show="toBeReimbursed.length > 0">
-        <div x-ref="myGrid2" class="ag-theme-quartz" style="height: 500px"></div>
+    
+    
+    <div style="display: flex">
+        <div style="flex: 1; margin-right: 20px">
+            <h2>Transactions</h2>
+            <div x-ref="myGrid" class="ag-theme-quartz ag-center-cols-viewport" style="width: auto"></div>
+        </div>
+        <div style="flex: 1;">
+            <div style="display: flex; align-items: center; column-gap: 20px;">
+                <h2>To Be Reimbursed</h2>
+                <h2 x-text="'$'+reimbursedTotal" style="font-weight: bold;"></h2>
+                <button type="button">Reimburse</button>
+            </div>
+            
+            <div x-show="toBeReimbursed.length > 0">
+                <div x-ref="myGrid2" class="ag-theme-quartz ag-center-cols-viewport"></div>
+            </div>
+        </div>
     </div>
-    <div x-ref="myGrid" class="ag-theme-quartz" style="height: 500px"></div>
 </div>
