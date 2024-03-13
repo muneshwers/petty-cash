@@ -34,6 +34,7 @@
                             }
                             console.log('Reimbused list now: ', this.toBeReimbursed);
                         }
+                        this.refreshGrid2();
                     }
                 })
                 // console.log(this.toBeReimbursed)
@@ -51,6 +52,9 @@
             }
             )
         
+    },
+    refreshGrid2() {
+        this.grid2.setRowData(this.toBeReimbursed);
     }
 }">
     <div x-show="toBeReimbursed.length > 0">
