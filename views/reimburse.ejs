@@ -1,3 +1,127 @@
-<div>
-<span>Hello there</span>
-</div>
+<main>
+    <div x-data="{
+        transactionLog : [],
+        toBeReimbursed : [],
+        grid : null,
+        grid2 : null,
+        reimbursedTotal: 0,
+        init(){
+            fetch('/transactions')
+                .then(data => data.json())
+                .then(js => Alpine.raw(js.transactions))
+                .then(transactions =>
+                    {
+                        this.grid = agGrid.createGrid(this.$refs.myGrid, {
+                            rowData : transactions,
+                            domLayout: 'autoHeight',
+                            columnDefs : [
+                                { field: 'transactionId', checkboxSelection: true},
+                                { field: 'description'},
+                                { field: 'amount' },
+                                { field: 'recipient' },
+                                { field: 'createdBy' },
+                                { field: 'date'}
+                            ],
+                            rowSelection: 'multiple',
+                            onRowSelected: (event) => {
+                                if (event.node.isSelected()) {
+                                    console.log(event.node.data, ' :Selected and added to ', this.toBeReimbursed);
+                                    this.toBeReimbursed.push(event.node.data);
+                                    this.reimbursedTotal = this.reimbursedTotal + Number(event.node.data.amount);
+                                    this.grid2.setRowData([...this.toBeReimbursed, {description: 'Total', amount : this.reimbursedTotal}])
+                                    this.grid2.refreshCells()
+                                    console.log(this.toBeReimbursed)
+                                    return
+                                }
+    
+                                console.log(event.node.data, ' :Deselected and removed.');
+                                const index = this.toBeReimbursed.indexOf(event.node.data);
+                                console.log(index)
+                                if (index < 0) {
+                                    return
+                                }
+                                this.toBeReimbursed.splice(index, 1);
+                                this.reimbursedTotal = this.reimbursedTotal - Number(event.node.data.amount);
+                                console.log('Reimbused list now: ', this.toBeReimbursed);
+                                let toBeReimbursed = [...this.toBeReimbursed]
+                                if (this.reimbursedTotal > 0) {
+                                    toBeReimbursed.push({description: 'Total', amount : this.reimbursedTotal})
+                                }
+                                this.grid2.setRowData(toBeReimbursed);
+                                this.grid2.refreshCells()
+                            }
+                        })
+                    // console.log(this.toBeReimbursed)
+                    console.log(transactions)
+                    this.grid2 = agGrid.createGrid(this.$refs.myGrid2, {
+                        rowData : this.toBeReimbursed,
+                        domLayout: 'autoHeight',
+                        columnDefs : [
+                            { field: 'description'},
+                            { field: 'amount' },
+                            { field: 'recipient' },
+                            { field: 'createdBy' },
+                            { field: 'date'}
+                        ],
+                        getRowStyle: function(params) {
+                            if (params.node.rowIndex === params.api.getDisplayedRowCount() - 1) {
+                            return { background: 'lightgreen' }; // Apply your styling here
+                            }
+                            return null;
+                        },
+                    })
+                }
+                )
+    
+            htmx.on('button', 'click', (event) => {
+                htmx.ajax('POST', '/test', {
+                    target: 'main', 
+                    swap:'outerHTML', 
+                    values:{
+                        toBeReimbursed: JSON.stringify(this.toBeReimbursed),
+                        reimbursedTotal : this.reimbursedTotal,
+                    } 
+                })
+            })
+
+        },
+        sendReimbursedTotal(reimbursedTotal, toBeReimbursed) {
+            fetch('/reimburseBalance', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    reimbursedTotal,
+                    toBeReimbursed
+                }),
+            });
+            console.log('Sending reimbursed total')
+        },
+        createBalanceRow(balance) {
+            return {
+                balance
+            }
+        }
+    }">
+    
+    
+        <div style="display: flex">
+            <div style="flex: 1; margin-right: 20px">
+                <span>Transactions</span>
+                <div x-ref="myGrid" class="ag-theme-quartz ag-center-cols-viewport" style="width: auto"></div>
+            </div>
+            <div style="flex: 1;">
+                <div style="display: flex; align-items: center; column-gap: 20px;">
+                    <span>To Be Reimbursed</span>
+                    <h2 x-text="'$'+reimbursedTotal" style="font-weight: bold;"></h2>
+                    <button type="button">Reimburse</button>
+                </div>
+    
+                <div x-show="toBeReimbursed.length > 0">
+                    <div x-ref="myGrid2" id="myGrid2" class="ag-theme-quartz ag-center-cols-viewport"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>

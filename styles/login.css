@@ -1,7 +1,7 @@
 body {
     color: #333;
     background-color: #f0f0f0;
-    font-family:Arial, Helvetica, sans-serif;
+    font-family: Arial, Helvetica, sans-serif;
     margin: 0;
     padding: 0;
     display: flex;
@@ -19,10 +19,12 @@ body {
     max-width: 90%;
     text-align: center;
 }
+
 h2 {
     color: #333333;
     margin-bottom: 20px;
 }
+
 label {
     display: block;
     margin-bottom: 10px;
@@ -30,6 +32,7 @@ label {
     font-size: 18px;
     text-align: left;
 }
+
 input[type="text"],
 input[type="password"] {
     width: calc(100% - 20px);
@@ -40,6 +43,7 @@ input[type="password"] {
     font-size: 16px;
     outline: none;
 }
+
 button[type="submit"] {
     background-color: #0047ab;
     color: white;
@@ -50,9 +54,11 @@ button[type="submit"] {
     font-size: 18px;
     transition: background-color 0.3s;
 }
+
 button[type="submit"]:hover {
     background-color: #003580;
 }
+
 button[type="submit"]:focus {
     outline: none;
 }

@@ -1,16 +1,1 @@
-{
-    "transactions" : [
-        {
-            "recipient" : "David Callender",
-            "amount" : 5000,
-            "description" : "Hello kitty pajamas",
-            "Created By" : "Bibi",
-            "Created Date" : "2024-03-07"
-        },
-        {
-            "recipient" : "Stephon Fraser",
-            "amount" : 4000,
-            "Created By" : "Bibi"
-        }
-    ]
-}
+{"transactions":[{"transactionId":142,"recipient":"David Callender","description":"House","amount":"1200","date":"2024-03-13"},{"transactionId":197,"recipient":"Henrietta Parlor","description":"Car","amount":"340","date":"2024-03-13"},{"transactionId":91,"recipient":"Salem","description":"Jeep","amount":"560","date":"2024-03-13"}]}

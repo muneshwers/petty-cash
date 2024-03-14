@@ -1,13 +1,14 @@
 <div id="root" x-data="{ 
         balance: 0, 
+        tab : 'transactions'
     }"
     x-init=" fetch('/balance').then(data => data.json()).then(json => balance = json.balance) "
     >
     <header>
         <h1><span class="company" >Muneshwers</span> Petty Cash</h1>
         <div class="navbar">
-            <nav class="current" >Create Transaction</nav>
-            <nav hx-get="/reimburse" hx-target="#root" hx-swap="outerHTML">Reimburse</nav>
+            <nav :class="{'current': tab == 'transactions'}" @click="tab = 'transactions'" hx-target="#root" hx-get="/create_transaction" hx-swap="outerHTML">Create Transaction</nav>
+            <nav :class="{'current': tab == 'reimburse'}" @click="tab = 'reimburse'" hx-get="/reimburse" hx-target="main" hx-swap="outerHTML">Reimburse</nav>
         </div>
     </header>
     <main>
