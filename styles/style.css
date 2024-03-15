@@ -48,6 +48,53 @@ nav.current:hover {
     color: #0047ab
 }
 
+.account {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    position: relative;
+    width: 200px;
+}
+
+.account button {
+    display: flex;
+    justify-content: center;
+    background: transparent;
+    padding: 20px;
+    border: none;
+    align-items: center;
+}
+
+.account button span {
+    font-size: 18px;
+}
+
+.account button svg {
+    height: 20px;
+    color: #666666;
+}
+
+.account .panel {
+    position: absolute;
+    top: 80%;
+    background: #fff;
+    width: 200px;
+    padding: 10px 0px 10px 0px;
+    border: 1px solid #f0f0f0;
+    border-radius: 10px;
+    cursor: pointer;
+
+}
+
+.account .panel .item {
+    padding: 10px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.account .panel .item:hover {
+    background-color: #f0f0f0;
+}
+
 main {
     margin: 7vw;
     margin-top: 0;
