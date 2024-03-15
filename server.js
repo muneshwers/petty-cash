@@ -5,8 +5,6 @@ import fs from "fs";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-// const transactions = [];
-// let balance = 5000; //Initializes balance with 5000 when server starts
 
 app.set("view engine", "ejs");
 app.use(bodyParser.json());
@@ -27,67 +25,6 @@ let balance = 0
 let transactions = []
 
 //Gets users from json file
-function getUsers() {
-  const usersData = fs.readFileSync('./database/users.json');
-  const usersJsonString = usersData.toString('utf-8');
-  const users = JSON.parse(usersJsonString).users;
-  return users
-}
-
-function getCurrentBalance() {
-  try {
-    const {balance} = fs.readFileSync('database/currentBalance.json', "utf-8");
-    return balance;
-  } catch (error) {
-    console.error("Error reading current balance:", error);
-    return 0;
-  }
-}
-
-function updateBalance() {
-  fs.writeFileSync('database\\currentBalance.json', JSON.stringify({balance}));
-}
-
-function updateBalancefromReimburse(reimburseTotal) {
-  console.log("Balance is updating")
-  balance = balance + reimburseTotal
-  updateBalance()
-}
-
-
-function updateTransactionsFile() {
-  fs.writeFileSync('database/currentTransactions.json', JSON.stringify(existingTransactions));
-}
-
-function getTransactionsFile() {
-    try {
-      const {transactions} = fs.readFileSync('database/currentTransactions.json', "utf-8");
-      return transactions;
-    } catch (error) {
-      console.error("Error reading current transactions:", error);
-      return []
-    }
-}
-
-function updateTransactionHistory(transaction) {
-  const {transactionHistory} = fs.readFileSync('database/transactionHistory.json', "utf-8")
-  transactionHistory.push(transaction);
-  fs.writeFileSync('database/transactionHistory.json', JSON.stringify({transactionHistory}));
-}
-
-/**
- * 
- * @param {string} transactionId 
- */
-function deleteFromCurrentTransactions(transactionId) {
-  let index = transactions.findIndex((transaction) => transaction.id == transactionId)
-  if (index < 0) {
-    return
-  } 
-  transactions.splice(index, 1)
-
-}
-
 app.get("/", (req, res) => {
   res.render("home")
 })
@@ -107,8 +44,8 @@ app.get("/balance", (req, res) => {
 
 //Receives form input and updates balance current value
 app.post("/balance", (req ,res) => {
+  console.log(req.session)
   const {recipient, description, amount, date} = req.body
-  console.log("(Server Action) --------------------------- Updating Balance and Current Transactions---------------------------")
   let transaction = {
     transactionId:  Math.round(Math.random() * 240),
     recipient,
@@ -121,13 +58,6 @@ app.post("/balance", (req ,res) => {
   updateTransactionsFile();
   balance = balance - amount
   updateBalance();
-
-  //Seeing balance updates on server
-  console.log(transactions);
-  console.log("(Server Action) Balance is now $" + balance);
-  console.log("(Server Action) Data Received: "+ data.transactionId + " , " + recipient + " , " + description  + " , " + amount  + " , " + date + " , " + req.session.username);
-  // console.log(req.body)
-  console.log("(Server Action) ---------------------------[END] Updating Balance and Current Transactions---------------------------")
   res.render("create_transaction")
 
 })
@@ -138,13 +68,16 @@ app.get("/login", (req, res) => {
 
 //Takes reimbursed total from table and adds to current balance
 app.post("/reimburseBalance",(req,res)=>{
-  const{reimbursedTotal, toBeReimbursed} = req.body
-  updateBalancefromReimburse(reimbursedTotal)
+  let { reimbursedTotal, toBeReimbursed } = req.body
+  toBeReimbursed = JSON.parse(toBeReimbursed)
+  balance = Number(balance) + Number(reimbursedTotal)
+  updateBalance()
+  console.log({toBeReimbursed})
   for (let reimbursement of toBeReimbursed) {
     deleteFromCurrentTransactions(reimbursement)
   }
   updateTransactionsFile()
-  updateTransactionHistory(transaction)
+  updateTransactionHistory(toBeReimbursed)
   res.render("reimburse")
 })
 
@@ -175,13 +108,6 @@ app.get("/reimburse", (req, res) => {
   res.render("reimburse")
 })
 
-app.post("/test", (req, res) => {
-  let {toBeReimbursed, reimbursedTotal} = req.body
-  console.log(reimbursedTotal)
-  res.render("reimburse")
-})
-
-//Sends the transactions array to reimbursed table
 app.get("/transactions", async (req, res) => {
   res.json({transactions})
 })
@@ -193,6 +119,63 @@ app.listen(PORT, () => {
 });
 
 
+function getUsers() {
+  const {users} = JSON.parse(fs.readFileSync('./database/users.json', "utf-8"))
+  return users
+}
+
+function getCurrentBalance() {
+  try {
+    const {balance} = JSON.parse(fs.readFileSync('database/currentBalance.json', "utf-8"))
+    return balance;
+  } catch (error) {
+    console.error("Error reading current balance:", error);
+    return 0;
+  }
+}
+
+function updateBalance() {
+  fs.writeFileSync('database/currentBalance.json', JSON.stringify({balance}));
+}
+
+function updateTransactionsFile() {
+  fs.writeFileSync('database/currentTransactions.json', JSON.stringify({transactions}));
+}
+
+function getTransactionsFile() {
+    try {
+      const {transactions} = JSON.parse(fs.readFileSync('database/currentTransactions.json', "utf-8"));
+      return transactions;
+    } catch (error) {
+      console.error("Error reading current transactions:", error);
+      return []
+    }
+}
+
+/**
+ * 
+ * @param {Array<any>} transactions 
+ */
+function updateTransactionHistory(transactions) {
+  const {transactionHistory} = JSON.parse(fs.readFileSync('database/transactionHistory.json', "utf-8"))
+  transactionHistory.push(...transactions)
+  fs.writeFileSync('database/transactionHistory.json', JSON.stringify({transactionHistory}));
+}
+
+/**
+ * 
+ * @param {string} transactionId 
+ */
+function deleteFromCurrentTransactions(reimbursement) {
+  console.log({transactions})
+  console.log({reimbursement})
+  let index = transactions.findIndex((transaction) => transaction.transactionId == reimbursement.transactionId)
+  if (index < 0) {
+    return
+  } 
+  transactions.splice(index, 1)
+
+}
 //TODO:
 // Test how including the ag grid works with htmx 
 // Is there a way to title a table? 
