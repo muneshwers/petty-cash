@@ -26,14 +26,14 @@ let transactions = []
 
 //Gets users from json file
 app.get("/", (req, res) => {
-  res.render("home")
+  res.render("head")
 })
 
 app.get("/home", (req, res) => {
   if (!req.session.loggedIn) {
     res.render("login", {errorMessage : ''});
   } else {
-    res.render("create_transaction")
+    res.render("home")
   }
 })
 
@@ -44,7 +44,6 @@ app.get("/balance", (req, res) => {
 
 //Receives form input and updates balance current value
 app.post("/balance", (req ,res) => {
-  console.log(req.session)
   const {recipient, description, amount, date} = req.body
   let transaction = {
     transactionId:  Math.round(Math.random() * 240),
@@ -93,11 +92,14 @@ app.post("/login/user", (req, res) => {
   if (!user) {
     errorMessage = "Invalid username or password. Please try again."; 
     res.render("login", { errorMessage });
-  } else {
-    req.session.loggedIn = true;
-    req.session.username = username;
-    res.render("create_transaction")
-  }
+    return
+  } 
+
+  req.session.loggedIn = true;
+  req.session.username = username;
+  res.render("home")
+  return
+  
 })
 
 app.get("/create_transaction", (req, res) => {

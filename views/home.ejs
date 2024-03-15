@@ -1,15 +1,11 @@
-<!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Document</title>
-        <script src="//unpkg.com/alpinejs" defer></script>
-        <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-        <link rel="stylesheet" href="../styles/style.css">
-        <script src="https://cdn.jsdelivr.net/npm/ag-grid-community/dist/ag-grid-community.min.js"></script>
-    </head>
-
-    <body hx-get="/home" hx-trigger="load" hx-target="this" hx-swap="outerHTML">
-    </body>
-</html>
+<div>
+    <header>
+        <h1><span class="company" >Muneshwers</span> Petty Cash</h1>
+        <div class="navbar">
+            <nav :class="{'current': tab == 'transactions'}" @click="tab = 'transactions'" hx-target="main" hx-get="/create_transaction" hx-swap="outerHTML">Create Transaction</nav>
+            <nav :class="{'current': tab == 'reimburse'}" @click="tab = 'reimburse'" hx-get="/reimburse" hx-target="main" hx-swap="outerHTML">Reimburse</nav>
+        </div>
+    </header>
+    <main hx-trigger="load" hx-target="this" hx-swap="outerHTML" hx-get="/create_transaction">
+    </main>
+</div>
