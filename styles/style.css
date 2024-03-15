@@ -233,3 +233,17 @@ button {
 .ag-center-cols-viewport {
     min-height: unset !important;
 }
+
+#reimburse_button{
+    margin-top: 10px;
+    background-color: #0047ab;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    font-size: 15px;
+    cursor: pointer;
+}
+
+#reimburse_button:hover {
+    background-color: #003580;
+}

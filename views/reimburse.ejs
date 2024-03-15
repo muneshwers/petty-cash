@@ -65,7 +65,7 @@
                         ],
                         getRowStyle: function(params) {
                             if (params.node.rowIndex === params.api.getDisplayedRowCount() - 1) {
-                            return { background: 'lightgreen' }; // Apply your styling here
+                            return { background: 'lightgreen', fontWeight: 'bold' }; // Apply your styling here
                             }
                             return null;
                         },
@@ -108,18 +108,14 @@
     
         <div style="display: flex">
             <div style="flex: 1; margin-right: 20px">
-                <span>Transactions</span>
+                <h2>Transactions</h2>
                 <div x-ref="myGrid" class="ag-theme-quartz ag-center-cols-viewport" style="width: auto"></div>
             </div>
             <div style="flex: 1;">
-                <div style="display: flex; align-items: center; column-gap: 20px;">
-                    <span>To Be Reimbursed</span>
-                    <h2 x-text="'$'+reimbursedTotal" style="font-weight: bold;"></h2>
-                    <button id="reimburse_button"  type="button">Reimburse</button>
-                </div>
-    
                 <div x-show="toBeReimbursed.length > 0">
+                    <h2>To Be Reimbursed</h2>
                     <div x-ref="myGrid2" id="myGrid2" class="ag-theme-quartz ag-center-cols-viewport"></div>
+                    <button id="reimburse_button" type="button">Reimburse</button>
                 </div>
             </div>
         </div>
