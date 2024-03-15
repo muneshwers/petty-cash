@@ -24,7 +24,7 @@ let balance = 0
 
 let transactions = []
 
-let account = 'muneshwers'
+let currentAccount = 'muneshwers'
 
 //Gets users from json file
 app.get("/", (req, res) => {
@@ -56,9 +56,9 @@ app.post("/balance", (req ,res) => {
     createdBy : req.session.username
   }
   transactions.push(transaction)
-  updateTransactionsFile(account);
+  updateTransactionsFile(currentAccount);
   balance = balance - amount
-  updateBalance(account);
+  updateBalance(currentAccount);
   res.render("create_transaction")
 
 })
@@ -72,13 +72,13 @@ app.post("/reimburseBalance",(req,res)=>{
   let { reimbursedTotal, toBeReimbursed } = req.body
   toBeReimbursed = JSON.parse(toBeReimbursed)
   balance = Number(balance) + Number(reimbursedTotal)
-  updateBalance(account)
+  updateBalance(currentAccount)
   console.log({toBeReimbursed})
   for (let reimbursement of toBeReimbursed) {
     deleteFromCurrentTransactions(reimbursement)
   }
-  updateTransactionsFile(account)
-  updateTransactionHistory(toBeReimbursed, account)
+  updateTransactionsFile(currentAccount)
+  updateTransactionHistory(toBeReimbursed, currentAccount)
   res.render("reimburse")
 })
 
@@ -99,6 +99,7 @@ app.post("/login/user", (req, res) => {
 
   req.session.loggedIn = true;
   req.session.username = username;
+  req.session.account = 'muneshwers';
   res.render("home")
   return
   
@@ -117,14 +118,17 @@ app.get("/transactions", async (req, res) => {
 })
 
 app.post("/account", (req, res) => {
-  console.log(req.body)
+  const {account} = req.body;
+  currentAccount = account.toLowerCase();
+  balance  = getCurrentBalance(currentAccount)
+  transactions = getTransactionsFile(currentAccount)
   res.render("create_transaction")
 })
 
 app.listen(PORT, () => {
-  account = 'muneshwers'
-  balance  = getCurrentBalance(account)
-  transactions = getTransactionsFile(account)
+  currentAccount = 'muneshwers'
+  balance  = getCurrentBalance(currentAccount)
+  transactions = getTransactionsFile(currentAccount)
   console.log(`App is running on port ${PORT}`);
 });
 
