@@ -1,7 +1,51 @@
-<div>
+<div
+x-data="{
+    tab : 'transactions',
+    currAccount : 'Muneshwers',
+    accounts : ['Muneshwers', 'Paragon', 'Barges'],
+    open : false,
+    toggle () {
+        if (this.open) {
+            this.close()
+            return
+        }
+        this.$refs.button.focus()
+        this.open = true
+    },
+    close (element) {
+        if (!this.open) return
+        this.open = false
+        return 
+    },
+    swapAccount (account) {
+        this.currAccount = account
+
+        htmx.ajax('POST', '/account', {
+            target: 'main', 
+            swap:'outerHTML', 
+            values:{
+                account
+            } 
+        })
+
+    }
+    }">
     <header>
         <h1><span class="company" >Muneshwers</span> Petty Cash</h1>
         <div class="navbar">
+            <div class="account">
+                <button x-ref="button" x-on:click="toggle()">
+                    <span x-text="currAccount"></span>  
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                     </svg> 
+                </button>
+                <div class="panel" x-show="open" x-transition.origin.top.left x-on:click.outside="close($refs.button)">
+                    <template x-for="account in accounts">
+                        <div class="item" x-on:click="swapAccount(account)"   x-text="account"></div>
+                    </template>
+                </div>
+            </div>
             <nav :class="{'current': tab == 'transactions'}" @click="tab = 'transactions'" hx-target="main" hx-get="/create_transaction" hx-swap="outerHTML">Create Transaction</nav>
             <nav :class="{'current': tab == 'reimburse'}" @click="tab = 'reimburse'" hx-get="/reimburse" hx-target="main" hx-swap="outerHTML">Reimburse</nav>
         </div>

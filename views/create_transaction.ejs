@@ -1,7 +1,6 @@
 <main>
     <div x-data="{
             balance: 0,
-            tab : 'transactions'
         }"
         x-init=" fetch('/balance').then(data => data.json()).then(json => balance = json.balance) "
         >

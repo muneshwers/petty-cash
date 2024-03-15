@@ -114,6 +114,11 @@ app.get("/transactions", async (req, res) => {
   res.json({transactions})
 })
 
+app.post("/account", (req, res) => {
+  console.log(req.body)
+  res.render("create_transaction")
+})
+
 app.listen(PORT, () => {
   balance  = getCurrentBalance()
   transactions = getTransactionsFile()
@@ -179,7 +184,5 @@ function deleteFromCurrentTransactions(reimbursement) {
 
 }
 //TODO:
-// Test how including the ag grid works with htmx 
 // Is there a way to title a table? 
-// should I make the create transaction page completely separate
 // style the sheet

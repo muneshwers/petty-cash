@@ -73,7 +73,7 @@
                 }
                 )
     
-            htmx.on('button', 'click', (event) => {
+            htmx.on('#reimburse_button', 'click', (event) => {
                 htmx.ajax('POST', '/reimburseBalance', {
                     target: 'main', 
                     swap:'outerHTML', 
@@ -115,7 +115,7 @@
                 <div style="display: flex; align-items: center; column-gap: 20px;">
                     <span>To Be Reimbursed</span>
                     <h2 x-text="'$'+reimbursedTotal" style="font-weight: bold;"></h2>
-                    <button type="button">Reimburse</button>
+                    <button id="reimburse_button"  type="button">Reimburse</button>
                 </div>
     
                 <div x-show="toBeReimbursed.length > 0">
