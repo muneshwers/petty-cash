@@ -24,6 +24,8 @@ let balance = 0
 
 let transactions = []
 
+let account = 'muneshwers'
+
 //Gets users from json file
 app.get("/", (req, res) => {
   res.render("head")
@@ -54,9 +56,9 @@ app.post("/balance", (req ,res) => {
     createdBy : req.session.username
   }
   transactions.push(transaction)
-  updateTransactionsFile();
+  updateTransactionsFile(account);
   balance = balance - amount
-  updateBalance();
+  updateBalance(account);
   res.render("create_transaction")
 
 })
@@ -70,13 +72,13 @@ app.post("/reimburseBalance",(req,res)=>{
   let { reimbursedTotal, toBeReimbursed } = req.body
   toBeReimbursed = JSON.parse(toBeReimbursed)
   balance = Number(balance) + Number(reimbursedTotal)
-  updateBalance()
+  updateBalance(account)
   console.log({toBeReimbursed})
   for (let reimbursement of toBeReimbursed) {
     deleteFromCurrentTransactions(reimbursement)
   }
-  updateTransactionsFile()
-  updateTransactionHistory(toBeReimbursed)
+  updateTransactionsFile(account)
+  updateTransactionHistory(toBeReimbursed, account)
   res.render("reimburse")
 })
 
@@ -115,8 +117,9 @@ app.get("/transactions", async (req, res) => {
 })
 
 app.listen(PORT, () => {
-  balance  = getCurrentBalance()
-  transactions = getTransactionsFile()
+  account = 'muneshwers'
+  balance  = getCurrentBalance(account)
+  transactions = getTransactionsFile(account)
   console.log(`App is running on port ${PORT}`);
 });
 
@@ -126,9 +129,9 @@ function getUsers() {
   return users
 }
 
-function getCurrentBalance() {
+function getCurrentBalance(account) {
   try {
-    const {balance} = JSON.parse(fs.readFileSync('database/currentBalance.json', "utf-8"))
+    const {balance} = JSON.parse(fs.readFileSync(`database/${account}/currentBalance.json`, "utf-8"))
     return balance;
   } catch (error) {
     console.error("Error reading current balance:", error);
@@ -136,17 +139,17 @@ function getCurrentBalance() {
   }
 }
 
-function updateBalance() {
-  fs.writeFileSync('database/currentBalance.json', JSON.stringify({balance}));
+function updateBalance(account) {
+  fs.writeFileSync(`database/${account}/currentBalance.json`, JSON.stringify({balance}));
 }
 
-function updateTransactionsFile() {
-  fs.writeFileSync('database/currentTransactions.json', JSON.stringify({transactions}));
+function updateTransactionsFile(account) {
+  fs.writeFileSync(`database/${account}/currentTransactions.json`, JSON.stringify({transactions}));
 }
 
-function getTransactionsFile() {
+function getTransactionsFile(account) {
     try {
-      const {transactions} = JSON.parse(fs.readFileSync('database/currentTransactions.json', "utf-8"));
+      const {transactions} = JSON.parse(fs.readFileSync(`database/${account}/currentTransactions.json`, "utf-8"));
       return transactions;
     } catch (error) {
       console.error("Error reading current transactions:", error);
@@ -158,10 +161,10 @@ function getTransactionsFile() {
  * 
  * @param {Array<any>} transactions 
  */
-function updateTransactionHistory(transactions) {
-  const {transactionHistory} = JSON.parse(fs.readFileSync('database/transactionHistory.json', "utf-8"))
+function updateTransactionHistory(transactions, account) {
+  const {transactionHistory} = JSON.parse(fs.readFileSync(`database/${account}/transactionHistory.json`, "utf-8"))
   transactionHistory.push(...transactions)
-  fs.writeFileSync('database/transactionHistory.json', JSON.stringify({transactionHistory}));
+  fs.writeFileSync(`database/${account}/transactionHistory.json`, JSON.stringify({transactionHistory}));
 }
 
 /**
