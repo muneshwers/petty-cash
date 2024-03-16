@@ -37,7 +37,6 @@ app.get("/login", (req, res) => {
 
 app.post("/login/user", (req, res) => {
   const { username, password } = req.body;
-  console.log(req.body)
   const users = getUsers();
 
   let errorMessage = ''; 
@@ -64,16 +63,21 @@ app.post("/login/user", (req, res) => {
 
 //Sends current balance to homepage
 app.get("/balance", (req, res) => {
-  console.log(req.session)
   let {balance} = req.session
   res.json({balance})
 })
 
+app.get("/transactionId", (req, res) => {
+  let {account} = req.session
+  let {transactionId} = JSON.parse(fs.readFileSync(`database/${account}/transactionId.json`, "utf-8"))
+  res.json({transactionId})
+})
+
 //Receives form input and updates balance current value
 app.post("/balance", (req ,res) => {
-  const {recipient, description, amount, date} = req.body
+  let { transactionId ,recipient, description, amount, date} = req.body
   let transaction = {
-    transactionId:  Math.round(Math.random() * 240),
+    transactionId,
     recipient,
     description,
     amount,
@@ -86,6 +90,8 @@ app.post("/balance", (req ,res) => {
   req.session.balance = req.session.balance - amount
   let {balance} = req.session
   updateBalance(balance, account);
+  transactionId = Number(transactionId) + 1
+  fs.writeFileSync(`database/${account}/transactionId.json`, JSON.stringify({transactionId}))
   res.render("create_transaction")
 
 })
@@ -122,7 +128,7 @@ app.get("/reimburse", (req, res) => {
 
 app.post("/account", (req, res) => {
   const {account} = req.body;
-  req.session.account = account
+  req.session.account = account.toLowerCase()
   getCurrentBalance(req.session)
   getTransactionsFile(req.session)
   res.render("create_transaction")

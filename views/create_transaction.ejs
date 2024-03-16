@@ -7,6 +7,7 @@
     <h2> Create Transaction </h2>
         <div x-data="{
             inputs : {
+                transactionId : {value: '', valid: true},
                 amount :  {value: '', valid: false},
                 recipient : {value: '', valid: false},
                 description : {value: '', valid: false},
@@ -29,6 +30,11 @@
                     minimumFractionDigits: 0,
                     maximumFractionDigits: 0,
                 }).format(number)
+            },
+            async init() {
+                let data = (await (await fetch('/transactionId')).json())
+                console.log(data.transactionId)
+                this.inputs.transactionId.value = data.transactionId
             }
         }
         " >
@@ -39,6 +45,10 @@
             </div>
             <form hx-post="/balance" hx-target="main">
                 <div class="transaction-form">
+                    <div class="item">
+                        <span class="errorMessage"></span>
+                        <input type="text" readonly name="transactionId" id="transactionId" x-model="inputs.transactionId.value">
+                    </div>
                     <div
                         @validation="
                             inputs[$event.detail.field].value = $event.detail.input;
