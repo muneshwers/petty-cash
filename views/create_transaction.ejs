@@ -1,6 +1,6 @@
 <main>
     <div x-data="{
-            balance: 0,
+            balance: 1000000,
         }"
         x-init=" fetch('/balance').then(data => data.json()).then(json => balance = json.balance) "
         >
@@ -43,6 +43,18 @@
                 <div class="amount"><div>Amount </div> <span style="color: red;" x-text="formatDollar(Math.abs(inputs.amount.value) || 0)"></span></div>
                 <div class="amount"><div>Remainder </div> <span  x-text="formatDollar(balance - inputs.amount.value)" ></span></div>
             </div>
+
+            <div class="limit" x-cloak x-show="balance < 4000">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12" y2="16" />
+                    </svg>
+                <p>
+                    Nearing account limit. Reimburse as soon as possible!
+                </p>
+            </div>
+
             <form hx-post="/balance" hx-target="main">
                 <div class="transaction-form">
                     <div class="item">
