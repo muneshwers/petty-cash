@@ -20,7 +20,7 @@ x-data="{
     swapAccount (account) {
         this.currAccount = account
         this.tab = 'transactions'
-
+        this.close()
         htmx.ajax('POST', '/account', {
             target: 'main', 
             swap:'outerHTML', 

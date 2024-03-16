@@ -22,27 +22,26 @@
                                 { field: 'createdBy' },
                                 { field: 'date'}
                             ],
+                            defaultColDef: {
+                                filter: 'agTextColumnFilter',
+                                floatingFilter: true,
+                            },
                             rowSelection: 'multiple',
                             onRowSelected: (event) => {
                                 if (event.node.isSelected()) {
-                                    console.log(event.node.data, ' :Selected and added to ', this.toBeReimbursed);
                                     this.toBeReimbursed.push(event.node.data);
                                     this.reimbursedTotal = this.reimbursedTotal + Number(event.node.data.amount);
                                     this.grid2.setRowData([...this.toBeReimbursed, {description: 'Total', amount : this.reimbursedTotal}])
                                     this.grid2.refreshCells()
-                                    console.log(this.toBeReimbursed)
                                     return
                                 }
     
-                                console.log(event.node.data, ' :Deselected and removed.');
                                 const index = this.toBeReimbursed.indexOf(event.node.data);
-                                console.log(index)
                                 if (index < 0) {
                                     return
                                 }
                                 this.toBeReimbursed.splice(index, 1);
                                 this.reimbursedTotal = this.reimbursedTotal - Number(event.node.data.amount);
-                                console.log('Reimbused list now: ', this.toBeReimbursed);
                                 let toBeReimbursed = [...this.toBeReimbursed]
                                 if (this.reimbursedTotal > 0) {
                                     toBeReimbursed.push({description: 'Total', amount : this.reimbursedTotal})
@@ -51,8 +50,6 @@
                                 this.grid2.refreshCells()
                             }
                         })
-                    // console.log(this.toBeReimbursed)
-                    console.log(transactions)
                     this.grid2 = agGrid.createGrid(this.$refs.myGrid2, {
                         rowData : this.toBeReimbursed,
                         domLayout: 'autoHeight',
@@ -63,6 +60,10 @@
                             { field: 'createdBy' },
                             { field: 'date'}
                         ],
+                        defaultColDef: {
+                            filter: 'agTextColumnFilter',
+                            floatingFilter: true,
+                        },
                         getRowStyle: function(params) {
                             if (params.node.rowIndex === params.api.getDisplayedRowCount() - 1) {
                                 return { background: '#5290e8', fontWeight: 'bold', color: 'white' };
@@ -109,12 +110,12 @@
         <div style="display: flex">
             <div style="flex: 1; margin-right: 20px">
                 <h2>Transactions</h2>
-                <div x-ref="myGrid" class="ag-theme-quartz ag-center-cols-viewport" style="width: auto"></div>
+                <div x-ref="myGrid" class="table ag-theme-quartz ag-center-cols-viewport" style="width: auto"></div>
             </div>
             <div style="flex: 1;">
                 <div x-show="toBeReimbursed.length > 0">
                     <h2>To Be Reimbursed</h2>
-                    <div x-ref="myGrid2" id="myGrid2" class="ag-theme-quartz ag-center-cols-viewport"></div>
+                    <div x-ref="myGrid2" id="myGrid2" class="table ag-theme-quartz ag-center-cols-viewport"></div>
                     <button id="reimburse_button" type="button">Reimburse</button>
                 </div>
             </div>
