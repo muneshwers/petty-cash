@@ -1,4 +1,4 @@
-<main>
+<main x-ref="main" class="swappable" >
     <div x-data="{
             balance: 1000000,
         }"
@@ -14,7 +14,6 @@
                 date : {value: (new Date()).toISOString().split('T')[0], valid: true},
             },
             validate() {
-                console.log(this.inputs)
                 let keys = Object.keys(this.inputs)
                 for (let key of keys) {
                     if (!this.inputs[key].valid) {
@@ -33,7 +32,6 @@
             },
             async init() {
                 let data = (await (await fetch('/transactionId')).json())
-                console.log(data.transactionId)
                 this.inputs.transactionId.value = data.transactionId
             }
         }
@@ -55,11 +53,12 @@
                 </p>
             </div>
 
-            <form hx-post="/balance" hx-target="main">
+            <form hx-post="/balance" hx-target="main" hx-trigger="submit delay:0.25s">
                 <div class="transaction-form">
                     <div class="item">
                         <span class="errorMessage"></span>
                         <input type="text" readonly name="transactionId" id="transactionId" x-model="inputs.transactionId.value">
+                        <span class="label"> Transaction Id</span>
                     </div>
                     <div
                         @validation="
@@ -85,12 +84,11 @@
                             x-on:input="let valid = validate(); $dispatch('validation', {valid, field : 'recipient', input})"
                             x-model="input"
                             x-bind:class="{'error' : errorMessage}"
-
-                            placeholder="Recipient..."
                             type="text"
                             name="recipient"
                             id="recipient"
                         >
+                        <span class="label">Recipient</span>
                     </div>
                     <div @validation="
                         inputs[$event.detail.field].value = $event.detail.input;
@@ -115,11 +113,11 @@
                             x-on:input="let valid = validate(); $dispatch('validation', {valid, field : 'description', input})"
                             x-model="input"
                             x-bind:class="{'error' : errorMessage}"
-                            placeholder="Description..."
                             type="text"
                             name="description"
                             id="description"
                         >
+                        <span class="label">Description</span>
                     </div>
                     <div
                         @validation="
@@ -159,10 +157,10 @@
                             x-model="input"
                             x-bind:class="{'error' : errorMessage}"
                             type="number"
-                            placeholder="Amount..."
                             name="amount"
                             id="amount"
                         >
+                        <span class="label">Amount</span>
                     </div>
                     <div class="item" x-data="{
                         input : (new Date()).toISOString().split('T')[0],
@@ -187,9 +185,10 @@
                             name="date"
                             id="date"
                         >
+                        <span class="label">Date</span>
                     </div>
                 </div>
-                <button class="submit-button" type="submit" :disabled="!validate()" >Submit</button>
+                <button class="submit-button" @click="swapMain()" type="submit" :disabled="!validate()" >Submit</button>
             </form>
         </div>
     

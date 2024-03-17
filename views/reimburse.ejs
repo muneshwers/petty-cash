@@ -1,4 +1,4 @@
-<main>
+<main x-ref="main" class="swappable">
     <div x-data="{
         transactionLog : [],
         toBeReimbursed : [],
@@ -67,7 +67,7 @@
                             },
                             getRowStyle: function(params) {
                                 if (params.node.rowIndex === params.api.getDisplayedRowCount() - 1) {
-                                    return { background: '#cce6ff', fontWeight: 'bold'}
+                                    return { fontWeight: 'bold', color: '#0047ab'}
                                 }
                                 return null;
                             },
@@ -76,14 +76,17 @@
                 )
     
             htmx.on('#reimburse_button', 'click', (event) => {
-                htmx.ajax('POST', '/reimburseBalance', {
-                    target: 'main', 
-                    swap:'outerHTML', 
-                    values:{
-                        toBeReimbursed: JSON.stringify(this.toBeReimbursed),
-                        reimbursedTotal : this.reimbursedTotal,
-                    } 
-                })
+                this.swapMain()
+                setTimeout(() => {
+                    htmx.ajax('POST', '/reimburseBalance', {
+                        target: 'main', 
+                        swap:'outerHTML', 
+                        values:{
+                            toBeReimbursed: JSON.stringify(this.toBeReimbursed),
+                            reimbursedTotal : this.reimbursedTotal,
+                        } 
+                    })
+                }, 250);
             })
 
         },
@@ -91,8 +94,6 @@
             this.grid2.exportDataAsCsv()
         }
     }">
-    
-    
         <div style="display: flex">
             <div style="flex: 1; margin-right: 20px">
                 <h2>Current Transactions</h2>
@@ -100,7 +101,7 @@
             </div>
             <div style="flex: 1;">
                 <div >
-                    <h2>Reimbursements<h2>
+                    <h2>Reimbursements</h2>
                     <div x-ref="myGrid2" id="myGrid2" class="table ag-theme-quartz ag-center-cols-viewport"></div>
                     <div class="table_btns" x-show="toBeReimbursed.length > 0">
                         <button id="reimburse_button" class="solid" type="button">Reimburse</button>

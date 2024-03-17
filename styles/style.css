@@ -52,6 +52,36 @@ nav.current:hover {
     color: #0047ab
 }
 
+.swappable {
+    position: relative;
+    left: -100%;
+    animation: slide-in 0.25s forwards;
+}
+
+.outswappable {
+    position: relative;
+    left: 0;
+    animation: slide-out 0.25s forwards;
+}
+
+@keyframes slide-in {
+    0% {
+        left: -100%;
+    }
+    100% {
+        left: 0; 
+    }
+}
+
+@keyframes slide-out {
+    from {
+        left: 0%; 
+    }
+    to {
+        left: -100%; 
+    }
+}
+
 .account {
     display: flex;
     flex-direction: column;
@@ -135,16 +165,32 @@ input.error {
     flex-direction: column;
     padding: 10px;
     padding-left: 0;
+    position: relative;
+}
+
+.transaction-form .item input:focus + .label {
+    font-size: 12px;
+    color: #0047ab;
+    transition: color 0.3s, font-size 0.3s;
 }
 
 .transaction-form .item .errorMessage {
     color: #cc0033;
     display: inline-block;
-    font-size: 15px;
+    font-size: 12px;
     line-height: 15px;
     margin: 5px 0 0;
     margin-bottom: 5px;
     height: 15px;
+}
+.transaction-form .item .label {
+    display: inline-block;
+    font-size: 14px;
+    line-height: 15px;
+    margin-top: 3px;
+    margin-left: 10px;
+    height: 15px;
+    transition: color 0.3s, font-size 0.3s;
 }
 
 .amount-box {
@@ -156,6 +202,7 @@ input.error {
     max-width: 800px;
     background-color: #f0f0f0;
     border-radius: 10px;
+    border: 1px solid #d0d0d0;
     padding: 20px;
 }
 
