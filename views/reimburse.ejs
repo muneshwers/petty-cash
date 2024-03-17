@@ -66,7 +66,7 @@
                         },
                         getRowStyle: function(params) {
                             if (params.node.rowIndex === params.api.getDisplayedRowCount() - 1) {
-                                return { background: '#5290e8', fontWeight: 'bold', color: 'white' };
+                                return { background: '#cce6ff', fontWeight: 'bold'}
                             }
                             return null;
                         },
@@ -113,10 +113,13 @@
                 <div x-ref="myGrid" class="table ag-theme-quartz ag-center-cols-viewport" style="width: auto"></div>
             </div>
             <div style="flex: 1;">
-                <div x-show="toBeReimbursed.length > 0">
+                <div >
                     <h2>To Be Reimbursed</h2>
                     <div x-ref="myGrid2" id="myGrid2" class="table ag-theme-quartz ag-center-cols-viewport"></div>
-                    <button id="reimburse_button" type="button">Reimburse</button>
+                    <div class="table_btns" x-show="toBeReimbursed.length > 0">
+                        <button id="reimburse_button" class="solid" type="button">Reimburse</button>
+                        <button type="button" class="reverse" > Export</button>
+                    </div>
                 </div>
             </div>
         </div>

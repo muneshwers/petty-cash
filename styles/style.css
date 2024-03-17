@@ -263,16 +263,29 @@ button {
     height: 50vh;
 }
 
-#reimburse_button{
+.table_btns button[type="button"] {
     margin-top: 10px;
-    background-color: #0047ab;
-    color: white;
-    border: none;
     padding: 10px 20px;
-    font-size: 15px;
+    font-size: 16px;
     cursor: pointer;
 }
 
-#reimburse_button:hover {
-    background-color: #003580;
+.table_btns .solid {
+    background-color:#0047ab;
+    color: white;
+    border: none;
+}
+
+.table_btns .solid:hover {
+    background-color:#003580;
+}
+
+.table_btns .reverse {
+    border: 1px solid #0047ab;
+    background-color: transparent;
+    color: #0047ab;
+}
+
+.table_btns .reverse:hover {
+    background-color: #f0f0f0;
 }
