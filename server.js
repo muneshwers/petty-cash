@@ -54,6 +54,7 @@ app.post("/login/user", (req, res) => {
   req.session.account = 'muneshwers';
   req.session.balance = 0
   req.session.transactions = []
+  req.session.saved = {}
   getCurrentBalance(req.session)
   getTransactionsFile(req.session)
   res.render("home")
@@ -108,6 +109,7 @@ app.post("/reimburseBalance",(req,res)=>{
   }
   updateTransactionsFile(req.session.transactions, account)
   updateTransactionHistory(toBeReimbursed, account)
+  req.session.saved[account] = []
   res.render("reimburse")
 })
 
@@ -124,14 +126,27 @@ app.get("/reimburse", (req, res) => {
   res.render("reimburse")
 })
 
-
-
 app.post("/account", (req, res) => {
   const {account} = req.body;
   req.session.account = account.toLowerCase()
   getCurrentBalance(req.session)
   getTransactionsFile(req.session)
   res.render("create_transaction")
+})
+
+app.get("/saved", (req, res) => {
+  console.log(req.session)
+  let {account, saved} = req.session
+  let savedOnAccount = saved[account] ?? []
+  res.json({savedOnAccount})
+})
+
+app.post("/saved", (req, res) => {
+  let {account} = req.session
+  let {toSave} = req.body
+  console.log(toSave)
+  req.session.saved[account] = toSave
+  res.sendStatus(200)
 })
 
 app.listen(PORT, () => {

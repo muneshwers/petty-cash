@@ -1,79 +1,99 @@
 <main x-ref="main" class="swappable">
     <div x-data="{
+        saveText : 'Save',
         transactionLog : [],
         toBeReimbursed : [],
+        saved : [],
         grid : null,
         grid2 : null,
         reimbursedTotal: 0,
-        init(){
-            fetch('/transactions')
-                .then(data => data.json())
-                .then(js => Alpine.raw(js.transactions))
-                .then(transactions =>
-                    {
-                        this.grid = agGrid.createGrid(this.$refs.myGrid, {
-                            rowData : transactions,
-                            domLayout: 'autoHeight',
-                            columnDefs : [
-                                { field: 'transactionId', checkboxSelection: true},
-                                { field: 'description'},
-                                { field: 'amount' },
-                                { field: 'recipient' },
-                                { field: 'createdBy' },
-                                { field: 'date'}
-                            ],
-                            defaultColDef: {
-                                filter: 'agTextColumnFilter',
-                                floatingFilter: true,
-                            },
-                            rowSelection: 'multiple',
-                            onRowSelected: (event) => {
-                                if (event.node.isSelected()) {
-                                    this.toBeReimbursed.push(event.node.data);
-                                    this.reimbursedTotal = this.reimbursedTotal + Number(event.node.data.amount);
-                                    this.grid2.setRowData([...this.toBeReimbursed, {description: 'Total', amount : this.reimbursedTotal}])
-                                    this.grid2.refreshCells()
-                                    return
-                                }
-    
-                                const index = this.toBeReimbursed.indexOf(event.node.data);
-                                if (index < 0) {
-                                    return
-                                }
-                                this.toBeReimbursed.splice(index, 1);
-                                this.reimbursedTotal = this.reimbursedTotal - Number(event.node.data.amount);
-                                let toBeReimbursed = [...this.toBeReimbursed]
-                                if (this.reimbursedTotal > 0) {
-                                    toBeReimbursed.push({description: 'Total', amount : this.reimbursedTotal})
-                                }
-                                this.grid2.setRowData(toBeReimbursed);
-                                this.grid2.refreshCells()
-                            }
-                        })
-                        this.grid2 = agGrid.createGrid(this.$refs.myGrid2, {
-                            rowData : this.toBeReimbursed,
-                            domLayout: 'autoHeight',
-                            columnDefs : [
-                                { field: 'description'},
-                                { field: 'amount' },
-                                {field: 'transactionId'},
-                                { field: 'recipient' },
-                                { field: 'createdBy' },
-                                { field: 'date'}
-                            ],
-                            defaultColDef: {
-                                filter: 'agTextColumnFilter',
-                                floatingFilter: true,
-                            },
-                            getRowStyle: function(params) {
-                                if (params.node.rowIndex === params.api.getDisplayedRowCount() - 1) {
-                                    return { fontWeight: 'bold', color: '#0047ab'}
-                                }
-                                return null;
-                            },
-                        })
+        async init(){
+            let {transactions} = (await (await fetch('/transactions')).json())
+            let {savedOnAccount} = (await (await fetch('/saved')).json())
+            this.saved = savedOnAccount
+            this.grid = agGrid.createGrid(this.$refs.myGrid, {
+                rowData : transactions,
+                domLayout: 'autoHeight',
+                columnDefs : [
+                    { field: 'transactionId', checkboxSelection: true},
+                    { field: 'description'},
+                    { field: 'amount' },
+                    { field: 'recipient' },
+                    { field: 'createdBy' },
+                    { field: 'date'}
+                ],
+                defaultColDef: {
+                    filter: 'agTextColumnFilter',
+                    floatingFilter: true,
+                },
+                rowSelection: 'multiple',
+                onRowSelected: (event) => {
+                    this.saveText = 'Save'
+                    if (event.node.isSelected()) {
+                        this.toBeReimbursed.push(event.node.data);
+                        this.reimbursedTotal = this.reimbursedTotal + Number(event.node.data.amount);
+                        this.grid2.setRowData([...this.toBeReimbursed, {description: 'Total', amount : this.reimbursedTotal}])
+                        this.grid2.refreshCells()
+                        return
                     }
-                )
+
+                    const index = this.toBeReimbursed.indexOf(event.node.data);
+                    if (index < 0) {
+                        return
+                    }
+                    this.toBeReimbursed.splice(index, 1);
+                    this.reimbursedTotal = this.reimbursedTotal - Number(event.node.data.amount);
+                    let toBeReimbursed = [...this.toBeReimbursed]
+                    if (this.reimbursedTotal > 0) {
+                        toBeReimbursed.push({description: 'Total', amount : this.reimbursedTotal})
+                    }
+                    this.grid2.setRowData(toBeReimbursed);
+                    this.grid2.refreshCells()
+                },
+                onFirstDataRendered : (params) => {
+                    const selectedNodes = []
+                    let saved = this.saved.map(id => Number(id)).sort((a,b) => a-b)
+                    console.log(saved)
+                    let currentIndex = 0
+                    params.api.forEachNode((node) => {
+                        let id = node.data.transactionId
+                        while (id > saved[currentIndex] && currentIndex < saved.length) {
+                            ++currentIndex
+                        }
+                        if (id == saved[currentIndex]){
+                            selectedNodes.push(node)
+                            ++currentIndex
+                            return
+                        }
+                        if (id < saved[currentIndex]){
+                            return
+                        }
+                    })
+                    params.api.setNodesSelected({ nodes : selectedNodes,  newValue : true})
+                },
+            })
+            this.grid2 = agGrid.createGrid(this.$refs.myGrid2, {
+                rowData : this.toBeReimbursed,
+                domLayout: 'autoHeight',
+                columnDefs : [
+                    { field: 'description'},
+                    { field: 'amount' },
+                    {field: 'transactionId'},
+                    { field: 'recipient' },
+                    { field: 'createdBy' },
+                    { field: 'date'}
+                ],
+                defaultColDef: {
+                    filter: 'agTextColumnFilter',
+                    floatingFilter: true,
+                },
+                getRowStyle: function(params) {
+                    if (params.node.rowIndex === params.api.getDisplayedRowCount() - 1) {
+                        return { fontWeight: 'bold', color: '#0047ab'}
+                    }
+                    return null;
+                },
+            })
     
             htmx.on('#reimburse_button', 'click', (event) => {
                 this.swapMain()
@@ -92,6 +112,18 @@
         },
         exportTableAsCsv() {
             this.grid2.exportDataAsCsv()
+        },
+        save() {
+            let toSave = this.toBeReimbursed.map(node => node.transactionId)
+            fetch('/saved', {
+                method: 'POST',
+                headers: {
+                    'Content-Type' : 'application/json',
+                },
+                body: JSON.stringify({toSave})
+            }).then((data) => {
+                this.saveText = '✓' + ' Saved'
+            })
         }
     }">
         <div style="display: flex">
@@ -106,6 +138,7 @@
                     <div class="table_btns" x-show="toBeReimbursed.length > 0">
                         <button id="reimburse_button" class="solid" type="button">Reimburse</button>
                         <button type="button" class="reverse" @click="exportTableAsCsv()"> Export</button>
+                        <button type="button" class="reverse" @click="save()" x-text="saveText"></button>
                     </div>
                 </div>
             </div>
