@@ -251,6 +251,11 @@ input.error {
     cursor: not-allowed;
 }
 
+.readonly {
+    color: #686868;
+    cursor: not-allowed;
+}
+
 input {
     border-radius: 15px;
 }
@@ -336,3 +341,17 @@ button {
 .table_btns .reverse:hover {
     background-color: #f0f0f0;
 }
+
+.reimburse_container {
+    display: flex;
+}
+
+.reimburse_container > .section1 {
+    flex: 1;
+    margin-right: 20px;
+}
+
+.reimburse_container > .section2 {
+    flex: 1;
+}
+

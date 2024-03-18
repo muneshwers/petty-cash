@@ -1,0 +1,33 @@
+<main x-ref="main" class="swappable">
+    <div x-data="{
+        transactionLog : [],
+        grid : null,
+        async init(){
+            let {transactionHistory} = (await (await fetch('/transactionHistory')).json())
+            this.grid = agGrid.createGrid(this.$refs.myGrid, {
+                rowData : transactionHistory,
+                domLayout: 'autoHeight',
+                columnDefs : [
+                    { field: 'transactionId'},
+                    { field: 'description'},
+                    { field: 'amount' },
+                    { field: 'recipient' },
+                    { field: 'createdBy' },
+                    { field: 'date'}
+                ],
+                defaultColDef: {
+                    filter: 'agTextColumnFilter',
+                    floatingFilter: true,
+                },
+            })
+
+        }
+    }">
+        <div>
+            <div>
+                <h2>All Transactions</h2>
+                <div x-ref="myGrid" class="table ag-theme-quartz ag-center-cols-viewport" style="width: auto"></div>
+            </div>
+        </div>
+    </div>
+</main>
