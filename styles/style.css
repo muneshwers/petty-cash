@@ -251,6 +251,11 @@ input.error {
     cursor: not-allowed;
 }
 
+.readonly {
+    color: #686868;
+    cursor: not-allowed;
+}
+
 input {
     border-radius: 15px;
 }
