@@ -118,12 +118,21 @@ app.get("/transactions", (req, res) => {
   res.json({transactions})
 })
 
+app.get("/transactionHistory", (req, res) => {
+  const {transactionHistory} = JSON.parse(fs.readFileSync(`database/${req.session.account}/transactionHistory.json`, "utf-8"))
+  res.json({transactionHistory})
+})
+
 app.get("/create_transaction", (req, res) => {
   res.render("create_transaction")
 })
 
 app.get("/reimburse", (req, res) => {
   res.render("reimburse")
+})
+
+app.get("/transaction_history", (req, res) => {
+  res.render("transaction_history")
 })
 
 app.post("/account", (req, res) => {
