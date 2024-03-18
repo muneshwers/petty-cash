@@ -77,6 +77,7 @@ app.get("/transactionId", (req, res) => {
 //Receives form input and updates balance current value
 app.post("/balance", (req ,res) => {
   let { transactionId ,recipient, description, amount, date} = req.body
+  transactionId = Number(transactionId)
   let transaction = {
     transactionId,
     recipient,
