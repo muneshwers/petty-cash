@@ -38,6 +38,7 @@ main.login {
 nav {
     padding: 2vw;
     cursor: pointer;
+    transition: color 0.3s;
 }
 
 nav:hover {
@@ -311,13 +312,9 @@ button {
     min-height: unset !important;
 }
 
-.table {
-    height: 50vh;
-}
-
 .table_btns button[type="button"] {
     margin-top: 10px;
-    padding: 10px 20px;
+    padding: 10px;
     font-size: 16px;
     cursor: pointer;
 }
@@ -328,6 +325,33 @@ button {
     border: none;
 }
 
+.section2 .title {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.title_btns {
+    display: flex;
+    align-items: center;
+    height: 40px;
+    width: 100px;
+    justify-content: space-between;
+}
+
+.title_btns button {
+    background: transparent;
+    border: none;
+    height: 40px;
+    border-radius: 10px;
+    transition: background-color 0.3s;
+}
+
+.title_btns button:hover{
+    background-color: #f0f0f0;
+}
+
 .table_btns .solid:hover {
     background-color:#003580;
 }
@@ -336,10 +360,12 @@ button {
     border: 1px solid #0047ab;
     background-color: transparent;
     color: #0047ab;
+    transition: color 0.3s, background-color 0.3s;
 }
 
 .table_btns .reverse:hover {
-    background-color: #f0f0f0;
+    background-color: #0047ab;
+    color: white;
 }
 
 .reimburse_container {
