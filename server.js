@@ -99,6 +99,60 @@ app.post("/balance", (req ,res) => {
 
 })
 
+app.post("/editBalance", (req, res) => {
+  let { transactionId, recipient, description, amount, date } = req.body;
+  transactionId = Number(transactionId)
+  let transaction = {
+    transactionId,
+    recipient,
+    description,
+    amount,
+    date,
+    createdBy: req.session.username
+  };
+
+  // Find the original transaction by its transaction ID
+  let originalTransaction = req.session.transactions.find(
+    existingTransaction => existingTransaction.transactionId === transactionId
+  );
+
+  if (!originalTransaction) {
+    res.status(404).send("Transaction not found");
+    return;
+  }
+
+  // Calculate the difference in amount
+  let difference = 0;
+  if (amount !== '') {
+    let newAmount = parseFloat(amount);
+    difference = originalTransaction.amount - newAmount;
+  }
+
+  // Set amountToUpdate to original amount if amount is empty
+  let amountToUpdate = amount !== '' ? parseFloat(amount) : originalTransaction.amount;
+
+  updateTransactionHistory([transaction], req.session.account);
+
+  // Update the transaction with the new values
+  Object.assign(originalTransaction, transaction);
+
+  // Update balance and other related operations if amount is not empty
+  if (amount !== '') {
+    req.session.balance += difference;
+    updateBalance(req.session.balance, req.session.account);
+  }
+
+  // Update the transactions file
+  updateTransactionsFile(req.session.transactions, req.session.account);
+
+  // Assign amountToUpdate to the original transaction
+  Object.assign(originalTransaction, { amount: amountToUpdate });
+
+  res.render("reimburse");
+})
+
+
+
 //Takes reimbursed total from table and adds to current balance
 app.post("/reimburseBalance",(req,res)=>{
   let { reimbursedTotal, toBeReimbursed } = req.body

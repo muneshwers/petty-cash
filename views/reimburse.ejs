@@ -4,24 +4,68 @@
         transactionLog : [],
         toBeReimbursed : [],
         saved : [],
+        open: false,
         grid : null,
         grid2 : null,
         reimbursedTotal: 0,
+        inputs : {
+            transactionId : {value: '', valid: true},
+            amount :  {value: '', valid: true},
+            recipient : {value: '', valid: true},
+            description : {value: '', valid: true},
+            date : {value: (new Date()).toISOString().split('T')[0], valid: true},
+            originalAmount :  {value: '', valid: true},
+        },
+        validate() {
+            let keys = Object.keys(this.inputs)
+            for (let key of keys) {
+                if (!this.inputs[key].valid) {
+                    return false
+                }
+            }
+            return true
+        },
         async init(){
+            let alpineObj = this
+            const editRenderer = function(params) {
+                const button = document.createElement('button');
+                button.innerHTML = 'Edit';
+                button.classList.add('edit-button');
+                button.addEventListener('click', function () {
+                    console.log('Edit button clicked for row data:', params.data);
+                    alpineObj.open = true
+                    alpineObj.inputs.transactionId.value = params.data.transactionId;
+                    alpineObj.inputs.recipient.value = params.data.recipient;
+                    alpineObj.inputs.description.value = params.data.description;
+                    alpineObj.inputs.originalAmount.value = params.data.amount;
+                    $dispatch('modal')
+                });
+                return button;
+            }
             let {transactions} = (await (await fetch('/transactions')).json())
             let {savedOnAccount} = (await (await fetch('/saved')).json())
             this.saved = savedOnAccount
             this.grid = agGrid.createGrid(this.$refs.myGrid, {
                 rowData : transactions,
                 domLayout: 'autoHeight',
+                components: {editRenderer: editRenderer,},
                 columnDefs : [
                     { field: 'transactionId', checkboxSelection: true},
                     { field: 'description'},
                     { field: 'amount' },
                     { field: 'recipient' },
                     { field: 'createdBy' },
-                    { field: 'date'}
-                ],
+                    { field: 'date'},
+                    {
+                                    field: 'EDIT',
+                                    headerName: 'Edit',
+                                    cellRenderer: 'editRenderer',
+                                    minWidth: 100,
+                                    maxWidth: 100,
+                                    suppressMenu: true,
+                                    cellStyle: { textAlign: 'center' }
+                                },
+                            ],
                 defaultColDef: {
                     filter: 'agTextColumnFilter',
                     floatingFilter: true,
@@ -148,6 +192,192 @@
                         </div>
                     </div>
             </div>
+        </div>
+        <div 
+            x-show="open" 
+            x-data="{ balance: 1000000}" 
+            x-init=" fetch('/balance').then(data => data.json()).then(json => balance = json.balance)"
+            @modal.window="balance += Number(inputs.originalAmount.value)"
+            >
+            <div class="overlay" @click.away="open = false">
+                <div class="modal">
+                    <button class="close-button" @click="open = false">&times;</button>
+                    <h2> Edit Transaction </h2>
+                    <div x-data="{
+                        formatDollar(number) {
+                            return new Intl.NumberFormat('en-US', {
+                                style: 'currency',
+                                currency : 'USD',
+                                minimumFractionDigits: 0,
+                                maximumFractionDigits: 0,
+                            }).format(number)
+                        }
+                    }
+                    " >
+                        <div class="amount-box">
+                            <div class="amount"><div>New Balance </div> <span style="color: green;"  x-text="formatDollar(balance)" ></span></div>
+                            <div class="amount"><div>New Amount </div> <span style="color: red;" x-text="formatDollar(Math.abs(inputs.amount.value) || 0)"></span></div>
+                            <div class="amount"><div>New Remainder </div> <span  x-text="formatDollar(balance - inputs.amount.value)" ></span></div>
+                        </div>
+        
+                        <div class="limit" x-cloak x-show="balance < 4000">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10" />
+                                <line x1="12" y1="8" x2="12" y2="12" />
+                                <line x1="12" y1="16" x2="12" y2="16" />
+                                </svg>
+                            <p>
+                                Nearing account limit. Reimburse as soon as possible!
+                            </p>
+                        </div>
+        
+                        <form hx-post="/editBalance" hx-target="main" hx-trigger="submit delay:0.25s">
+                            <div class="transaction-form">
+                                <div class="item">
+                                    <span class="errorMessage"></span>
+                                    <input type="text" readonly name="transactionId" id="transactionId" x-model="inputs.transactionId.value">
+                                    <span class="label"> Transaction Id</span>
+                                </div>
+                                <div
+                                    @validation="
+                                        inputs[$event.detail.field].value = $event.detail.input;
+                                        inputs[$event.detail.field].valid = $event.detail.valid;"
+                                    class="item"
+                                    x-data="{
+                                        input : '',
+                                        errorMessage : '',
+                                        initialized : false,
+                                        validate() {
+                                            this.initialized = true
+                                            if (!this.input) {
+                                                this.errorMessage = 'Recipient required'
+                                                return false
+                                            }
+                                            this.errorMessage = ''
+                                            return true
+                                        }
+                                    }"
+                                    @modal.window="input = inputs.recipient.value"
+                                >
+                                    <span class="errorMessage"  x-text="errorMessage"></span>
+                                    <input
+                                        x-on:input="let valid = validate(); $dispatch('validation', {valid, field : 'recipient', input})"
+                                        x-model="input"
+                                        x-bind:class="{'error' : errorMessage}"
+                                        type="text"
+                                        name="recipient"
+                                        id="recipient"
+                                    >
+                                    <span class="label">Recipient</span>
+                                </div>
+                                <div @validation="
+                                    inputs[$event.detail.field].value = $event.detail.input;
+                                    inputs[$event.detail.field].valid = $event.detail.valid;
+                                    "
+                                    class="item" x-data="{
+                                    input : '',
+                                    errorMessage : '',
+                                    initialized : false,
+                                    validate() {
+                                        this.initialized = true
+                                        if (!this.input) {
+                                            this.errorMessage = 'Description required'
+                                            return false
+                                        }
+                                        this.errorMessage = ''
+                                        return true
+                                        }
+                                    }"
+                                    @modal.window="input = inputs.description.value"
+                                >
+                                    <span class="errorMessage" x-text="errorMessage"></span>
+                                    <input
+                                        x-on:input="let valid = validate(); $dispatch('validation', {valid, field : 'description', input})"
+                                        x-model="input"
+                                        x-bind:class="{'error' : errorMessage}"
+                                        type="text"
+                                        name="description"
+                                        id="description"
+                                    >
+                                    <span class="label">Description</span>
+                                </div>
+                                <div
+                                    @validation="
+                                    inputs[$event.detail.field].value = $event.detail.input;
+                                    inputs[$event.detail.field].valid = $event.detail.valid;
+                                    "
+                                    class="item"
+                                    x-data="{
+                                        input : '',
+                                        errorMessage : '',
+                                        initialized : false,
+                                        validate() {
+                                            this.initialized = true
+                                            if (!this.input) {
+                                                this.errorMessage = 'Amount required'
+                                                return false
+                                            }
+                                            if (!Number(this.input)) {
+                                                this.errorMessage = 'Number required'
+                                                return false
+                                            }
+                                            if (this.input < 0) {
+                                                this.errorMessage = 'Posivite values'
+                                                return false
+                                            }
+                                            if (this.balance - this.input < 0) {
+                                                this.errorMessage = 'Insufficient funds'
+                                                return false
+                                            }
+                                            this.errorMessage = ''
+                                            return true
+                                        }
+                                        }"
+                                        @modal.window="input = inputs.amount.value"
+                                >
+                                    <span class="errorMessage" x-text="errorMessage"></span>
+                                    <input
+                                        x-on:input="let valid = validate(); $dispatch('validation', {valid, field : 'amount', input})"
+                                        x-model="input"
+                                        x-bind:class="{'error' : errorMessage}"
+                                        type="number"
+                                        name="amount"
+                                        id="amount"
+                                    >
+                                    <span class="label">Amount</span>
+                                </div>
+                                <div class="item" x-data="{
+                                    input : (new Date()).toISOString().split('T')[0],
+                                    errorMessage : '',
+                                    initialized : false,
+                                    validate() {
+                                        this.initialized = true
+                                        if (!this.input) {
+                                            this.errorMessage = 'date required'
+                                            return false
+                                        }
+                                        this.errorMessage = ''
+                                        return true
+                                    }
+                                }"
+                                @modal.window="input = inputs.date.value"
+                                >
+                                    <span class="errorMessage" x-text="errorMessage"></span>
+                                    <input
+                                        x-on:input="let valid = validate(); $dispatch('validation', {valid, field : 'date', input})"
+                                        x-model="input"
+                                        x-bind:class="{'error' : errorMessage}"
+                                        type="date"
+                                        name="date"
+                                        id="date"
+                                    >
+                                    <span class="label">Date</span>
+                                </div>
+                            </div>
+                            <button class="submit-button" @click="open =false" type="submit" :disabled="!validate()" >Save</button>
+                        </form>
+                    </div>
+        
         </div>
     </div>
 </main>
