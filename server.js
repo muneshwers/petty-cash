@@ -87,6 +87,12 @@ app.post("/balance", (req ,res) => {
     date,
     createdBy : req.session.username
   }
+  let currentId = JSON.parse(fs.readFileSync(`database/${account}/transactionId.json`, "utf-8")).transactionId
+  currentId = Number(currentId)
+  if (currentId > transactionId) {
+    transactionId = currentId
+    transaction.transactionId = transactionId
+  }
   req.session.transactions.push(transaction)
   let {transactions, account} = req.session
   updateTransactionsFile(transactions, account);
