@@ -2,7 +2,6 @@ import express from "express";
 import expressSession from "express-session";
 import bodyParser from "body-parser";
 import fs from "fs";
-import { render } from "ejs";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
