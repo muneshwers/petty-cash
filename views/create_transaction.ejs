@@ -35,7 +35,7 @@
                 this.inputs.transactionId.value = data.transactionId
                 setInterval(() => {
                     this.updateTransactionId()
-                }, 5000);
+                },10000);
             },
             async updateTransactionId() {
                 let data = (await (await fetch('/transactionId')).json())

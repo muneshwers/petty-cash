@@ -53,11 +53,7 @@ app.post("/login/user", (req, res) => {
   req.session.loggedIn = true;
   req.session.username = username;
   req.session.account = 'muneshwers';
-  req.session.balance = 0
-  req.session.transactions = []
   req.session.saved = {}
-  getCurrentBalance(req.session)
-  getTransactionsFile(req.session)
   res.render("home")
   return
   
@@ -65,8 +61,13 @@ app.post("/login/user", (req, res) => {
 
 //Sends current balance to homepage
 app.get("/balance", (req, res) => {
-  let {balance} = req.session
+  let balance = getCurrentBalance(req.session)
   res.json({balance})
+})
+
+app.get("/transactions", (req, res) => {
+  let transactions = getTransactionsFile(req.session)
+  res.json({transactions})
 })
 
 app.get("/transactionId", (req, res) => {
@@ -87,17 +88,18 @@ app.post("/balance", (req ,res) => {
     date,
     createdBy : req.session.username
   }
+  let {account} = req.session
   let currentId = JSON.parse(fs.readFileSync(`database/${account}/transactionId.json`, "utf-8")).transactionId
   currentId = Number(currentId)
   if (currentId > transactionId) {
     transactionId = currentId
     transaction.transactionId = transactionId
   }
-  req.session.transactions.push(transaction)
-  let {transactions, account} = req.session
+  let transactions = getTransactionsFile(req.session)
+  transactions.push(transaction)
   updateTransactionsFile(transactions, account);
-  req.session.balance = req.session.balance - amount
-  let {balance} = req.session
+  let balance = getCurrentBalance(req.session)
+  balance = balance - amount
   updateBalance(balance, account);
   transactionId = Number(transactionId) + 1
   fs.writeFileSync(`database/${account}/transactionId.json`, JSON.stringify({transactionId}))
@@ -107,7 +109,6 @@ app.post("/balance", (req ,res) => {
 
 app.post("/editBalance", (req, res) => {
   let { transactionId, recipient, description, amount, date } = req.body
-  console.log(amount)
   transactionId = Number(transactionId)
   let transaction = {
     transactionId,
@@ -118,7 +119,9 @@ app.post("/editBalance", (req, res) => {
     createdBy: req.session.username
   };
 
-  let originalTransaction = req.session.transactions.find(
+  let transactions = getTransactionsFile(req.session)
+
+  let originalTransaction = transactions.find(
     existingTransaction => existingTransaction.transactionId == transactionId
   );
 
@@ -133,15 +136,12 @@ app.post("/editBalance", (req, res) => {
     transaction.amount = originalTransaction.amount
   }
   else {
-    req.session.balance += (originalTransaction.amount - transaction.amount)
-    updateBalance(req.session.balance, req.session.account)
+    let balance = getCurrentBalance(req.session)
+    balance += (originalTransaction.amount - transaction.amount)
+    updateBalance(balance, req.session.account)
   }
-  console.log({originalTransaction})
-  console.log({transaction})
   Object.assign(originalTransaction, transaction)
-  console.log({originalTransaction})
-  updateTransactionsFile(req.session.transactions, req.session.account)
-  console.log('hello')
+  updateTransactionsFile(transactions, req.session.account)
   res.render("reimburse")
   return
 })
@@ -152,21 +152,18 @@ app.post("/editBalance", (req, res) => {
 app.post("/reimburseBalance",(req,res)=>{
   let { reimbursedTotal, toBeReimbursed } = req.body
   toBeReimbursed = JSON.parse(toBeReimbursed)
-  req.session.balance = Number(req.session.balance) + Number(reimbursedTotal)
-  let {balance, account} = req.session
+  let balance = getCurrentBalance(req.session)
+  balance = Number(balance) + Number(reimbursedTotal)
+  let {account} = req.session
   updateBalance(balance, account)
+  let transactions = getTransactionsFile(req.session)
   for (let reimbursement of toBeReimbursed) {
-    deleteFromCurrentTransactions(req.session, reimbursement)
+    deleteFromCurrentTransactions(transactions, reimbursement)
   }
-  updateTransactionsFile(req.session.transactions, account)
+  updateTransactionsFile(transactions, account)
   updateTransactionHistory(toBeReimbursed, account)
   req.session.saved[account] = []
   res.render("reimburse")
-})
-
-app.get("/transactions", (req, res) => {
-  let {transactions} = req.session
-  res.json({transactions})
 })
 
 app.get("/transactionHistory", (req, res) => {
@@ -189,8 +186,6 @@ app.get("/transaction_history", (req, res) => {
 app.post("/account", (req, res) => {
   const {account} = req.body;
   req.session.account = account.toLowerCase()
-  getCurrentBalance(req.session)
-  getTransactionsFile(req.session)
   res.render("create_transaction")
 })
 
@@ -221,12 +216,10 @@ function getCurrentBalance(session) {
   let {account} = session
   try {
     const {balance} = JSON.parse(fs.readFileSync(`database/${account}/currentBalance.json`, "utf-8"))
-    session.balance = balance
-    return;
+    return balance;
   } catch (error) {
     console.error("Error reading current balance:", error);
-    session.balance = -1
-    return ;
+    return -1;
   }
 }
 
@@ -234,12 +227,10 @@ function getTransactionsFile(session) {
   let {account} = session
   try {
     const {transactions} = JSON.parse(fs.readFileSync(`database/${account}/currentTransactions.json`, "utf-8"));
-    session.transactions = transactions
-    return
+    return transactions
   } catch (error) {
     console.error("Error reading current transactions:", error);
-    session.transactions = []
-    return
+    return []
   }
 }
 
@@ -264,15 +255,15 @@ function updateTransactionHistory(transactions, account) {
 }
 
 /**
- * 
+ * @param {Array<any>} transactions
  * @param {string} transactionId 
  */
-function deleteFromCurrentTransactions(session, reimbursement) {
-  let index = session.transactions.findIndex((transaction) => transaction.transactionId == reimbursement.transactionId)
+function deleteFromCurrentTransactions(transactions, reimbursement) {
+  let index = transactions.findIndex((transaction) => transaction.transactionId == reimbursement.transactionId)
   if (index < 0) {
     return
   } 
-  session.transactions.splice(index, 1)
+  transactions.splice(index, 1)
 
 }
 //TODO:
