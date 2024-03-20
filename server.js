@@ -101,7 +101,8 @@ app.post("/balance", (req ,res) => {
 })
 
 app.post("/editBalance", (req, res) => {
-  let { transactionId, recipient, description, amount, date } = req.body;
+  let { transactionId, recipient, description, amount, date } = req.body
+  console.log(amount)
   transactionId = Number(transactionId)
   let transaction = {
     transactionId,
@@ -123,7 +124,7 @@ app.post("/editBalance", (req, res) => {
 
   updateTransactionHistory([originalTransaction], req.session.account)
 
-  if (amount == '') {
+  if (amount == null || amount == '') {
     transaction.amount = originalTransaction.amount
   }
   else {

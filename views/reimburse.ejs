@@ -203,6 +203,7 @@
                     <button class="close-button" @click="open = false">&times;</button>
                     <h2> Edit Transaction </h2>
                     <div x-data="{
+                        editAmount: false,
                         formatDollar(number) {
                             return new Intl.NumberFormat('en-US', {
                                 style: 'currency',
@@ -211,9 +212,10 @@
                                 maximumFractionDigits: 0,
                             }).format(number)
                         }
-                    }
-                    " >
-                        <div class="amount-box">
+                    }" 
+                    @modal.window="editAmount=false"
+                    >
+                        <div class="amount-box" x-show="editAmount" x-transition:enter.delay.300ms.duration.300ms>
                             <div class="amount"><div>New Balance </div> <span style="color: green;"  x-text="formatDollar(balance)" ></span></div>
                             <div class="amount"><div>New Amount </div> <span style="color: red;" x-text="formatDollar(Math.abs(inputs.amount.value) || 0)"></span></div>
                             <div class="amount"><div>New Remainder </div> <span  x-text="formatDollar(balance - inputs.amount.value)" ></span></div>
@@ -230,7 +232,7 @@
                             </p>
                         </div>
         
-                        <form hx-post="/editBalance" hx-target="main" hx-trigger="submit delay:0.25s">
+                        <form :class="{'movedown' : editAmount}" hx-post="/editBalance" hx-target="main" hx-trigger="submit delay:0.25s">
                             <div class="transaction-form">
                                 <div class="item">
                                     <span class="errorMessage"></span>
@@ -301,6 +303,7 @@
                                     <span class="label">Description</span>
                                 </div>
                                 <div
+                                    x-show="editAmount"
                                     @validation="
                                     inputs[$event.detail.field].value = $event.detail.input;
                                     inputs[$event.detail.field].valid = $event.detail.valid;
@@ -373,7 +376,8 @@
                                     <span class="label">Date</span>
                                 </div>
                             </div>
-                            <button class="submit-button" @click="open =false; swapMain()" type="submit" :disabled="!validate()" >Save</button>
+                            <button class="submit-button" @click="open =false; swapMain()" type="submit" :disabled="!validate()" >Update</button>
+                            <button class="reverse-button" type="button" x-transition:leave.duration.300ms x-show="!editAmount" x-on:click="editAmount = true">Edit Amount</button>
                         </form>
                     </div>
         

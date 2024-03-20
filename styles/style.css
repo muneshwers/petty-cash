@@ -368,6 +368,22 @@ button {
     color: white;
 }
 
+.reverse-button {
+    background: transparent;
+    height: 40px;
+    border-radius: 10px;
+    transition: background-color 0.3s;
+    border: 1px solid #0047ab;
+    background-color: transparent;
+    color: #0047ab;
+    transition: color 0.3s, background-color 0.3s;
+}
+
+.reverse-button:hover {
+    background-color: #0047ab;
+    color: white;
+}
+
 .reimburse_container {
     display: flex;
 }
@@ -385,8 +401,8 @@ button {
     background: white;
     border: 1px solid #f0f0f0 ;
     padding: 40px;
-    max-width: 80%;
-    max-height: 80%;
+    width: 85vw;
+    height: 70vh;
     overflow-y: auto;
     position: relative;
     border-radius: 10px;
@@ -437,4 +453,17 @@ button {
 .edit-button:hover {
     background-color: #0047ab;
     color: white;
+}
+
+.movedown {
+    animation: movedown 0.3s forwards;
+}
+
+@keyframes movedown {
+    from {
+        transform: translateY(-100%);
+    }
+    to {
+        transform: translateY(0);
+    }
 }
