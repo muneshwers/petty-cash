@@ -32,7 +32,6 @@
                 button.innerHTML = 'Edit';
                 button.classList.add('edit-button');
                 button.addEventListener('click', function () {
-                    console.log('Edit button clicked for row data:', params.data);
                     alpineObj.open = true
                     alpineObj.inputs.transactionId.value = params.data.transactionId;
                     alpineObj.inputs.recipient.value = params.data.recipient;
@@ -57,7 +56,7 @@
                     { field: 'createdBy' },
                     { field: 'date'},
                     {
-                                    field: 'EDIT',
+                                    field: 'Actions',
                                     headerName: 'Edit',
                                     cellRenderer: 'editRenderer',
                                     minWidth: 100,
@@ -199,8 +198,8 @@
             x-init=" fetch('/balance').then(data => data.json()).then(json => balance = json.balance)"
             @modal.window="balance += Number(inputs.originalAmount.value)"
             >
-            <div class="overlay" @click.away="open = false">
-                <div class="modal">
+            <div class="overlay">
+                <div class="modal" @click.outside="open = false">
                     <button class="close-button" @click="open = false">&times;</button>
                     <h2> Edit Transaction </h2>
                     <div x-data="{
@@ -374,7 +373,7 @@
                                     <span class="label">Date</span>
                                 </div>
                             </div>
-                            <button class="submit-button" @click="open =false" type="submit" :disabled="!validate()" >Save</button>
+                            <button class="submit-button" @click="open =false; swapMain()" type="submit" :disabled="!validate()" >Save</button>
                         </form>
                     </div>
         

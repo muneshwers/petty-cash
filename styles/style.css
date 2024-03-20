@@ -382,8 +382,8 @@ button {
 }
 
 .modal {
-    background: rgb(207, 209, 255);
-    border: solid;
+    background: white;
+    border: 1px solid #f0f0f0 ;
     padding: 40px;
     max-width: 80%;
     max-height: 80%;
@@ -404,11 +404,11 @@ button {
     border: none;
     font-size: 30px;
     cursor: pointer;
-    color: #000;
+    color: #555;
 }
 
 .close-button:hover {
-    color: #555;
+    color: #CCCCCC;
 }
 
 .overlay {
@@ -425,11 +425,16 @@ button {
 }
 
 .edit-button {
-    background-color: #0047ab;
-    color: white;
+    background-color: white;
+    color: #0047ab;
     padding: 5px 10px;
-    border: none;
+    border: 1px solid #0047ab;
     border-radius: 5px;
     cursor: pointer;
+    transition: background-color 0.3s, color 0.3s;
 }
 
+.edit-button:hover {
+    background-color: #0047ab;
+    color: white;
+}

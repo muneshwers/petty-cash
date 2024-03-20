@@ -2,6 +2,7 @@ import express from "express";
 import expressSession from "express-session";
 import bodyParser from "body-parser";
 import fs from "fs";
+import { render } from "ejs";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -111,9 +112,8 @@ app.post("/editBalance", (req, res) => {
     createdBy: req.session.username
   };
 
-  // Find the original transaction by its transaction ID
   let originalTransaction = req.session.transactions.find(
-    existingTransaction => existingTransaction.transactionId === transactionId
+    existingTransaction => existingTransaction.transactionId == transactionId
   );
 
   if (!originalTransaction) {
@@ -121,34 +121,23 @@ app.post("/editBalance", (req, res) => {
     return;
   }
 
-  // Calculate the difference in amount
-  let difference = 0;
-  if (amount !== '') {
-    let newAmount = parseFloat(amount);
-    difference = originalTransaction.amount - newAmount;
+  updateTransactionHistory([originalTransaction], req.session.account)
+
+  if (amount == '') {
+    transaction.amount = originalTransaction.amount
   }
-
-  // Set amountToUpdate to original amount if amount is empty
-  let amountToUpdate = amount !== '' ? parseFloat(amount) : originalTransaction.amount;
-
-  updateTransactionHistory([transaction], req.session.account);
-
-  // Update the transaction with the new values
-  Object.assign(originalTransaction, transaction);
-
-  // Update balance and other related operations if amount is not empty
-  if (amount !== '') {
-    req.session.balance += difference;
-    updateBalance(req.session.balance, req.session.account);
+  else {
+    req.session.balance += (originalTransaction.amount - transaction.amount)
+    updateBalance(req.session.balance, req.session.account)
   }
-
-  // Update the transactions file
-  updateTransactionsFile(req.session.transactions, req.session.account);
-
-  // Assign amountToUpdate to the original transaction
-  Object.assign(originalTransaction, { amount: amountToUpdate });
-
-  res.render("reimburse");
+  console.log({originalTransaction})
+  console.log({transaction})
+  Object.assign(originalTransaction, transaction)
+  console.log({originalTransaction})
+  updateTransactionsFile(req.session.transactions, req.session.account)
+  console.log('hello')
+  res.render("reimburse")
+  return
 })
 
 
@@ -200,7 +189,6 @@ app.post("/account", (req, res) => {
 })
 
 app.get("/saved", (req, res) => {
-  console.log(req.session)
   let {account, saved} = req.session
   let savedOnAccount = saved[account] ?? []
   res.json({savedOnAccount})
@@ -209,7 +197,6 @@ app.get("/saved", (req, res) => {
 app.post("/saved", (req, res) => {
   let {account} = req.session
   let {toSave} = req.body
-  console.log(toSave)
   req.session.saved[account] = toSave
   res.sendStatus(200)
 })
