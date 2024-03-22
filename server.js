@@ -12,7 +12,6 @@ admin.initializeApp({
 })
 
 const checkLoggedIn = (req, res, next) => {
-  console.log(req.url)
   const unprotectedUrl = [
     "/",
     "/login",
@@ -23,7 +22,6 @@ const checkLoggedIn = (req, res, next) => {
     next()
     return
   }
-  console.log(req.session)
   if (!req.session?.loggedIn) {
     res.redirect("/login")
     return
@@ -76,7 +74,6 @@ app.post("/login/user", async (req, res) => {
   req.session.username = username;
   req.session.account = 'muneshwers';
   req.session.saved = {}
-  console.log(req.session)
   res.render("home")
   return
   
@@ -156,7 +153,7 @@ app.post("/editBalance", async (req, res) => {
     return;
   }
 
-  updateTransactionHistory([{...originalTransaction}], req.session.account)
+  updateTransactionHistory([{...originalTransaction}], req.session.account, "editTime")
 
   if (amount == null || amount == '') {
     transaction.amount = originalTransaction.amount
@@ -188,7 +185,7 @@ app.post("/reimburseBalance", async (req,res)=>{
     deleteFromCurrentTransactions(transactions, reimbursement)
   }
   updateTransactionsFile(transactions, account).then(_ => {
-    updateTransactionHistory(toBeReimbursed, account)
+    updateTransactionHistory(toBeReimbursed, account, "reimbursedTime")
     req.session.saved[account] = []
     res.render("reimburse")
   })
@@ -246,7 +243,6 @@ async function getCurrentBalance(session) {
   let {account} = session
   try {
     const {balance} = (await admin.firestore().collection('Database').doc(account).get()).data()
-    console.log(balance)
     return balance;
   } catch (error) {
     console.error("Error reading current balance:", error);
@@ -257,7 +253,6 @@ async function getCurrentBalance(session) {
 async function getCurrentTransactionId(session) {
   let {account} = session
   let {transactionId} = (await (admin.firestore().collection('Database').doc(account).get())).data()
-  console.log(transactionId)
   return transactionId
 
 }
@@ -272,7 +267,6 @@ async function getTransactionsFile(session) {
     .collection('Transactions')
     .doc('transactions')
     .get()).data()
-    console.log({transactions})
     return transactions
   } catch (error) {
     console.error("Error reading current transactions:", error);
@@ -305,9 +299,23 @@ async function updateTransactionId(transactionId, account) {
  * 
  * @param {Array<any>} transactions 
  */
-async function updateTransactionHistory(transactions, account) {
+async function updateTransactionHistory(transactions, account, purpose) {
+
   const transactionHistory = await getTransactionHistory(account)
-  transactionHistory.push(...transactions)
+  const date = new Date();
+  const options = { timeZone: 'America/Guyana',  timeZoneName: 'short' };
+  const formattedDate = date.toLocaleString('en-US', options);
+  
+  let transactionsToAdd = transactions.map((transaction) => {
+    transaction[purpose] = formattedDate
+    return transaction
+  })
+
+  console.log(transactionsToAdd)
+
+
+
+  transactionHistory.push(...transactionsToAdd)
   admin.firestore()
   .collection('Database')
   .doc(account)
