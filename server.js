@@ -1,22 +1,48 @@
 import express from "express";
 import expressSession from "express-session";
 import bodyParser from "body-parser";
-import fs from "fs";
+import admin from "firebase-admin"
+import serviceAccount from "./serviceAccountKey.json" assert {type : "json"}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+admin.initializeApp({
+  credential : admin.credential.cert(serviceAccount)
+})
+
+const checkLoggedIn = (req, res, next) => {
+  console.log(req.url)
+  const unprotectedUrl = [
+    "/",
+    "/login",
+    "/login/user",
+    "/styles/style.css"
+  ]
+  if (unprotectedUrl.includes(req.url)){
+    next()
+    return
+  }
+  console.log(req.session)
+  if (!req.session?.loggedIn) {
+    res.redirect("/login")
+    return
+  }
+  next()
+  return
+}
 
 app.set("view engine", "ejs");
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use("/styles", express.static("styles"));
 app.use("/static", express.static("static"));
-app.use(express.json());
 app.use(expressSession({
   secret: 'hi123',
   resave: false,
   saveUninitialized: false
-}));
+}))
+app.use(checkLoggedIn)
 
 //Gets users from json file
 app.get("/", (req, res) => {
@@ -24,11 +50,7 @@ app.get("/", (req, res) => {
 })
 
 app.get("/home", (req, res) => {
-  if (!req.session.loggedIn) {
-    res.render("login", {errorMessage : ''});
-  } else {
-    res.render("home")
-  }
+  res.render("home")
 })
 
 app.get("/login", (req, res) => {
@@ -36,9 +58,9 @@ app.get("/login", (req, res) => {
 });
 
 
-app.post("/login/user", (req, res) => {
+app.post("/login/user", async (req, res) => {
   const { username, password } = req.body;
-  const users = getUsers();
+  const users = await getUsers();
 
   let errorMessage = ''; 
 
@@ -54,30 +76,31 @@ app.post("/login/user", (req, res) => {
   req.session.username = username;
   req.session.account = 'muneshwers';
   req.session.saved = {}
+  console.log(req.session)
   res.render("home")
   return
   
 })
 
 //Sends current balance to homepage
-app.get("/balance", (req, res) => {
-  let balance = getCurrentBalance(req.session)
+app.get("/balance", async (req, res) => {
+  let balance = await getCurrentBalance(req.session)
   res.json({balance})
 })
 
-app.get("/transactions", (req, res) => {
-  let transactions = getTransactionsFile(req.session)
+app.get("/transactions", async (req, res) => {
+  let transactions = await getTransactionsFile(req.session)
   res.json({transactions})
 })
 
-app.get("/transactionId", (req, res) => {
+app.get("/transactionId", async (req, res) => {
   let {account} = req.session
-  let {transactionId} = JSON.parse(fs.readFileSync(`database/${account}/transactionId.json`, "utf-8"))
+  let transactionId = await getCurrentTransactionId(req.session) 
   res.json({transactionId})
 })
 
 //Receives form input and updates balance current value
-app.post("/balance", (req ,res) => {
+app.post("/balance", async (req ,res) => {
   let { transactionId ,recipient, description, amount, date} = req.body
   transactionId = Number(transactionId)
   let transaction = {
@@ -89,25 +112,28 @@ app.post("/balance", (req ,res) => {
     createdBy : req.session.username
   }
   let {account} = req.session
-  let currentId = JSON.parse(fs.readFileSync(`database/${account}/transactionId.json`, "utf-8")).transactionId
+  let currentId = await getCurrentTransactionId(req.session) 
   currentId = Number(currentId)
   if (currentId > transactionId) {
     transactionId = currentId
     transaction.transactionId = transactionId
   }
-  let transactions = getTransactionsFile(req.session)
+  let transactions = await getTransactionsFile(req.session)
   transactions.push(transaction)
   updateTransactionsFile(transactions, account);
-  let balance = getCurrentBalance(req.session)
+  let balance = await getCurrentBalance(req.session)
   balance = balance - amount
-  updateBalance(balance, account);
-  transactionId = Number(transactionId) + 1
-  fs.writeFileSync(`database/${account}/transactionId.json`, JSON.stringify({transactionId}))
-  res.render("create_transaction")
+  updateBalance(balance, account).then(_ => {
+    transactionId = Number(transactionId) + 1
+    updateTransactionId(transactionId, account).then(_ => {
+      res.render("create_transaction")
+    })
+
+  })
 
 })
 
-app.post("/editBalance", (req, res) => {
+app.post("/editBalance", async (req, res) => {
   let { transactionId, recipient, description, amount, date } = req.body
   transactionId = Number(transactionId)
   let transaction = {
@@ -119,7 +145,7 @@ app.post("/editBalance", (req, res) => {
     createdBy: req.session.username
   };
 
-  let transactions = getTransactionsFile(req.session)
+  let transactions = await getTransactionsFile(req.session)
 
   let originalTransaction = transactions.find(
     existingTransaction => existingTransaction.transactionId == transactionId
@@ -130,44 +156,47 @@ app.post("/editBalance", (req, res) => {
     return;
   }
 
-  updateTransactionHistory([originalTransaction], req.session.account)
+  updateTransactionHistory([{...originalTransaction}], req.session.account)
 
   if (amount == null || amount == '') {
     transaction.amount = originalTransaction.amount
   }
   else {
-    let balance = getCurrentBalance(req.session)
+    let balance = await getCurrentBalance(req.session)
     balance += (originalTransaction.amount - transaction.amount)
     updateBalance(balance, req.session.account)
   }
   Object.assign(originalTransaction, transaction)
-  updateTransactionsFile(transactions, req.session.account)
-  res.render("reimburse")
-  return
+  updateTransactionsFile(transactions, req.session.account).then(_ => {
+    res.render("reimburse")
+    return
+  })
 })
 
 
 
 //Takes reimbursed total from table and adds to current balance
-app.post("/reimburseBalance",(req,res)=>{
+app.post("/reimburseBalance", async (req,res)=>{
   let { reimbursedTotal, toBeReimbursed } = req.body
   toBeReimbursed = JSON.parse(toBeReimbursed)
-  let balance = getCurrentBalance(req.session)
+  let balance = await getCurrentBalance(req.session)
   balance = Number(balance) + Number(reimbursedTotal)
   let {account} = req.session
   updateBalance(balance, account)
-  let transactions = getTransactionsFile(req.session)
+  let transactions = await getTransactionsFile(req.session)
   for (let reimbursement of toBeReimbursed) {
     deleteFromCurrentTransactions(transactions, reimbursement)
   }
-  updateTransactionsFile(transactions, account)
-  updateTransactionHistory(toBeReimbursed, account)
-  req.session.saved[account] = []
-  res.render("reimburse")
+  updateTransactionsFile(transactions, account).then(_ => {
+    updateTransactionHistory(toBeReimbursed, account)
+    req.session.saved[account] = []
+    res.render("reimburse")
+  })
 })
 
-app.get("/transactionHistory", (req, res) => {
-  const {transactionHistory} = JSON.parse(fs.readFileSync(`database/${req.session.account}/transactionHistory.json`, "utf-8"))
+app.get("/transactionHistory", async (req, res) => {
+  let {account} = req.session
+  let transactionHistory = await getTransactionHistory(account)
   res.json({transactionHistory})
 })
 
@@ -204,18 +233,20 @@ app.post("/saved", (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`App is running on port ${PORT}`);
+  const userRef = admin.firestore().collection('Database').doc('Users')
 });
 
 
-function getUsers() {
-  const {users} = JSON.parse(fs.readFileSync('./database/users.json', "utf-8"))
-  return users
+async function getUsers() {
+  const {Users} = (await admin.firestore().collection('Database').doc('Users').get()).data()
+  return Users
 }
 
-function getCurrentBalance(session) {
+async function getCurrentBalance(session) {
   let {account} = session
   try {
-    const {balance} = JSON.parse(fs.readFileSync(`database/${account}/currentBalance.json`, "utf-8"))
+    const {balance} = (await admin.firestore().collection('Database').doc(account).get()).data()
+    console.log(balance)
     return balance;
   } catch (error) {
     console.error("Error reading current balance:", error);
@@ -223,10 +254,25 @@ function getCurrentBalance(session) {
   }
 }
 
-function getTransactionsFile(session) {
+async function getCurrentTransactionId(session) {
+  let {account} = session
+  let {transactionId} = (await (admin.firestore().collection('Database').doc(account).get())).data()
+  console.log(transactionId)
+  return transactionId
+
+}
+
+
+async function getTransactionsFile(session) {
   let {account} = session
   try {
-    const {transactions} = JSON.parse(fs.readFileSync(`database/${account}/currentTransactions.json`, "utf-8"));
+    const {transactions} = (await admin.firestore()
+    .collection('Database')
+    .doc(account)
+    .collection('Transactions')
+    .doc('transactions')
+    .get()).data()
+    console.log({transactions})
     return transactions
   } catch (error) {
     console.error("Error reading current transactions:", error);
@@ -234,24 +280,49 @@ function getTransactionsFile(session) {
   }
 }
 
-function updateBalance(balance, account) {
-  fs.writeFileSync(`database/${account}/currentBalance.json`, JSON.stringify({balance}));
+async function updateBalance(balance, account) {
+  return admin.firestore().collection('Database').doc(account).update({balance})
 }
 
-function updateTransactionsFile(transactions, account) {
-  fs.writeFileSync(`database/${account}/currentTransactions.json`, JSON.stringify({transactions}));
+async function updateTransactionsFile(transactions, account) {
+  return admin.firestore()
+  .collection('Database')
+  .doc(account)
+  .collection('Transactions')
+  .doc('transactions')
+  .update({transactions})
 }
 
 
+async function updateTransactionId(transactionId, account) {
+  return admin.firestore()
+  .collection('Database')
+  .doc(account)
+  .update({transactionId})
+}
 
 /**
  * 
  * @param {Array<any>} transactions 
  */
-function updateTransactionHistory(transactions, account) {
-  const {transactionHistory} = JSON.parse(fs.readFileSync(`database/${account}/transactionHistory.json`, "utf-8"))
+async function updateTransactionHistory(transactions, account) {
+  const transactionHistory = await getTransactionHistory(account)
   transactionHistory.push(...transactions)
-  fs.writeFileSync(`database/${account}/transactionHistory.json`, JSON.stringify({transactionHistory}));
+  admin.firestore()
+  .collection('Database')
+  .doc(account)
+  .collection('History')
+  .doc('transactionHistory')
+  .update({transactionHistory})
+}
+
+async function getTransactionHistory(account) {
+  const {transactionHistory} = (await admin.firestore()
+  .collection('Database')
+  .doc(account)
+  .collection('History')
+  .doc('transactionHistory').get()).data()
+  return transactionHistory
 }
 
 /**
@@ -266,6 +337,3 @@ function deleteFromCurrentTransactions(transactions, reimbursement) {
   transactions.splice(index, 1)
 
 }
-//TODO:
-// Is there a way to title a table? 
-// style the sheet

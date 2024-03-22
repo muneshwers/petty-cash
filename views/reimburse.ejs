@@ -49,20 +49,24 @@
                 domLayout: 'autoHeight',
                 components: {editRenderer: editRenderer,},
                 columnDefs : [
-                    { field: 'transactionId', checkboxSelection: true},
+                    { field: 'transactionId', 
+                    checkboxSelection: true, 
+                    headerCheckboxSelectionFilteredOnly:true, 
+                    headerCheckboxSelection: true,
+                    headerName : 'Voucher Number'},
                     { field: 'description'},
                     { field: 'amount' },
                     { field: 'recipient' },
                     { field: 'createdBy' },
                     { field: 'date'},
                     {
-                                    field: 'Actions',
-                                    headerName: 'Edit',
-                                    cellRenderer: 'editRenderer',
-                                    minWidth: 100,
-                                    maxWidth: 100,
-                                    suppressMenu: true,
-                                    cellStyle: { textAlign: 'center' }
+                        field: 'Actions',
+                        headerName: 'Edit',
+                        cellRenderer: 'editRenderer',
+                        minWidth: 100,
+                        maxWidth: 100,
+                        suppressMenu: true,
+                        cellStyle: { textAlign: 'center' }
                                 },
                             ],
                 defaultColDef: {
@@ -115,16 +119,20 @@
                     params.api.setNodesSelected({ nodes : selectedNodes,  newValue : true})
                 },
             })
+            let account = this.currAccount
             this.grid2 = agGrid.createGrid(this.$refs.myGrid2, {
                 rowData : this.toBeReimbursed,
                 domLayout: 'autoHeight',
                 columnDefs : [
                     { field: 'description'},
                     { field: 'amount' },
-                    {field: 'transactionId'},
+                    {field: 'transactionId', headerName : 'Voucher Number'},
                     { field: 'recipient' },
                     { field: 'createdBy' },
-                    { field: 'date'}
+                    { field: 'date'},
+                    {headerName: 'Account', valueGetter: function (params) {
+                        return account 
+                    },}
                 ],
                 defaultColDef: {
                     filter: 'agTextColumnFilter',
@@ -154,7 +162,16 @@
 
         },
         exportTableAsCsv() {
-            this.grid2.exportDataAsCsv()
+            const processCellCallback = (params) => {
+                if (params.column.getId() === 'transactionId' ){
+                    if (params.value){
+                        return 'VR' + params.value
+                    }
+                    return
+                }
+                return params.value
+            }
+            this.grid2.exportDataAsCsv({processCellCallback})
         },
         save() {
             let toSave = this.toBeReimbursed.map(node => node.transactionId)

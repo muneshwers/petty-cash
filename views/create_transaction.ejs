@@ -1,6 +1,6 @@
-<main x-ref="main" class="swappable" >
+<main x-ref="main" class="swappable">
     <div x-data="{
-            balance: 1000000,
+            balance: 2000000,
         }"
         x-init=" fetch('/balance').then(data => data.json()).then(json => balance = json.balance) "
         >
@@ -33,9 +33,6 @@
             async init() {
                 let data = (await (await fetch('/transactionId')).json())
                 this.inputs.transactionId.value = data.transactionId
-                setInterval(() => {
-                    this.updateTransactionId()
-                },10000);
             },
             async updateTransactionId() {
                 let data = (await (await fetch('/transactionId')).json())
@@ -49,7 +46,7 @@
                 <div class="amount"><div>Remainder </div> <span  x-text="formatDollar(balance - inputs.amount.value)" ></span></div>
             </div>
 
-            <div class="limit" x-cloak x-show="balance < 4000">
+            <div class="limit" x-cloak x-show="balance <= 100000">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="10" />
                     <line x1="12" y1="8" x2="12" y2="12" />
