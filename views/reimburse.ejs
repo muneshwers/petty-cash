@@ -12,6 +12,7 @@
             transactionId : {value: '', valid: true},
             amount :  {value: '', valid: true},
             recipient : {value: '', valid: true},
+            supplier : {value: '', valid: true},
             description : {value: '', valid: true},
             date : {value: (new Date()).toISOString().split('T')[0], valid: true},
             originalAmount :  {value: '', valid: true},
@@ -35,6 +36,7 @@
                     alpineObj.open = true
                     alpineObj.inputs.transactionId.value = params.data.transactionId;
                     alpineObj.inputs.recipient.value = params.data.recipient;
+                    alpineObj.inputs.supplier.value = params.data.supplier;
                     alpineObj.inputs.description.value = params.data.description;
                     alpineObj.inputs.originalAmount.value = params.data.amount;
                     $dispatch('modal')
@@ -57,6 +59,7 @@
                     { field: 'description'},
                     { field: 'amount' },
                     { field: 'recipient' },
+                    { field: 'supplier' },
                     { field: 'createdBy' },
                     { field: 'date'},
                     {
@@ -128,6 +131,7 @@
                     { field: 'amount' },
                     {field: 'transactionId', headerName : 'Voucher Number'},
                     { field: 'recipient' },
+                    { field: 'supplier' },
                     { field: 'createdBy' },
                     { field: 'date'},
                     {headerName: 'Account', valueGetter: function (params) {
@@ -266,16 +270,47 @@
                                     }"
                                     @modal.window="input = inputs.recipient.value"
                                 >
+                                <span class="errorMessage"  x-text="errorMessage"></span>
+                                <input
+                                    x-on:input="let valid = validate(); $dispatch('validation', {valid, field : 'recipient', input})"
+                                    x-model="input"
+                                    x-bind:class="{'error' : errorMessage}"
+                                    type="text"
+                                    name="recipient"
+                                    id="recipient"
+                                >
+                                <span class="label">Recipient</span>
+                                <div
+                                @validation="
+                                    inputs[$event.detail.field].value = $event.detail.input;
+                                    inputs[$event.detail.field].valid = $event.detail.valid;"
+                                class="item"
+                                x-data="{
+                                    input : '',
+                                    errorMessage : '',
+                                    initialized : false,
+                                    validate() {
+                                        this.initialized = true
+                                        if (!this.input) {
+                                            this.errorMessage = 'Supplier required'
+                                            return false
+                                        }
+                                        this.errorMessage = ''
+                                        return true
+                                    }
+                                }"
+                                @modal.window="input = inputs.supplier.value"
+                            >
                                     <span class="errorMessage"  x-text="errorMessage"></span>
                                     <input
-                                        x-on:input="let valid = validate(); $dispatch('validation', {valid, field : 'recipient', input})"
+                                        x-on:input="let valid = validate(); $dispatch('validation', {valid, field : 'supplier', input})"
                                         x-model="input"
                                         x-bind:class="{'error' : errorMessage}"
                                         type="text"
-                                        name="recipient"
-                                        id="recipient"
+                                        name="supplier"
+                                        id="supplier"
                                     >
-                                    <span class="label">Recipient</span>
+                                    <span class="label">Supplier</span>
                                 </div>
                                 <div @validation="
                                     inputs[$event.detail.field].value = $event.detail.input;

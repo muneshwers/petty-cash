@@ -98,11 +98,12 @@ app.get("/transactionId", async (req, res) => {
 
 //Receives form input and updates balance current value
 app.post("/balance", async (req ,res) => {
-  let { transactionId ,recipient, description, amount, date} = req.body
+  let { transactionId ,recipient ,supplier ,description, amount, date} = req.body
   transactionId = Number(transactionId)
   let transaction = {
     transactionId,
     recipient,
+    supplier,
     description,
     amount,
     date,
@@ -131,11 +132,12 @@ app.post("/balance", async (req ,res) => {
 })
 
 app.post("/editBalance", async (req, res) => {
-  let { transactionId, recipient, description, amount, date } = req.body
+  let { transactionId, recipient, supplier, description, amount, date } = req.body
   transactionId = Number(transactionId)
   let transaction = {
     transactionId,
     recipient,
+    supplier,
     description,
     amount,
     date,
