@@ -12,6 +12,7 @@ admin.initializeApp({
 })
 
 const checkLoggedIn = (req, res, next) => {
+  console.log(req.url)
   const unprotectedUrl = [
     "/",
     "/login",
@@ -48,7 +49,8 @@ app.get("/", (req, res) => {
 })
 
 app.get("/home", (req, res) => {
-  res.render("home")
+  let {role} = req.session
+  res.render("home", {role})
 })
 
 app.get("/login", (req, res) => {
@@ -70,16 +72,31 @@ app.post("/login/user", async (req, res) => {
     return
   } 
 
+  let {role} = user
+  role = role ?? 'basic'
+
   req.session.loggedIn = true;
   req.session.username = username;
   req.session.account = 'muneshwers';
+  req.session.role = role
   req.session.saved = {}
-  res.render("home")
+  console.log({role})
+  res.render("home", {role})
   return
   
 })
 
-//Sends current balance to homepage
+app.get("/approve", (req, res) => {
+  res.render("approve")
+})
+
+app.post("/approve", (req, res) => {
+  console.log(req.body)
+  setTimeout(() => {
+    res.sendStatus(200)
+  },500)
+})
+
 app.get("/balance", async (req, res) => {
   let balance = await getCurrentBalance(req.session)
   res.json({balance})
@@ -214,7 +231,14 @@ app.get("/transaction_history", (req, res) => {
 app.post("/account", (req, res) => {
   const {account} = req.body;
   req.session.account = account.toLowerCase()
-  res.render("create_transaction")
+  if (req.session.role === 'approver'){
+    res.render("approve")
+    return
+  }
+  if (req.session.role === 'basic'){
+    res.render("create_transaction")
+    return
+  }
 })
 
 app.get("/saved", (req, res) => {

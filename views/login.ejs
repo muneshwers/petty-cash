@@ -10,7 +10,7 @@
                 <label for="password">Password:</label>
                 <input type="password" id="password" name="password" required>
             </div>
-            <button type="submit">Login</button>
+            <button @click="$el.innerHTML = 'Loading...'" type="submit">Login</button>
             <% if(errorMessage) { %>
                 <p class="error-message"><%= errorMessage %></p>
             <% } %>

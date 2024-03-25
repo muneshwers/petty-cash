@@ -49,7 +49,7 @@
             this.grid = agGrid.createGrid(this.$refs.myGrid, {
                 rowData : transactions,
                 domLayout: 'autoHeight',
-                components: {editRenderer: editRenderer,},
+                components: {editRenderer},
                 columnDefs : [
                     { field: 'transactionId', 
                     checkboxSelection: true, 
@@ -64,7 +64,7 @@
                     { field: 'date'},
                     {
                         field: 'Actions',
-                        headerName: 'Edit',
+                        headerName: 'Actions',
                         cellRenderer: 'editRenderer',
                         minWidth: 100,
                         maxWidth: 100,
