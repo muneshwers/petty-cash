@@ -417,8 +417,18 @@
                                     <span class="label">Date</span>
                                 </div>
                             </div>
-                            <button class="submit-button" @click="open =false; swapMain()" type="submit" :disabled="!validate()" >Update</button>
-                            <button class="reverse-button" type="button" x-transition:leave.duration.300ms x-show="!editAmount" x-on:click="editAmount = true">Edit Amount</button>
+                            <div  class="modal-btns">
+                                <button class="submit-button" @click="open =false; swapMain()" type="submit" :disabled="!validate()" >Update</button>
+                                <button 
+                                class="edit-amount"
+                                type="button" 
+                                x-transition:leave.duration.300ms 
+                                x-show="!editAmount" 
+                                x-on:click="editAmount = true">
+                                    <img src="/static/images/down-arrow.svg" alt="down-arrow" height="10" width="10">
+                                    <span>Edit Amount</span>
+                                </button>
+                            </div>
                         </form>
                     </div>
         
