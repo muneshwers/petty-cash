@@ -62,7 +62,7 @@
                         </template>
                     </div>
                 </div>
-                <nav :class="{'current': tab == 'transactions'}" @click="changeTab('transactions')" hx-trigger="click delay:0.25s"  hx-target="main" hx-get="/create_transaction" hx-swap="outerHTML">Approve Transactions</nav>
+                <nav :class="{'current': tab == 'transactions'}" @click="changeTab('transactions')" hx-trigger="click delay:0.25s"  hx-target="main" hx-get="/create_transaction" hx-swap="outerHTML">Create Transactions</nav>
                 <nav :class="{'current': tab == 'reimburse'}" @click="changeTab('reimburse')" hx-trigger="click delay:0.25s" hx-get="/reimburse" hx-target="main" hx-swap="outerHTML">Reimburse</nav>
                 <nav :class="{'current': tab == 'history'}" @click="changeTab('history')" hx-trigger="click delay:0.25s" hx-get="/transaction_history" hx-target="main" hx-swap="outerHTML">History</nav>
             </div>

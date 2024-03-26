@@ -52,8 +52,10 @@
                 components: {editRenderer},
                 columnDefs : [
                     { field: 'transactionId', 
-                    checkboxSelection: true, 
-                    headerCheckboxSelectionFilteredOnly:true, 
+                    checkboxSelection: function (params) {
+                        return params.data.approve
+                        },
+                    suppressSorting : true,
                     headerCheckboxSelection: true,
                     headerName : 'Voucher Number'},
                     { field: 'description'},
@@ -77,6 +79,9 @@
                     floatingFilter: true,
                 },
                 rowSelection: 'multiple',
+                isRowSelectable: function(params) {
+                    return params.data.approve
+                },
                 onRowSelected: (event) => {
                     this.saveText = 'Save'
                     if (event.node.isSelected()) {
