@@ -138,7 +138,7 @@ main {
 
 input {
     background: #fff;
-    border: 1px solid #f0f0f0;
+    border: 1px solid #d0d0d0;
     float: left;
     font-size: 15px;
     height: 15px;
@@ -154,8 +154,9 @@ input.error {
 }
 
 .transaction-form {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 25px;
 }
 
 .transaction-form .item {
