@@ -1,0 +1,70 @@
+<main x-ref="main" class="swappable" >
+    <div x-data="{
+        grid : null,
+        transactions: [],
+        async init() {
+            let alpineObj = this
+            const approveRenderer = function(params) {
+                const button = document.createElement('button');
+                button.innerHTML = 'Approve';
+                button.classList.add('edit-button');
+                button.addEventListener('click', function () {
+                    let rowIndex = params.rowIndex
+                    this.innerHTML = 'Loading...'
+                    fetch('/approve', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type' : 'application/json',
+                        },
+                        body: JSON.stringify({approved : alpineObj.transactions[rowIndex].transactionId})
+                    }).then((_) => {
+                            alpineObj.transactions.splice(rowIndex, 1)
+                            alpineObj.grid.setRowData(alpineObj.transactions)
+                            alpineObj.grid.refreshCells()
+                    })
+                })
+                return button
+            }
+            let {transactions} = (await (await fetch('/transactions')).json())
+            this.transactions = transactions
+            console.log(transactions)
+            this.grid = agGrid.createGrid(this.$refs.grid, {
+                rowData : transactions,
+                domLayout: 'autoHeight',
+                components: {approveRenderer},
+                columnDefs : [
+                    { field: 'transactionId', headerName : 'Voucher Number'},
+                    { field: 'description'},
+                    { field: 'amount' },
+                    { field: 'recipient' },
+                    { field: 'supplier' },
+                    { field: 'createdBy' },
+                    { field: 'date'},
+                    {
+                        field: 'Actions',
+                        headerName: 'Actions',
+                        cellRenderer: 'approveRenderer',
+                        minWidth: 100,
+                        maxWidth: 100,
+                        suppressMenu: true,
+                        cellStyle: { textAlign: 'center' }
+                    },
+                ],
+                defaultColDef: {
+                    filter: 'agTextColumnFilter',
+                    floatingFilter: true,
+                },
+            })
+        }
+        }" ></div>
+        <div class="title">
+            <h2> Transactions To Approve </h2>
+            <div class="title_btns">
+                <button type="button" class="export_btn" @click="exportTableAsCsv()">
+                    <img src="/static/images/download.svg" alt="download button" height="25" width="25">
+                </button>
+            </div>
+        </div>
+        <div x-ref="grid" class="table ag-theme-quartz ag-center-cols-viewport" style="width: auto"></div>
+    </div>
+</main>

@@ -12,6 +12,7 @@
             transactionId : {value: '', valid: true},
             amount :  {value: '', valid: true},
             recipient : {value: '', valid: true},
+            supplier : {value: '', valid: true},
             description : {value: '', valid: true},
             date : {value: (new Date()).toISOString().split('T')[0], valid: true},
             originalAmount :  {value: '', valid: true},
@@ -35,6 +36,7 @@
                     alpineObj.open = true
                     alpineObj.inputs.transactionId.value = params.data.transactionId;
                     alpineObj.inputs.recipient.value = params.data.recipient;
+                    alpineObj.inputs.supplier.value = params.data.supplier;
                     alpineObj.inputs.description.value = params.data.description;
                     alpineObj.inputs.originalAmount.value = params.data.amount;
                     $dispatch('modal')
@@ -47,22 +49,29 @@
             this.grid = agGrid.createGrid(this.$refs.myGrid, {
                 rowData : transactions,
                 domLayout: 'autoHeight',
-                components: {editRenderer: editRenderer,},
+                components: {editRenderer},
                 columnDefs : [
-                    { field: 'transactionId', checkboxSelection: true},
+                    { field: 'transactionId', 
+                    checkboxSelection: function (params) {
+                        return params.data.approve
+                        },
+                    suppressSorting : true,
+                    headerCheckboxSelection: true,
+                    headerName : 'Voucher Number'},
                     { field: 'description'},
                     { field: 'amount' },
                     { field: 'recipient' },
+                    { field: 'supplier' },
                     { field: 'createdBy' },
                     { field: 'date'},
                     {
-                                    field: 'Actions',
-                                    headerName: 'Edit',
-                                    cellRenderer: 'editRenderer',
-                                    minWidth: 100,
-                                    maxWidth: 100,
-                                    suppressMenu: true,
-                                    cellStyle: { textAlign: 'center' }
+                        field: 'Actions',
+                        headerName: 'Actions',
+                        cellRenderer: 'editRenderer',
+                        minWidth: 100,
+                        maxWidth: 100,
+                        suppressMenu: true,
+                        cellStyle: { textAlign: 'center' }
                                 },
                             ],
                 defaultColDef: {
@@ -70,6 +79,9 @@
                     floatingFilter: true,
                 },
                 rowSelection: 'multiple',
+                isRowSelectable: function(params) {
+                    return params.data.approve
+                },
                 onRowSelected: (event) => {
                     this.saveText = 'Save'
                     if (event.node.isSelected()) {
@@ -115,16 +127,21 @@
                     params.api.setNodesSelected({ nodes : selectedNodes,  newValue : true})
                 },
             })
+            let account = this.currAccount
             this.grid2 = agGrid.createGrid(this.$refs.myGrid2, {
                 rowData : this.toBeReimbursed,
                 domLayout: 'autoHeight',
                 columnDefs : [
                     { field: 'description'},
                     { field: 'amount' },
-                    {field: 'transactionId'},
+                    {field: 'transactionId', headerName : 'Voucher Number'},
                     { field: 'recipient' },
+                    { field: 'supplier' },
                     { field: 'createdBy' },
-                    { field: 'date'}
+                    { field: 'date'},
+                    {headerName: 'Account', valueGetter: function (params) {
+                        return account 
+                    },}
                 ],
                 defaultColDef: {
                     filter: 'agTextColumnFilter',
@@ -154,7 +171,16 @@
 
         },
         exportTableAsCsv() {
-            this.grid2.exportDataAsCsv()
+            const processCellCallback = (params) => {
+                if (params.column.getId() === 'transactionId' ){
+                    if (params.value){
+                        return 'VR' + params.value
+                    }
+                    return
+                }
+                return params.value
+            }
+            this.grid2.exportDataAsCsv({processCellCallback})
         },
         save() {
             let toSave = this.toBeReimbursed.map(node => node.transactionId)
@@ -226,7 +252,7 @@
                                 <div class="item">
                                     <span class="errorMessage"></span>
                                     <input type="text" readonly name="transactionId" id="transactionId" x-model="inputs.transactionId.value">
-                                    <span class="label"> Transaction Id</span>
+                                    <span class="label">Voucher Number</span>
                                 </div>
                                 <div
                                     @validation="
@@ -249,16 +275,47 @@
                                     }"
                                     @modal.window="input = inputs.recipient.value"
                                 >
+                                <span class="errorMessage"  x-text="errorMessage"></span>
+                                <input
+                                    x-on:input="let valid = validate(); $dispatch('validation', {valid, field : 'recipient', input})"
+                                    x-model="input"
+                                    x-bind:class="{'error' : errorMessage}"
+                                    type="text"
+                                    name="recipient"
+                                    id="recipient"
+                                >
+                                <span class="label">Recipient</span>
+                                <div
+                                @validation="
+                                    inputs[$event.detail.field].value = $event.detail.input;
+                                    inputs[$event.detail.field].valid = $event.detail.valid;"
+                                class="item"
+                                x-data="{
+                                    input : '',
+                                    errorMessage : '',
+                                    initialized : false,
+                                    validate() {
+                                        this.initialized = true
+                                        if (!this.input) {
+                                            this.errorMessage = 'Supplier required'
+                                            return false
+                                        }
+                                        this.errorMessage = ''
+                                        return true
+                                    }
+                                }"
+                                @modal.window="input = inputs.supplier.value"
+                            >
                                     <span class="errorMessage"  x-text="errorMessage"></span>
                                     <input
-                                        x-on:input="let valid = validate(); $dispatch('validation', {valid, field : 'recipient', input})"
+                                        x-on:input="let valid = validate(); $dispatch('validation', {valid, field : 'supplier', input})"
                                         x-model="input"
                                         x-bind:class="{'error' : errorMessage}"
                                         type="text"
-                                        name="recipient"
-                                        id="recipient"
+                                        name="supplier"
+                                        id="supplier"
                                     >
-                                    <span class="label">Recipient</span>
+                                    <span class="label">Supplier</span>
                                 </div>
                                 <div @validation="
                                     inputs[$event.detail.field].value = $event.detail.input;
@@ -365,8 +422,18 @@
                                     <span class="label">Date</span>
                                 </div>
                             </div>
-                            <button class="submit-button" @click="open =false; swapMain()" type="submit" :disabled="!validate()" >Update</button>
-                            <button class="reverse-button" type="button" x-transition:leave.duration.300ms x-show="!editAmount" x-on:click="editAmount = true">Edit Amount</button>
+                            <div  class="modal-btns">
+                                <button class="submit-button" @click="open =false; swapMain()" type="submit" :disabled="!validate()" >Update</button>
+                                <button 
+                                class="edit-amount"
+                                type="button" 
+                                x-transition:leave.duration.300ms 
+                                x-show="!editAmount" 
+                                x-on:click="editAmount = true">
+                                    <img src="/static/images/down-arrow.svg" alt="down-arrow" height="10" width="10">
+                                    <span>Edit Amount</span>
+                                </button>
+                            </div>
                         </form>
                     </div>
         

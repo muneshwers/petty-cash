@@ -4,16 +4,25 @@
         grid : null,
         async init(){
             let {transactionHistory} = (await (await fetch('/transactionHistory')).json())
+            let account = this.currAccount
             this.grid = agGrid.createGrid(this.$refs.myGrid, {
                 rowData : transactionHistory,
                 domLayout: 'autoHeight',
                 columnDefs : [
-                    { field: 'transactionId'},
+                    { field: 'transactionId', headerName : 'Voucher Number'},
                     { field: 'description'},
                     { field: 'amount' },
                     { field: 'recipient' },
+                    { field: 'supplier' },
                     { field: 'createdBy' },
-                    { field: 'date'}
+                    { field: 'date'},
+                    {headerName: 'Account', 
+                        valueGetter: function (params) {
+                            return account 
+                        },
+                    },
+                    {field: 'editTime'},
+                    {field : 'reimbursedTime'}
                 ],
                 defaultColDef: {
                     filter: 'agTextColumnFilter',
@@ -23,8 +32,18 @@
 
         },
         exportTableAsCsv() {
-            this.grid.exportDataAsCsv()
+            const processCellCallback = (params) => {
+                if (params.column.getId() === 'transactionId' ){
+                    if (params.value){
+                        return 'VR' + params.value
+                    }
+                    return
+                }
+                return params.value
+            }
+            this.grid.exportDataAsCsv({processCellCallback})
         },
+
     }">
         <div class="title">
             <h2>All Transactions</h2>
