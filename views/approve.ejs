@@ -16,7 +16,7 @@
                         headers: {
                             'Content-Type' : 'application/json',
                         },
-                        body: JSON.stringify({approved : alpineObj.transactions[rowIndex].transactionId})
+                        body: JSON.stringify({transactionId : alpineObj.transactions[rowIndex].transactionId})
                     }).then((_) => {
                             alpineObj.transactions.splice(rowIndex, 1)
                             alpineObj.grid.setRowData(alpineObj.transactions)
@@ -26,7 +26,7 @@
                 return button
             }
             let {transactions} = (await (await fetch('/transactions')).json())
-            this.transactions = transactions
+            this.transactions = transactions.filter((transaction) => !transaction.approved)
             console.log(transactions)
             this.grid = agGrid.createGrid(this.$refs.grid, {
                 rowData : transactions,

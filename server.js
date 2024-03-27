@@ -92,10 +92,17 @@ app.get("/approve", (req, res) => {
 })
 
 app.post("/approve", (req, res) => {
-  console.log(req.body)
-  setTimeout(() => {
-    res.sendStatus(200)
-  },500)
+  /**@type {number} */
+  let transactionId = req.body.transactionId
+  let {account} = req.session
+  admin
+  .firestore()
+  .collection('Database')
+  .doc(account)
+  .collection('Transactions')
+  .doc(transactionId.toString())
+  .update({approved:true})
+  .then(() => res.sendStatus(200))
 })
 
 app.get("/balance", async (req, res) => {
@@ -456,3 +463,7 @@ async function getTransactionHistory(account) {
  * @property {string?} editTime - the time that the transaction was edited
  * @property {string?} reimbursedTime - the time that the transaction was reimbursed
  */
+
+//TODO
+//Make the client poll every minute
+//Fix the reimburse page edit modal
