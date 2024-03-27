@@ -145,6 +145,8 @@
                     { field: 'supplier' },
                     { field: 'createdBy' },
                     { field: 'date'},
+                    { field: 'approvedBy'},
+                    { field: 'approvedTime'},
                     {headerName: 'Account', valueGetter: function (params) {
                         return account 
                     },}
@@ -254,7 +256,7 @@
                         </div>
         
                         <form :class="{'movedown' : editAmount}" hx-post="/transaction/edit" hx-target="main" hx-trigger="submit delay:0.25s">
-                            <div class="transaction-form">
+                            <div class="edit-form">
                                 <div class="item">
                                     <span class="errorMessage"></span>
                                     <input type="text" readonly name="transactionId" id="transactionId" x-model="inputs.transactionId.value">

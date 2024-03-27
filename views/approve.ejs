@@ -29,7 +29,7 @@
             this.transactions = transactions.filter((transaction) => !transaction.approved)
             console.log(transactions)
             this.grid = agGrid.createGrid(this.$refs.grid, {
-                rowData : transactions,
+                rowData : this.transactions,
                 domLayout: 'autoHeight',
                 components: {approveRenderer},
                 columnDefs : [

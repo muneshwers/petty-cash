@@ -6,13 +6,23 @@ body {
 }
 
 header {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-around;
-    align-items: center;
     border-bottom: 0.5px solid #dcdcdc;
     width: 100%;
     font-size: large;
+}
+
+.header-top{
+    display: flex;
+    flex-direction: row;
+    gap: 20px;
+    align-items: center;
+    margin: 2vh;
+    margin-left: 7vw;
+    margin-top: 2;
+}
+
+.header-top h1{
+    margin: 0;
 }
 
 main.login {
@@ -29,6 +39,9 @@ main.login {
 .navbar {
     display: flex;
     flex-direction: row;
+    justify-content: flex-end;
+    align-items: center;
+    height: 50px;
 }
 
 nav {
@@ -117,12 +130,12 @@ nav.current:hover {
 
 }
 
-.account .panel .item {
+.account .panel .panel-item {
     padding: 10px;
     border-bottom: 1px solid #f0f0f0;
 }
 
-.account .panel .item:hover {
+.account .panel .panel-item:hover {
     background-color: #f0f0f0;
 }
 
@@ -159,7 +172,7 @@ input.error {
     gap: 25px;
 }
 
-.transaction-form .item {
+.item {
     display: flex;
     flex-direction: column;
     padding: 10px;
@@ -169,13 +182,13 @@ input.error {
     border-radius: 10px;
 }
 
-.transaction-form .item input:focus + .label {
+.item input:focus + .label {
     font-size: 12px;
     color: #0047ab;
     transition: color 0.3s, font-size 0.3s;
 }
 
-.transaction-form .item .errorMessage {
+.item .errorMessage {
     color: #cc0033;
     display: inline-block;
     font-size: 12px;
@@ -184,7 +197,7 @@ input.error {
     margin-bottom: 5px;
     height: 15px;
 }
-.transaction-form .item .label {
+.item .label {
     display: inline-block;
     font-size: 14px;
     line-height: 15px;
@@ -410,6 +423,12 @@ button {
 
 .modal h1 {
     margin-top: 0;
+}
+
+.edit-form {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
 }
 
 .close-button {

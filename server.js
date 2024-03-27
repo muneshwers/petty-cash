@@ -36,7 +36,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use("/styles", express.static("styles"));
 app.use("/static", express.static("static"));
 app.use(expressSession({
-  secret: 'hi123',
+  secret: 'secret',
   resave: false,
   saveUninitialized: false
 }))
@@ -91,20 +91,6 @@ app.get("/approve", (req, res) => {
   res.render("approve")
 })
 
-app.post("/approve", (req, res) => {
-  /**@type {number} */
-  let transactionId = req.body.transactionId
-  let {account} = req.session
-  admin
-  .firestore()
-  .collection('Database')
-  .doc(account)
-  .collection('Transactions')
-  .doc(transactionId.toString())
-  .update({approved:true})
-  .then(() => res.sendStatus(200))
-})
-
 app.get("/balance", async (req, res) => {
   let balance = await getCurrentBalance(req.session)
   res.json({balance})
@@ -120,7 +106,30 @@ app.get("/transactionId", async (req, res) => {
   res.json({transactionId})
 })
 
-//Receives form input and updates balance current value
+app.get("/transactionHistory", async (req, res) => {
+  let {account} = req.session
+  let transactionHistory = await getTransactionHistory(account)
+  res.json({transactionHistory})
+})
+
+app.get("/create_transaction", (req, res) => {
+  res.render("create_transaction")
+})
+
+app.get("/reimburse", (req, res) => {
+  res.render("reimburse")
+})
+
+app.get("/transaction_history", (req, res) => {
+  res.render("transaction_history")
+})
+
+app.get("/saved", (req, res) => {
+  let {account, saved} = req.session
+  let savedOnAccount = saved[account] ?? []
+  res.json({savedOnAccount})
+})
+
 app.post("/transaction", async (req ,res) => {
   /** @type {Transaction} */
   let { transactionId, recipient, supplier, description, amount, date} = req.body
@@ -180,8 +189,6 @@ app.post("/transaction/edit", async (req, res) => {
     return;
   }
 
-  console.log(originalTransaction)
-
   applyTimeStamp([originalTransaction], "editTime")
   addToTransactionHistory([{...originalTransaction}], req.session.account)
   if (amount == null || amount == '') {
@@ -202,43 +209,25 @@ app.post("/transaction/edit", async (req, res) => {
 
 //Takes reimbursed total from table and adds to current balance
 app.post("/transaction/reimburse", async (req,res)=>{
-  /**
-   * @typedef {Object} Body
-   * @property {number} reimbursedTotal
-   * @property {Array<Transaction>} toBeReimbursed 
-   */
-  /** @type {Body} */
+
+  /** @type {{reimbursedTotal:number, toBeReimbursed: Array<Transaction>}} */
   let { reimbursedTotal, toBeReimbursed } = req.body
   toBeReimbursed = JSON.parse(toBeReimbursed)
 
+  let {account} = req.session
+
   let balance = await getCurrentBalance(req.session)
   balance = Number(balance) + Number(reimbursedTotal)
-  let {account} = req.session
   updateBalance(balance, account)
+
   applyTimeStamp(toBeReimbursed, "reimbursedTime")
   addToTransactionHistory(toBeReimbursed, account)
   req.session.saved[account] = []
+
   Promise.all(deleteTransactions(toBeReimbursed, account))
   .then(() => res.render("reimburse"))
 })
 
-app.get("/transactionHistory", async (req, res) => {
-  let {account} = req.session
-  let transactionHistory = await getTransactionHistory(account)
-  res.json({transactionHistory})
-})
-
-app.get("/create_transaction", (req, res) => {
-  res.render("create_transaction")
-})
-
-app.get("/reimburse", (req, res) => {
-  res.render("reimburse")
-})
-
-app.get("/transaction_history", (req, res) => {
-  res.render("transaction_history")
-})
 
 app.post("/account", (req, res) => {
   const {account} = req.body;
@@ -253,17 +242,30 @@ app.post("/account", (req, res) => {
   }
 })
 
-app.get("/saved", (req, res) => {
-  let {account, saved} = req.session
-  let savedOnAccount = saved[account] ?? []
-  res.json({savedOnAccount})
-})
-
 app.post("/saved", (req, res) => {
   let {account} = req.session
   let {toSave} = req.body
   req.session.saved[account] = toSave
   res.sendStatus(200)
+})
+
+app.post("/approve", (req, res) => {
+  /**@type {number} */
+  let transactionId = req.body.transactionId
+  let {account} = req.session
+  let transactionUpdate = {
+    approved:true, 
+    approvedBy: req.session.username,
+  }
+  applyTimeStamp([transactionUpdate], "approvedTime")
+  admin
+  .firestore()
+  .collection('Database')
+  .doc(account)
+  .collection('Transactions')
+  .doc(transactionId.toString())
+  .update(transactionUpdate)
+  .then(() => res.sendStatus(200))
 })
 
 app.listen(PORT, () => {
@@ -284,11 +286,18 @@ async function getUsers(user) {
     .doc(user)
     .get()).data()
 }
-
+/**
+ * 
+ * @param {Session} session 
+ * @returns {Promise<number>}
+ */
 async function getCurrentBalance(session) {
   let {account} = session
   try {
-    const {balance} = (await admin.firestore().collection('Database').doc(account).get()).data()
+    const {balance} = (await admin.firestore()
+    .collection('Database')
+    .doc(account)
+    .get()).data()
     return balance;
   } catch (error) {
     console.error("Error reading current balance:", error);
@@ -298,7 +307,10 @@ async function getCurrentBalance(session) {
 
 async function getCurrentTransactionId(session) {
   let {account} = session
-  let {transactionId} = (await (admin.firestore().collection('Database').doc(account).get())).data()
+  let {transactionId} = (await (admin.firestore()
+  .collection('Database')
+  .doc(account)
+  .get())).data()
   return transactionId
 
 }
@@ -348,7 +360,10 @@ async function getTransaction(transactionId, account) {
 }
 
 async function updateBalance(balance, account) {
-  return admin.firestore().collection('Database').doc(account).update({balance})
+  return admin.firestore()
+  .collection('Database')
+  .doc(account)
+  .update({balance})
 }
 
 /**
@@ -458,12 +473,10 @@ async function getTransactionHistory(account) {
  * @property {string} supplier - The supplier involved in the transaction.
  * @property {string} description - The description of the transaction.
  * @property {boolean?} approved - Indicates if the transaction is approved.
+ * @property {string?} approvedBy - The user that approved the transaction
+ * @property {string?} approvedTime - The time that the user approved the transaction
  * @property {string} createdBy - The user who created the transaction.
  * @property {string} date - The date that the user created the transaction.
  * @property {string?} editTime - the time that the transaction was edited
  * @property {string?} reimbursedTime - the time that the transaction was reimbursed
  */
-
-//TODO
-//Make the client poll every minute
-//Fix the reimburse page edit modal

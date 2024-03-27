@@ -47,7 +47,10 @@
         }
         }">
         <header>
-            <h1><span class="company" >Muneshwers</span> Petty Cash</h1>
+            <div class="header-top">
+                <img src="/static/images/nav-bars.svg" height="17px" width="17px" alt="">
+                <h1><span class="company" >Muneshwers</span> Petty Cash</h1>
+            </div>
             <div class="navbar">
                 <div class="account">
                     <button x-ref="button" x-on:click="toggle()">
@@ -58,7 +61,7 @@
                     </button>
                     <div class="panel" x-show="open" x-transition.duration.300ms.origin.top.left x-on:click.outside="close($refs.button)">
                         <template x-for="account in accounts">
-                            <div class="item" x-on:click="swapAccount(account)"   x-text="account"></div>
+                            <div class="panel-item" x-on:click="swapAccount(account)"   x-text="account"></div>
                         </template>
                     </div>
                 </div>
@@ -121,7 +124,10 @@
         }
         }">
         <header>
-            <h1><span class="company" >Muneshwers</span> Petty Cash</h1>
+            <div class="header-top">
+                <img src="/static/images/nav-bars.svg" height="17px" width="17px" alt="">
+                <h1><span class="company" >Muneshwers</span> Petty Cash</h1>
+            </div>
             <div class="navbar">
                 <div class="account">
                     <button x-ref="button" x-on:click="toggle()">
@@ -132,7 +138,7 @@
                     </button>
                     <div class="panel" x-show="open" x-transition.duration.300ms.origin.top.left x-on:click.outside="close($refs.button)">
                         <template x-for="account in accounts">
-                            <div class="item" x-on:click="swapAccount(account)"   x-text="account"></div>
+                            <div class="panel-item" x-on:click="swapAccount(account)"   x-text="account"></div>
                         </template>
                     </div>
                 </div>
