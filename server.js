@@ -3,6 +3,7 @@ import expressSession, { Session } from "express-session";
 import bodyParser from "body-parser";
 import admin from "firebase-admin"
 import serviceAccount from "./serviceAccountKey.json" assert {type : "json"}
+import Conductor from "conductor-node";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -153,7 +154,9 @@ app.post("/transaction", async (req ,res) => {
     transactionId = currentId
     transaction.transactionId = transactionId
   }
+  
   updateTransactions([transaction], account);
+  await createTransactionInQuickBooks(recipient)
   
   let balance = await getCurrentBalance(req.session)
   balance = balance - amount
@@ -461,6 +464,23 @@ async function getTransactionHistory(account) {
     return []
   }
 }
+async function createTransactionInQuickBooks(recipient) {
+  const apiKey = "sk_live_zHHaOG8arb8a5u";
+  const conductor = new Conductor(apiKey);
+  const END_USER_ID = "end_usr_PemGGjaWbemijO";
+  
+  try {
+    const customer = await conductor.qbd.customer.add(END_USER_ID, {
+      Name: recipient,
+      });
+    return { success: true, customer };
+  } catch (error) {
+    console.error("Error adding customer:", error);
+  
+    throw new Error("Failed to add customer to QuickBooks.");
+  }
+}
+
 
 
 /**
