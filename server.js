@@ -3,6 +3,7 @@ import expressSession, { Session } from "express-session";
 import bodyParser from "body-parser";
 import admin from "firebase-admin"
 import serviceAccount from "./serviceAccountKey.json" assert {type : "json"}
+import nodemailer from 'nodemailer';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -157,6 +158,18 @@ app.post("/transaction", async (req ,res) => {
   
   let balance = await getCurrentBalance(req.session)
   balance = balance - amount
+  if (balance <= 100000) {
+    function createMailMessage() {
+      let timeout = true
+      return function() {
+        if (!timeout) return
+        sendEmail()
+        timeout = null
+        setTimeout(() => timeout = true, 3 * 60 * 60 * 1000)
+      }
+    }
+    createMailMessage()();
+  }
   updateBalance(balance, account)
 
   transactionId = Number(transactionId) + 1
@@ -480,3 +493,39 @@ async function getTransactionHistory(account) {
  * @property {string?} editTime - the time that the transaction was edited
  * @property {string?} reimbursedTime - the time that the transaction was reimbursed
  */
+
+app.get("/send-email", async (req, res) => {
+  try {
+      await sendEmail();
+      res.send("Email sent successfully");
+  } catch (error) {
+      console.error("Error sending email:", error);
+      res.status(500).send("Internal Server Error");
+  }
+});
+
+async function sendEmail() {
+    try {
+        const transporter = nodemailer.createTransport({
+            host: 'smtp.gmail.com',
+            port: 465,
+            secure: true,
+            auth: {
+                user: 'programmers.muneshwers@gmail.com',
+                pass: 'dcmdgjlbkxsgpysi',
+            },
+        });
+
+        const info = await transporter.sendMail({
+            from: '"David Callender" <programmers.muneshwers@gmail.com>',
+            to: 'programmer@muneshwers.com',
+            subject: 'Petty Cash - Nearing account limit. Reimburse as soon as possible!',
+            text: 'Nearing account limit. Reimburse as soon as possible!',
+            html: '<b>Nearing account limit. Reimburse as soon as possible!</b>',
+        });
+
+        console.log('Message sent: %s', info.messageId);
+    } catch (error) {
+        console.error('Error occurred while sending email:', error);
+    }
+}
