@@ -1,5 +1,5 @@
 import express from "express";
-import expressSession from "express-session";
+import expressSession, { Session } from "express-session";
 import bodyParser from "body-parser";
 import admin from "firebase-admin"
 import serviceAccount from "./serviceAccountKey.json" assert {type : "json"}
@@ -12,7 +12,6 @@ admin.initializeApp({
 })
 
 const checkLoggedIn = (req, res, next) => {
-  console.log(req.url)
   const unprotectedUrl = [
     "/",
     "/login",
@@ -60,17 +59,20 @@ app.get("/login", (req, res) => {
 
 app.post("/login/user", async (req, res) => {
   const { username, password } = req.body;
-  const users = await getUsers();
+  const user = await getUsers(username);
 
   let errorMessage = ''; 
-
-  const user = users.find(user => user.username === username && user.password === password);
 
   if (!user) {
     errorMessage = "Invalid username or password. Please try again."; 
     res.render("login", { errorMessage });
     return
   } 
+  if (user.password !== password) {
+    errorMessage = "Incorrect Password"; 
+    res.render("login", { errorMessage });
+    return
+  }
 
   let {role} = user
   role = role ?? 'basic'
@@ -80,7 +82,6 @@ app.post("/login/user", async (req, res) => {
   req.session.account = 'muneshwers';
   req.session.role = role
   req.session.saved = {}
-  console.log({role})
   res.render("home", {role})
   return
   
@@ -103,54 +104,58 @@ app.get("/balance", async (req, res) => {
 })
 
 app.get("/transactions", async (req, res) => {
-  let transactions = await getTransactionsFile(req.session)
+  let transactions = await getTransactions(req.session)
   res.json({transactions})
 })
 
 app.get("/transactionId", async (req, res) => {
-  let {account} = req.session
   let transactionId = await getCurrentTransactionId(req.session) 
   res.json({transactionId})
 })
 
 //Receives form input and updates balance current value
-app.post("/balance", async (req ,res) => {
-  let { transactionId ,recipient ,supplier ,description, amount, date} = req.body
+app.post("/transaction", async (req ,res) => {
+  /** @type {Transaction} */
+  let { transactionId, recipient, supplier, description, amount, date} = req.body
   transactionId = Number(transactionId)
+  amount = Number(amount)
+  let {account} = req.session
+  /** @type {Transaction} */
   let transaction = {
     transactionId,
+    account,
     recipient,
     supplier,
     description,
     amount,
     date,
-    createdBy : req.session.username
+    createdBy : req.session.username,
   }
-  let {account} = req.session
   let currentId = await getCurrentTransactionId(req.session) 
   currentId = Number(currentId)
   if (currentId > transactionId) {
     transactionId = currentId
     transaction.transactionId = transactionId
   }
-  let transactions = await getTransactionsFile(req.session)
-  transactions.push(transaction)
-  updateTransactionsFile(transactions, account);
+  updateTransactions([transaction], account);
+  
   let balance = await getCurrentBalance(req.session)
   balance = balance - amount
-  updateBalance(balance, account).then(_ => {
-    transactionId = Number(transactionId) + 1
-    updateTransactionId(transactionId, account).then(_ => {
-      res.render("create_transaction")
-    })
+  updateBalance(balance, account)
 
+  transactionId = Number(transactionId) + 1
+  updateTransactionId(transactionId, account)
+  .then(() => {
+    res.render("create_transaction")
   })
 
 })
 
-app.post("/editBalance", async (req, res) => {
+app.post("/transaction/edit", async (req, res) => {
+  /** @type {Transaction} */
   let { transactionId, recipient, supplier, description, amount, date } = req.body
   transactionId = Number(transactionId)
+  amount = Number(amount)
   let transaction = {
     transactionId,
     recipient,
@@ -161,19 +166,17 @@ app.post("/editBalance", async (req, res) => {
     createdBy: req.session.username
   };
 
-  let transactions = await getTransactionsFile(req.session)
-
-  let originalTransaction = transactions.find(
-    existingTransaction => existingTransaction.transactionId == transactionId
-  );
+  let originalTransaction = await getTransaction(transactionId, req.session.account)
 
   if (!originalTransaction) {
     res.status(404).send("Transaction not found");
     return;
   }
 
-  updateTransactionHistory([{...originalTransaction}], req.session.account, "editTime")
+  console.log(originalTransaction)
 
+  applyTimeStamp([originalTransaction], "editTime")
+  addToTransactionHistory([{...originalTransaction}], req.session.account)
   if (amount == null || amount == '') {
     transaction.amount = originalTransaction.amount
   }
@@ -182,32 +185,34 @@ app.post("/editBalance", async (req, res) => {
     balance += (originalTransaction.amount - transaction.amount)
     updateBalance(balance, req.session.account)
   }
+
   Object.assign(originalTransaction, transaction)
-  updateTransactionsFile(transactions, req.session.account).then(_ => {
-    res.render("reimburse")
-    return
-  })
+  Promise.all(updateTransactions([originalTransaction], req.session.account))
+  .then(()=> res.render("reimburse"))
 })
 
 
 
 //Takes reimbursed total from table and adds to current balance
-app.post("/reimburseBalance", async (req,res)=>{
+app.post("/transaction/reimburse", async (req,res)=>{
+  /**
+   * @typedef {Object} Body
+   * @property {number} reimbursedTotal
+   * @property {Array<Transaction>} toBeReimbursed 
+   */
+  /** @type {Body} */
   let { reimbursedTotal, toBeReimbursed } = req.body
   toBeReimbursed = JSON.parse(toBeReimbursed)
+
   let balance = await getCurrentBalance(req.session)
   balance = Number(balance) + Number(reimbursedTotal)
   let {account} = req.session
   updateBalance(balance, account)
-  let transactions = await getTransactionsFile(req.session)
-  for (let reimbursement of toBeReimbursed) {
-    deleteFromCurrentTransactions(transactions, reimbursement)
-  }
-  updateTransactionsFile(transactions, account).then(_ => {
-    updateTransactionHistory(toBeReimbursed, account, "reimbursedTime")
-    req.session.saved[account] = []
-    res.render("reimburse")
-  })
+  applyTimeStamp(toBeReimbursed, "reimbursedTime")
+  addToTransactionHistory(toBeReimbursed, account)
+  req.session.saved[account] = []
+  Promise.all(deleteTransactions(toBeReimbursed, account))
+  .then(() => res.render("reimburse"))
 })
 
 app.get("/transactionHistory", async (req, res) => {
@@ -256,13 +261,21 @@ app.post("/saved", (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`App is running on port ${PORT}`);
-  const userRef = admin.firestore().collection('Database').doc('Users')
 });
 
-
-async function getUsers() {
-  const {Users} = (await admin.firestore().collection('Database').doc('Users').get()).data()
-  return Users
+/**
+ * 
+ * @param {string} user 
+ * @returns 
+ */
+async function getUsers(user) {
+  return (await admin
+    .firestore()
+    .collection('Database')
+    .doc('Users')
+    .collection('users')
+    .doc(user)
+    .get()).data()
 }
 
 async function getCurrentBalance(session) {
@@ -283,16 +296,26 @@ async function getCurrentTransactionId(session) {
 
 }
 
-
-async function getTransactionsFile(session) {
+/**
+ * 
+ * @param {Session} session 
+ * @returns {Array<Transaction>}
+ */
+async function getTransactions(session) {
   let {account} = session
   try {
-    const {transactions} = (await admin.firestore()
+    const snapshots = (await admin.firestore()
     .collection('Database')
     .doc(account)
     .collection('Transactions')
-    .doc('transactions')
-    .get()).data()
+    .get())
+    /**
+     * @type {Array<Transaction>}
+     */
+    let transactions = []
+    snapshots.forEach((doc) => {
+      transactions.push(doc.data())
+    })
     return transactions
   } catch (error) {
     console.error("Error reading current transactions:", error);
@@ -300,17 +323,62 @@ async function getTransactionsFile(session) {
   }
 }
 
+/**
+ * 
+ * @param {string} transactionId 
+ * @param {string} account 
+ * @returns 
+ */
+async function getTransaction(transactionId, account) {
+  return (await admin
+    .firestore()
+    .collection('Database')
+    .doc(account)
+    .collection('Transactions')
+    .doc(transactionId.toString())
+    .get()
+    ).data()
+}
+
 async function updateBalance(balance, account) {
   return admin.firestore().collection('Database').doc(account).update({balance})
 }
 
-async function updateTransactionsFile(transactions, account) {
-  return admin.firestore()
-  .collection('Database')
-  .doc(account)
-  .collection('Transactions')
-  .doc('transactions')
-  .update({transactions})
+/**
+ * 
+ * @param {Array<Transaction>} transactions 
+ * @param {string} account 
+ * @returns {Array<Promise>}
+ */
+function updateTransactions(transactions, account) {
+  return transactions.map(
+    (transaction) => admin
+    .firestore()
+    .collection('Database')
+    .doc(account)
+    .collection('Transactions')
+    .doc(transaction.transactionId.toString())
+    .set(transaction)
+  )
+}
+
+/**
+ *    
+ * @param {Array<Transaction>} transactions 
+ * @param {string} account 
+ * @returns {Array<Promise>}
+ */
+function deleteTransactions(transactions, account) {
+  return transactions.map(
+    (transaction) => admin
+      .firestore()
+      .collection('Database')
+      .doc(account)
+      .collection('Transactions')
+      .doc(transaction.transactionId.toString())
+      .delete()
+  )
+
 }
 
 
@@ -323,51 +391,68 @@ async function updateTransactionId(transactionId, account) {
 
 /**
  * 
- * @param {Array<any>} transactions 
+ * @param {Array<Transaction>} transactions 
+ * @param {string} account
+ * @returns {Array<Promise>}
  */
-async function updateTransactionHistory(transactions, account, purpose) {
-
-  const transactionHistory = await getTransactionHistory(account)
-  const date = new Date();
-  const options = { timeZone: 'America/Guyana',  timeZoneName: 'short' };
-  const formattedDate = date.toLocaleString('en-US', options);
-  
-  let transactionsToAdd = transactions.map((transaction) => {
-    transaction[purpose] = formattedDate
-    return transaction
-  })
-
-  console.log(transactionsToAdd)
-
-
-
-  transactionHistory.push(...transactionsToAdd)
-  admin.firestore()
-  .collection('Database')
-  .doc(account)
-  .collection('History')
-  .doc('transactionHistory')
-  .update({transactionHistory})
-}
-
-async function getTransactionHistory(account) {
-  const {transactionHistory} = (await admin.firestore()
-  .collection('Database')
-  .doc(account)
-  .collection('History')
-  .doc('transactionHistory').get()).data()
-  return transactionHistory
+async function addToTransactionHistory(transactions, account) {
+  return transactions.map(transaction => admin.firestore()
+    .collection('Database')
+    .doc(account)
+    .collection('History')
+    .add(transaction)
+  )
 }
 
 /**
- * @param {Array<any>} transactions
- * @param {string} transactionId 
+ * 
+ * @param {Array<Transaction>} transactions 
+ * @param {string} purpose 
  */
-function deleteFromCurrentTransactions(transactions, reimbursement) {
-  let index = transactions.findIndex((transaction) => transaction.transactionId == reimbursement.transactionId)
-  if (index < 0) {
-    return
-  } 
-  transactions.splice(index, 1)
-
+function applyTimeStamp(transactions, purpose) {
+  const date = new Date();
+  const options = { timeZone: 'America/Guyana',  timeZoneName: 'short' };
+  const formattedDate = date.toLocaleString('en-US', options);
+  for (let transaction of transactions) {
+    transaction[purpose] = formattedDate
+  }
 }
+
+
+async function getTransactionHistory(account) {
+  try {
+    const snapshots = (await admin.firestore()
+    .collection('Database')
+    .doc(account)
+    .collection('History')
+    .get())
+    /**
+     * @type {Array<Transaction>}
+     */
+    let transactions = []
+    snapshots.forEach((doc) => {
+      transactions.push(doc.data())
+    })
+    return transactions
+  } catch (error) {
+    console.error("Error reading transaction history:", error);
+    return []
+  }
+}
+
+
+/**
+ * Represents a transaction.
+ * @typedef {Object} Transaction
+ * @property {number} transactionId - The ID of the transaction.
+ * @property {number} amount - The amount of the transaction.
+ * @property {string} account - The account that the transaction is from
+ * @property {string} recipient - The recipient of the transaction.
+ * @property {string} supplier - The supplier involved in the transaction.
+ * @property {string} description - The description of the transaction.
+ * @property {boolean?} approved - Indicates if the transaction is approved.
+ * @property {string} createdBy - The user who created the transaction.
+ * @property {string} date - The date that the user created the transaction.
+ * @property {string?} editTime - the time that the transaction was edited
+ * @property {string?} reimbursedTime - the time that the transaction was reimbursed
+ */

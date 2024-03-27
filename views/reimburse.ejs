@@ -14,7 +14,7 @@
             recipient : {value: '', valid: true},
             supplier : {value: '', valid: true},
             description : {value: '', valid: true},
-            date : {value: (new Date()).toISOString().split('T')[0], valid: true},
+            date : {value: '', valid: true},
             originalAmount :  {value: '', valid: true},
         },
         validate() {
@@ -34,11 +34,12 @@
                 button.classList.add('edit-button');
                 button.addEventListener('click', function () {
                     alpineObj.open = true
-                    alpineObj.inputs.transactionId.value = params.data.transactionId;
-                    alpineObj.inputs.recipient.value = params.data.recipient;
-                    alpineObj.inputs.supplier.value = params.data.supplier;
-                    alpineObj.inputs.description.value = params.data.description;
-                    alpineObj.inputs.originalAmount.value = params.data.amount;
+                    alpineObj.inputs.transactionId.value = params.data.transactionId
+                    alpineObj.inputs.recipient.value = params.data.recipient
+                    alpineObj.inputs.supplier.value = params.data.supplier
+                    alpineObj.inputs.description.value = params.data.description
+                    alpineObj.inputs.originalAmount.value = params.data.amount
+                    alpineObj.inputs.date.value = params.data.date
                     $dispatch('modal')
                 });
                 return button;
@@ -53,13 +54,14 @@
                 columnDefs : [
                     { field: 'transactionId', 
                     checkboxSelection: function (params) {
-                        return params.data.approve
+                        return params.data.approved
                         },
                     suppressSorting : true,
                     headerCheckboxSelection: true,
                     headerName : 'Voucher Number'},
                     { field: 'description'},
                     { field: 'amount' },
+                    {field : 'approved'},
                     { field: 'recipient' },
                     { field: 'supplier' },
                     { field: 'createdBy' },
@@ -77,10 +79,11 @@
                 defaultColDef: {
                     filter: 'agTextColumnFilter',
                     floatingFilter: true,
+                    width: 120,
                 },
                 rowSelection: 'multiple',
                 isRowSelectable: function(params) {
-                    return params.data.approve
+                    return params.data.approved
                 },
                 onRowSelected: (event) => {
                     this.saveText = 'Save'
@@ -158,7 +161,7 @@
             htmx.on('#reimburse_button', 'click', (event) => {
                 this.swapMain()
                 setTimeout(() => {
-                    htmx.ajax('POST', '/reimburseBalance', {
+                    htmx.ajax('POST', '/transaction/reimburse', {
                         target: 'main', 
                         swap:'outerHTML', 
                         values:{
@@ -247,7 +250,7 @@
                             <div class="amount"><div>New Remainder </div> <span  x-text="formatDollar(balance - inputs.amount.value)" ></span></div>
                         </div>
         
-                        <form :class="{'movedown' : editAmount}" hx-post="/editBalance" hx-target="main" hx-trigger="submit delay:0.25s">
+                        <form :class="{'movedown' : editAmount}" hx-post="/transaction/edit" hx-target="main" hx-trigger="submit delay:0.25s">
                             <div class="transaction-form">
                                 <div class="item">
                                     <span class="errorMessage"></span>
