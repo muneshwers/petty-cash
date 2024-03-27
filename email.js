@@ -38,8 +38,8 @@ function sendEmailFactory(template) {
             });
 
             const info = await transporter.sendMail(template);
-
             console.log('Message sent: %s', info.messageId);
+
         } catch (error) {
             console.error('Error occurred while sending email:', error);
         }
@@ -51,7 +51,7 @@ function timeOutFunctionCall(func) {
     return async function() {
         if (!timeout) return
         func()
-        timeout = null
+        timeout = false
         setTimeout(() => timeout = true, 3 * 60 * 60 * 1000)
     }
 }
