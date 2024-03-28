@@ -7,7 +7,7 @@ import {
   sendApprovalMadeEmailWithTimeout, 
   sendNearingLimitEmailWithTimout,
   sendtransactionMadeEmailWithTimeout 
-} from "./email";
+} from "./email.js";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
