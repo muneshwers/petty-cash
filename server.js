@@ -3,6 +3,12 @@ import expressSession, { Session } from "express-session";
 import bodyParser from "body-parser";
 import admin from "firebase-admin"
 import serviceAccount from "./serviceAccountKey.json" assert {type : "json"}
+import { 
+  sendApprovalMadeEmailWithTimeout, 
+  sendNearingLimitEmailWithTimout,
+  sendtransactionMadeEmailWithTimeout,
+  sendReimbursementsMadeWithTimeout,
+} from "./email.js";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -157,6 +163,9 @@ app.post("/transaction", async (req ,res) => {
   
   let balance = await getCurrentBalance(req.session)
   balance = balance - amount
+  if (balance <= 100000) {
+    sendNearingLimitEmailWithTimout(account)
+  }
   updateBalance(balance, account)
 
   transactionId = Number(transactionId) + 1
@@ -165,6 +174,8 @@ app.post("/transaction", async (req ,res) => {
     res.render("create_transaction")
   })
 
+  sendtransactionMadeEmailWithTimeout(account)
+  
 })
 
 app.post("/transaction/edit", async (req, res) => {
@@ -229,6 +240,7 @@ app.post("/transaction/reimburse", async (req,res)=>{
 
   Promise.all(deleteTransactions(toBeReimbursed, account))
   .then(() => res.render("reimburse"))
+  .then(() => sendReimbursementsMadeWithTimeout(account))
 })
 
 
@@ -269,6 +281,7 @@ app.post("/approve", (req, res) => {
   .doc(transactionId.toString())
   .update(transactionUpdate)
   .then(() => res.sendStatus(200))
+  .then(() => sendApprovalMadeEmailWithTimeout(account))
 })
 
 app.listen(PORT, () => {
@@ -451,9 +464,7 @@ async function getTransactionHistory(account) {
     .doc(account)
     .collection('History')
     .get())
-    /**
-     * @type {Array<Transaction>}
-     */
+    /** @type {Array<Transaction>}*/
     let transactions = []
     snapshots.forEach((doc) => {
       transactions.push(doc.data())
@@ -483,3 +494,13 @@ async function getTransactionHistory(account) {
  * @property {string?} editTime - the time that the transaction was edited
  * @property {string?} reimbursedTime - the time that the transaction was reimbursed
  */
+
+app.get("/send-email", async (req, res) => {
+  try {
+      await sendNearingLimitEmailWithTimout();
+      res.send("Email sent successfully");
+  } catch (error) {
+      console.error("Error sending email:", error);
+      res.status(500).send("Internal Server Error");
+  }
+});
