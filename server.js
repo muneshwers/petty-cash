@@ -6,7 +6,8 @@ import serviceAccount from "./serviceAccountKey.json" assert {type : "json"}
 import { 
   sendApprovalMadeEmailWithTimeout, 
   sendNearingLimitEmailWithTimout,
-  sendtransactionMadeEmailWithTimeout 
+  sendtransactionMadeEmailWithTimeout,
+  sendReimbursementsMadeWithTimeout,
 } from "./email.js";
 
 const app = express();
@@ -163,7 +164,7 @@ app.post("/transaction", async (req ,res) => {
   let balance = await getCurrentBalance(req.session)
   balance = balance - amount
   if (balance <= 100000) {
-    sendNearingLimitEmailWithTimout()
+    sendNearingLimitEmailWithTimout(account)
   }
   updateBalance(balance, account)
 
@@ -173,7 +174,7 @@ app.post("/transaction", async (req ,res) => {
     res.render("create_transaction")
   })
 
-  sendtransactionMadeEmailWithTimeout()
+  sendtransactionMadeEmailWithTimeout(account)
   
 })
 
@@ -236,6 +237,7 @@ app.post("/transaction/reimburse", async (req,res)=>{
 
   Promise.all(deleteTransactions(toBeReimbursed, account))
   .then(() => res.render("reimburse"))
+  .then(() => sendReimbursementsMadeWithTimeout(account))
 })
 
 
@@ -276,7 +278,7 @@ app.post("/approve", (req, res) => {
   .doc(transactionId.toString())
   .update(transactionUpdate)
   .then(() => res.sendStatus(200))
-  .then(() => sendApprovalMadeEmailWithTimeout())
+  .then(() => sendApprovalMadeEmailWithTimeout(account))
 })
 
 app.listen(PORT, () => {
@@ -459,9 +461,7 @@ async function getTransactionHistory(account) {
     .doc(account)
     .collection('History')
     .get())
-    /**
-     * @type {Array<Transaction>}
-     */
+    /** @type {Array<Transaction>}*/
     let transactions = []
     snapshots.forEach((doc) => {
       transactions.push(doc.data())

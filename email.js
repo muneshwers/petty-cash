@@ -1,7 +1,7 @@
 import nodemailer from "nodemailer"
 
 const nearingLimitEmailTemplate = {
-    from: '"David Callender" <programmers.muneshwers@gmail.com>',
+    from: '"Petty Cash Bot" <programmers.muneshwers@gmail.com>',
     to: 'programmer@muneshwers.com',
     subject: 'Petty Cash - Nearing account limit. Reimburse as soon as possible!',
     text: 'Nearing account limit. Reimburse as soon as possible!',
@@ -9,7 +9,7 @@ const nearingLimitEmailTemplate = {
 }
 
 const transactionMadeEmailTemplate = {
-    from: '"David Callender" <programmers.muneshwers@gmail.com>',
+    from: '"Petty Cash Bot" <programmers.muneshwers@gmail.com>',
     to: 'programmer@muneshwers.com',
     subject: 'Petty Cash - New Transactions Made',
     text: 'New Transaction were made. Log in to Approve!',
@@ -17,13 +17,20 @@ const transactionMadeEmailTemplate = {
 }
 
 const approvalMadeEmailTemplate = {
-    from: '"David Callender" <programmers.muneshwers@gmail.com>',
+    from: '"Petty Cash Bot" <programmers.muneshwers@gmail.com>',
     to: 'programmer@muneshwers.com',
     subject: 'Petty Cash - Transactions Approved!',
     text: 'Your transactions have been approved! Log in to reimburse.',
     html: '<b>Your transactions have been approved! Log in to reimburse.</b>',
 }
 
+const reimbursementsMadeEmailTemplate = {
+    from: '"Petty Cash Bot" <programmers.muneshwers@gmail.com>',
+    to: 'programmer@muneshwers.com',
+    subject: 'Petty Cash - Transactions Reimbursed!',
+    text: 'Transactions have been reimburse! Log in to Quickbooks view transactions.',
+    html: '<b>Transactions have been reimbursed.</b>',
+}
 function sendEmailFactory(template) {
     return async function(){
         try {
@@ -47,15 +54,17 @@ function sendEmailFactory(template) {
 }
 
 function timeOutFunctionCall(func) {
-    let timeout = true
-    return async function() {
-        if (!timeout) return
+    let timeouts = {}
+    return async function(key) {
+        let timeout = timeouts[key]
+        if (timeout) return
         func()
-        timeout = false
-        setTimeout(() => timeout = true, 3 * 60 * 60 * 1000)
+        timeouts[key] = true
+        setTimeout(() => timeouts[key] = false, 3 * 60 * 60 * 1000)
     }
 }
 
 export const sendNearingLimitEmailWithTimout= timeOutFunctionCall(sendEmailFactory(nearingLimitEmailTemplate))
 export const sendtransactionMadeEmailWithTimeout = timeOutFunctionCall(sendEmailFactory(transactionMadeEmailTemplate))
 export const sendApprovalMadeEmailWithTimeout = timeOutFunctionCall(sendEmailFactory(approvalMadeEmailTemplate))
+export const sendReimbursementsMadeWithTimeout = timeOutFunctionCall(sendEmailFactory(reimbursementsMadeEmailTemplate))
