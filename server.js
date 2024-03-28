@@ -182,7 +182,10 @@ app.post("/transaction/edit", async (req, res) => {
     createdBy: req.session.username
   };
 
-  let originalTransaction = await getTransaction(transactionId, req.session.account)
+  let originalTransaction = await getTransaction(
+    transactionId.toString(), 
+    req.session.account
+  )
 
   if (!originalTransaction) {
     res.status(404).send("Transaction not found");
@@ -191,7 +194,7 @@ app.post("/transaction/edit", async (req, res) => {
 
   applyTimeStamp([originalTransaction], "editTime")
   addToTransactionHistory([{...originalTransaction}], req.session.account)
-  if (amount == null || amount == '') {
+  if (amount == null ) {
     transaction.amount = originalTransaction.amount
   }
   else {
@@ -318,7 +321,7 @@ async function getCurrentTransactionId(session) {
 /**
  * 
  * @param {Session} session 
- * @returns {Array<Transaction>}
+ * @returns {Promise<Array<Transaction>>}
  */
 async function getTransactions(session) {
   let {account} = session
@@ -354,7 +357,7 @@ async function getTransaction(transactionId, account) {
     .collection('Database')
     .doc(account)
     .collection('Transactions')
-    .doc(transactionId.toString())
+    .doc(transactionId)
     .get()
     ).data()
 }
