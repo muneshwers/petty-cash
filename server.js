@@ -219,10 +219,23 @@ app.post("/transaction/edit", async (req, res) => {
   if (amount == null ) {
     transaction.amount = originalTransaction.amount
   }
-  else {
+  if (amount) {
     let balance = await getCurrentBalance(req.session)
     balance += (originalTransaction.amount - transaction.amount)
     updateBalance(balance, req.session.account)
+
+    if (amount < 10000) {
+      transaction["approved"] = true
+      transaction["approvedBy"] = 'System'
+      applyTimeStamp([transaction], "approvedTime")
+      sendtransactionMadeEmailWithTimeout(req.session.account)
+    }
+    if (amount >= 10000) {
+      transaction["approved"] = false
+      transaction["approvedBy"] = ''
+      transaction["approvedTime"] = ''
+    }
+
   }
 
   Object.assign(originalTransaction, transaction)
