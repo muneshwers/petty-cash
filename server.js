@@ -159,6 +159,16 @@ app.post("/transaction", async (req ,res) => {
     transactionId = currentId
     transaction.transactionId = transactionId
   }
+  if (amount < 10000) {
+    transaction['approved'] = true
+    transaction['approvedBy'] = 'System'
+    applyTimeStamp([transaction], 'approvedTime')
+
+  }
+  if (amount >= 10000) {
+    sendtransactionMadeEmailWithTimeout(account)
+  }
+
   updateTransactions([transaction], account);
   
   let balance = await getCurrentBalance(req.session)
@@ -174,7 +184,7 @@ app.post("/transaction", async (req ,res) => {
     res.render("create_transaction")
   })
 
-  sendtransactionMadeEmailWithTimeout(account)
+  
   
 })
 
