@@ -193,6 +193,7 @@ app.post("/transaction/edit", async (req, res) => {
   /** @type {Transaction} */
   let { transactionId, recipient, supplier, description, amount, date } = req.body
   transactionId = Number(transactionId)
+  let amountChanged = (amount) ? true : false
   amount = Number(amount)
   let transaction = {
     transactionId,
@@ -216,10 +217,12 @@ app.post("/transaction/edit", async (req, res) => {
 
   applyTimeStamp([originalTransaction], "editTime")
   addToTransactionHistory([{...originalTransaction}], req.session.account)
-  if (amount == null ) {
+  if (!amountChanged) {
     transaction.amount = originalTransaction.amount
+    console.log('amount is null')
   }
-  if (amount) {
+  if (amountChanged) {
+    console.log("amount is not null")
     let balance = await getCurrentBalance(req.session)
     balance += (originalTransaction.amount - transaction.amount)
     updateBalance(balance, req.session.account)
