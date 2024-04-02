@@ -33,6 +33,15 @@
                 domLayout: 'autoHeight',
                 components: {approveRenderer},
                 columnDefs : [
+                    {
+                    field: 'Actions',
+                    headerName: 'Actions',
+                    cellRenderer: 'approveRenderer',
+                    minWidth: 100,
+                    maxWidth: 100,
+                    suppressMenu: true,
+                    cellStyle: { textAlign: 'center' }
+                    },
                     { field: 'transactionId', headerName : 'Voucher Number'},
                     { field: 'description'},
                     { field: 'amount' },
@@ -40,15 +49,7 @@
                     { field: 'supplier' },
                     { field: 'createdBy' },
                     { field: 'date'},
-                    {
-                        field: 'Actions',
-                        headerName: 'Actions',
-                        cellRenderer: 'approveRenderer',
-                        minWidth: 100,
-                        maxWidth: 100,
-                        suppressMenu: true,
-                        cellStyle: { textAlign: 'center' }
-                    },
+                    
                 ],
                 defaultColDef: {
                     filter: 'agTextColumnFilter',
