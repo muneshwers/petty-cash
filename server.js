@@ -152,6 +152,7 @@ app.post("/transaction", async (req ,res) => {
     amount,
     date,
     createdBy : req.session.username,
+    editable :true,
   }
   let currentId = await getCurrentTransactionId(req.session) 
   currentId = Number(currentId)
@@ -279,8 +280,9 @@ app.post("/approve", (req, res) => {
   let transactionId = req.body.transactionId
   let {account} = req.session
   let transactionUpdate = {
-    approved:true, 
+    approved: true, 
     approvedBy: req.session.username,
+    editable: false,
   }
   applyTimeStamp([transactionUpdate], "approvedTime")
   admin

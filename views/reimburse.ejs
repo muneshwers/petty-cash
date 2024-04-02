@@ -29,7 +29,7 @@
         async init(){
             let alpineObj = this
             const editRenderer = function(params) {
-                if (params.data.approved) {
+                if (!params.data.editable) {
                     return
                 }
                 const button = document.createElement('button');
