@@ -32,10 +32,17 @@
 
         },
         exportTableAsCsv() {
+            let account = this.currAccount
+            let accountToCodeMap = {
+                Muneshwers : 'ML',
+                Barges : 'BS',
+                Paragon : 'PT'
+            }
+            let code = accountToCodeMap[account]
             const processCellCallback = (params) => {
                 if (params.column.getId() === 'transactionId' ){
                     if (params.value){
-                        return 'VR' + params.value
+                        return code + params.value
                     }
                     return
                 }
