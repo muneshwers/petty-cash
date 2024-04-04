@@ -6,13 +6,23 @@ body {
 }
 
 header {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-around;
-    align-items: center;
     border-bottom: 0.5px solid #dcdcdc;
     width: 100%;
     font-size: large;
+}
+
+.header-top{
+    display: flex;
+    flex-direction: row;
+    gap: 20px;
+    align-items: center;
+    margin: 2vh;
+    margin-left: 7vw;
+    margin-top: 2;
+}
+
+.header-top h1{
+    margin: 0;
 }
 
 main.login {
@@ -29,11 +39,15 @@ main.login {
 .navbar {
     display: flex;
     flex-direction: row;
+    justify-content: flex-end;
+    align-items: center;
+    height: 50px;
 }
 
 nav {
     padding: 2vw;
     cursor: pointer;
+    transition: color 0.3s;
 }
 
 nav:hover {
@@ -48,6 +62,87 @@ nav.current:hover {
     color: #0047ab
 }
 
+.swappable {
+    position: relative;
+    left: -100%;
+    animation: slide-in 0.25s forwards;
+}
+
+.outswappable {
+    position: relative;
+    left: 0;
+    animation: slide-out 0.25s forwards;
+}
+
+@keyframes slide-in {
+    0% {
+        left: -100%;
+    }
+    100% {
+        left: 0; 
+    }
+}
+
+@keyframes slide-out {
+    from {
+        left: 0%; 
+    }
+    to {
+        left: -100%; 
+    }
+}
+
+.account {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    position: relative;
+    width: 200px;
+}
+
+.account button {
+    display: flex;
+    justify-content: center;
+    background: transparent;
+    padding: 20px;
+    border: none;
+    align-items: center;
+}
+
+.account button span {
+    font-size: 18px;
+}
+
+.account button svg {
+    height: 20px;
+    color: #666666;
+}
+
+.account .panel {
+    position: absolute;
+    top: 80%;
+    background: #fff;
+    width: 200px;
+    padding: 10px 0px 10px 0px;
+    border: 1px solid #f0f0f0;
+    border-radius: 10px;
+    cursor: pointer;
+
+}
+
+.account .panel .panel-item {
+    padding: 10px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.account .panel .panel-item:hover {
+    background-color: #f0f0f0;
+}
+
+.panel {
+    z-index: 10000;
+}
+
 main {
     margin: 7vw;
     margin-top: 0;
@@ -56,12 +151,13 @@ main {
 
 input {
     background: #fff;
-    border: 1px solid #999;
+    border: 1px solid #d0d0d0;
     float: left;
     font-size: 15px;
     height: 15px;
     margin: 0;
     padding: 8px;
+    max-width: 75vw;
 }
 
 input.error {
@@ -71,25 +167,44 @@ input.error {
 }
 
 .transaction-form {
-    display: flex;
-    flex-direction: row;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 25px;
 }
 
-.transaction-form .item {
+.item {
     display: flex;
     flex-direction: column;
     padding: 10px;
     padding-left: 0;
+    position: relative;
+    width: 100%;
+    border-radius: 10px;
 }
 
-.transaction-form .item .errorMessage {
+.item input:focus + .label {
+    font-size: 12px;
+    color: #0047ab;
+    transition: color 0.3s, font-size 0.3s;
+}
+
+.item .errorMessage {
     color: #cc0033;
     display: inline-block;
-    font-size: 15px;
+    font-size: 12px;
     line-height: 15px;
     margin: 5px 0 0;
     margin-bottom: 5px;
     height: 15px;
+}
+.item .label {
+    display: inline-block;
+    font-size: 14px;
+    line-height: 15px;
+    margin-top: 3px;
+    margin-left: 10px;
+    height: 15px;
+    transition: color 0.3s, font-size 0.3s;
 }
 
 .amount-box {
@@ -101,12 +216,30 @@ input.error {
     max-width: 800px;
     background-color: #f0f0f0;
     border-radius: 10px;
+    border: 1px solid #d0d0d0;
     padding: 20px;
 }
 
 .amount-box .amount {
     display: flex;
     flex-direction: row;
+}
+
+.limit {
+    padding: 30px;
+    width: 80vw;
+    border: 1px solid #cc0033;;
+    background-color: #fce4e4;
+    display: flex;
+    flex-direction: row;
+    text-align: center;
+    justify-content: center;
+    align-items: center;
+    border-radius: 20px;
+}
+
+.limit svg {
+    margin-right: 10px;
 }
 
 .amount-box .amount div {
@@ -129,6 +262,11 @@ input.error {
 .submit-button:disabled {
     background-color: #d3d3d3;
     color: #a9a9a9;
+    cursor: not-allowed;
+}
+
+.readonly {
+    color: #686868;
     cursor: not-allowed;
 }
 
@@ -185,4 +323,187 @@ button {
 
 .ag-center-cols-viewport {
     min-height: unset !important;
+}
+
+.table_btns button[type="button"] {
+    margin-top: 10px;
+    padding: 10px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.table_btns .solid {
+    background-color:#0047ab;
+    color: white;
+    border: none;
+}
+
+.title {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.title_btns {
+    display: flex;
+    align-items: center;
+    height: 40px;
+    width: 100px;
+    justify-content: space-between;
+}
+
+.title_btns button {
+    background: transparent;
+    border: none;
+    height: 40px;
+    border-radius: 10px;
+    transition: background-color 0.3s;
+}
+
+.title_btns button:hover{
+    background-color: #f0f0f0;
+}
+
+.table_btns .solid:hover {
+    background-color:#003580;
+}
+
+.table_btns .reverse {
+    border: 1px solid #0047ab;
+    background-color: transparent;
+    color: #0047ab;
+    transition: color 0.3s, background-color 0.3s;
+}
+
+.table_btns .reverse:hover {
+    background-color: #0047ab;
+    color: white;
+}
+
+.reverse-button {
+    background: transparent;
+    height: 40px;
+    border-radius: 10px;
+    transition: background-color 0.3s;
+    border: 1px solid #0047ab;
+    background-color: transparent;
+    color: #0047ab;
+    transition: color 0.3s, background-color 0.3s;
+}
+
+.reverse-button:hover {
+    background-color: #0047ab;
+    color: white;
+}
+
+.reimburse_container {
+    display: flex;
+}
+
+.reimburse_container > .section1 {
+    flex: 1;
+    margin-right: 20px;
+}
+
+.reimburse_container > .section2 {
+    flex: 1;
+}
+
+.modal {
+    background: white;
+    border: 1px solid #f0f0f0 ;
+    padding: 40px;
+    width: 85vw;
+    height: 70vh;
+    overflow-y: auto;
+    position: relative;
+    border-radius: 10px;
+}
+
+.modal h1 {
+    margin-top: 0;
+}
+
+.edit-form {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+.close-button {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: none;
+    border: none;
+    font-size: 30px;
+    cursor: pointer;
+    color: #555;
+}
+
+.close-button:hover {
+    color: #CCCCCC;
+}
+
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5); /* semi-transparent black */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 999;
+}
+
+.modal-btns {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+.modal-btns .edit-amount {
+    margin-top: 10px;
+    display: flex; 
+    flex-direction: column; 
+    width: 75px; 
+    background: none; 
+    border: none; 
+    align-items: center; 
+    cursor: pointer;
+}
+
+.modal-btns .edit-amount:hover {
+    background-color: #f0f0f0;
+}
+
+.edit-button {
+    background-color: white;
+    color: #0047ab;
+    padding: 5px 10px;
+    border: 1px solid #0047ab;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.edit-button:hover {
+    background-color: #0047ab;
+    color: white;
+}
+
+.movedown {
+    animation: movedown 0.3s forwards;
+}
+
+@keyframes movedown {
+    from {
+        transform: translateY(-100%);
+    }
+    to {
+        transform: translateY(0);
+    }
 }

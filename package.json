@@ -5,7 +5,7 @@
   "main": "server.js",
   "type": "module",
   "scripts": {
-    "start": "nodemon server.js",
+    "start": "node server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
@@ -14,6 +14,9 @@
     "body-parser": "^1.20.2",
     "ejs": "^3.1.9",
     "express": "^4.18.3",
-    "express-session": "^1.18.0"
+    "express-session": "^1.18.0",
+    "firebase-admin": "^12.0.0",
+    "nodemailer": "^6.9.13",
+    "serve-favicon": "^2.5.0"
   }
 }

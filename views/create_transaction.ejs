@@ -1,20 +1,20 @@
-<main>
+<main x-ref="main" class="swappable">
     <div x-data="{
-            balance: 0,
-            tab : 'transactions'
+            balance: 2000000,
         }"
         x-init=" fetch('/balance').then(data => data.json()).then(json => balance = json.balance) "
         >
     <h2> Create Transaction </h2>
         <div x-data="{
             inputs : {
+                transactionId : {value: '', valid: true},
                 amount :  {value: '', valid: false},
                 recipient : {value: '', valid: false},
+                supplier : {value: '', valid: false},
                 description : {value: '', valid: false},
                 date : {value: (new Date()).toISOString().split('T')[0], valid: true},
             },
             validate() {
-                console.log(this.inputs)
                 let keys = Object.keys(this.inputs)
                 for (let key of keys) {
                     if (!this.inputs[key].valid) {
@@ -30,6 +30,14 @@
                     minimumFractionDigits: 0,
                     maximumFractionDigits: 0,
                 }).format(number)
+            },
+            async init() {
+                let data = (await (await fetch('/transactionId')).json())
+                this.inputs.transactionId.value = data.transactionId
+            },
+            async updateTransactionId() {
+                let data = (await (await fetch('/transactionId')).json())
+                this.inputs.transactionId.value = data.transactionId
             }
         }
         " >
@@ -38,8 +46,25 @@
                 <div class="amount"><div>Amount </div> <span style="color: red;" x-text="formatDollar(Math.abs(inputs.amount.value) || 0)"></span></div>
                 <div class="amount"><div>Remainder </div> <span  x-text="formatDollar(balance - inputs.amount.value)" ></span></div>
             </div>
-            <form hx-post="/balance" hx-target="main">
+
+            <div class="limit" x-cloak x-show="balance <= 100000">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12" y2="16" />
+                    </svg>
+                <p>
+                    Nearing account limit. Reimburse as soon as possible!
+                </p>
+            </div>
+
+            <form hx-post="/transaction" hx-target="main" hx-trigger="submit delay:0.25s">
                 <div class="transaction-form">
+                    <div class="item">
+                        <span class="errorMessage"></span>
+                        <input type="text" readonly name="transactionId" id="transactionId" x-model="inputs.transactionId.value" class="readonly">
+                        <span class="label"> Voucher Number </span>
+                    </div>
                     <div
                         @validation="
                             inputs[$event.detail.field].value = $event.detail.input;
@@ -64,13 +89,42 @@
                             x-on:input="let valid = validate(); $dispatch('validation', {valid, field : 'recipient', input})"
                             x-model="input"
                             x-bind:class="{'error' : errorMessage}"
-
-                            placeholder="Recipient..."
                             type="text"
                             name="recipient"
                             id="recipient"
                         >
+                        <span class="label">Recipient</span>
                     </div>
+                    <div
+                    @validation="
+                        inputs[$event.detail.field].value = $event.detail.input;
+                        inputs[$event.detail.field].valid = $event.detail.valid;"
+                    class="item"
+                    x-data="{
+                        input : '',
+                        errorMessage : '',
+                        initialized : false,
+                        validate() {
+                            this.initialized = true
+                            if (!this.input) {
+                                this.errorMessage = 'Supplier required'
+                                return false
+                            }
+                            this.errorMessage = ''
+                            return true
+                        }
+                }">
+                    <span class="errorMessage"  x-text="errorMessage"></span>
+                    <input
+                        x-on:input="let valid = validate(); $dispatch('validation', {valid, field : 'supplier', input})"
+                        x-model="input"
+                        x-bind:class="{'error' : errorMessage}"
+                        type="text"
+                        name="supplier"
+                        id="supplier"
+                    >
+                    <span class="label">Supplier</span>
+                </div>
                     <div @validation="
                         inputs[$event.detail.field].value = $event.detail.input;
                         inputs[$event.detail.field].valid = $event.detail.valid;
@@ -94,11 +148,11 @@
                             x-on:input="let valid = validate(); $dispatch('validation', {valid, field : 'description', input})"
                             x-model="input"
                             x-bind:class="{'error' : errorMessage}"
-                            placeholder="Description..."
                             type="text"
                             name="description"
                             id="description"
                         >
+                        <span class="label">Description</span>
                     </div>
                     <div
                         @validation="
@@ -138,10 +192,10 @@
                             x-model="input"
                             x-bind:class="{'error' : errorMessage}"
                             type="number"
-                            placeholder="Amount..."
                             name="amount"
                             id="amount"
                         >
+                        <span class="label">Amount</span>
                     </div>
                     <div class="item" x-data="{
                         input : (new Date()).toISOString().split('T')[0],
@@ -166,9 +220,10 @@
                             name="date"
                             id="date"
                         >
+                        <span class="label">Date</span>
                     </div>
                 </div>
-                <button class="submit-button" type="submit" :disabled="!validate()" >Submit</button>
+                <button class="submit-button" @click="swapMain()" type="submit" :disabled="!validate()" >Submit</button>
             </form>
         </div>
     

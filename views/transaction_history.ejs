@@ -1,0 +1,65 @@
+<main x-ref="main" class="swappable">
+    <div x-data="{
+        transactionLog : [],
+        grid : null,
+        async init(){
+            let {transactionHistory} = (await (await fetch('/transactionHistory')).json())
+            let account = this.currAccount
+            this.grid = agGrid.createGrid(this.$refs.myGrid, {
+                rowData : transactionHistory,
+                domLayout: 'autoHeight',
+                columnDefs : [
+                    { field: 'transactionId', headerName : 'Voucher Number'},
+                    { field: 'description'},
+                    { field: 'amount' },
+                    { field: 'recipient' },
+                    { field: 'supplier' },
+                    { field: 'createdBy' },
+                    { field: 'date'},
+                    {headerName: 'Account', 
+                        valueGetter: function (params) {
+                            return account 
+                        },
+                    },
+                    {field: 'editTime'},
+                    {field : 'reimbursedTime'}
+                ],
+                defaultColDef: {
+                    filter: 'agTextColumnFilter',
+                    floatingFilter: true,
+                },
+            })
+
+        },
+        exportTableAsCsv() {
+            let account = this.currAccount
+            let accountToCodeMap = {
+                Muneshwers : 'ML',
+                Barges : 'BS',
+                Paragon : 'PT'
+            }
+            let code = accountToCodeMap[account]
+            const processCellCallback = (params) => {
+                if (params.column.getId() === 'transactionId' ){
+                    if (params.value){
+                        return code + params.value
+                    }
+                    return
+                }
+                return params.value
+            }
+            this.grid.exportDataAsCsv({processCellCallback})
+        },
+
+    }">
+        <div class="title">
+            <h2>All Transactions</h2>
+            <div class="title_btns">
+                <button type="button" class="export_btn" @click="exportTableAsCsv()">
+                    <img src="/static/images/download.svg" alt="download button" height="25" width="25">
+                </button>
+            </div>
+        </div>
+        <div x-ref="myGrid" class="table ag-theme-quartz ag-center-cols-viewport" style="width: auto"></div>
+    </div>
+</main>
