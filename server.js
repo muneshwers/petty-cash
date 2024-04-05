@@ -202,7 +202,7 @@ app.post("/transaction/edit", async (req, res) => {
     description,
     amount,
     date,
-    createdBy: req.session.username
+    editedBy: req.session.username
   };
 
   let originalTransaction = await getTransaction(
@@ -262,6 +262,9 @@ app.post("/transaction/reimburse", async (req,res)=>{
   updateBalance(balance, account)
 
   applyTimeStamp(toBeReimbursed, "reimbursedTime")
+  for (let transaction of toBeReimbursed) {
+    transaction[editedBy] = req.session.username;
+  }
   addToTransactionHistory(toBeReimbursed, account)
   req.session.saved[account] = []
 
@@ -520,6 +523,8 @@ async function getTransactionHistory(account) {
  * @property {string} createdBy - The user who created the transaction.
  * @property {string} date - The date that the user created the transaction.
  * @property {string?} editTime - the time that the transaction was edited
+ * @property {string?} editedBy - the user who edited the transaction.
+ * @property {string?} reimbursedBy - the user who reimbursed the transaction.
  * @property {string?} reimbursedTime - the time that the transaction was reimbursed
  */
 
