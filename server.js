@@ -263,7 +263,7 @@ app.post("/transaction/reimburse", async (req,res)=>{
 
   applyTimeStamp(toBeReimbursed, "reimbursedTime")
   for (let transaction of toBeReimbursed) {
-    transaction[editedBy] = req.session.username;
+    transaction['reimbursedBy'] = req.session.username;
   }
   addToTransactionHistory(toBeReimbursed, account)
   req.session.saved[account] = []
