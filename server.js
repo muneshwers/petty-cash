@@ -160,13 +160,13 @@ app.post("/transaction", async (req ,res) => {
     transactionId = currentId
     transaction.transactionId = transactionId
   }
-  if (amount < 10000) {
+  if (amount < transactionApprovalLimit) {
     transaction['approved'] = true
     transaction['approvedBy'] = 'System'
     applyTimeStamp([transaction], 'approvedTime')
 
   }
-  if (amount >= 10000) {
+  if (amount >= transactionApprovalLimit) {
     sendtransactionMadeEmailWithTimeout(account)
   }
 
@@ -202,7 +202,6 @@ app.post("/transaction/edit", async (req, res) => {
     description,
     amount,
     date,
-    editedBy: req.session.username
   };
 
   let originalTransaction = await getTransaction(
@@ -216,24 +215,23 @@ app.post("/transaction/edit", async (req, res) => {
   }
 
   applyTimeStamp([originalTransaction], "editTime")
+  originalTransaction.editedBy = req.session.username
   addToTransactionHistory([{...originalTransaction}], req.session.account)
   if (!amountChanged) {
     transaction.amount = originalTransaction.amount
-    console.log('amount is null')
   }
   if (amountChanged) {
-    console.log("amount is not null")
     let balance = await getCurrentBalance(req.session)
     balance += (originalTransaction.amount - transaction.amount)
     updateBalance(balance, req.session.account)
 
-    if (amount < 10000) {
+    if (amount < transactionApprovalLimit) {
       transaction["approved"] = true
       transaction["approvedBy"] = 'System'
       applyTimeStamp([transaction], "approvedTime")
       sendtransactionMadeEmailWithTimeout(req.session.account)
     }
-    if (amount >= 10000) {
+    if (amount >= transactionApprovalLimit) {
       transaction["approved"] = false
       transaction["approvedBy"] = ''
       transaction["approvedTime"] = ''
@@ -306,7 +304,7 @@ app.post("/approve", (req, res) => {
   applyTimeStamp([transactionUpdate], "approvedTime")
   admin
   .firestore()
-  .collection('Database')
+  .collection(database)
   .doc(account)
   .collection('Transactions')
   .doc(transactionId.toString())
@@ -319,6 +317,10 @@ app.listen(PORT, () => {
   console.log(`App is running on port ${PORT}`);
 });
 
+
+const transactionApprovalLimit = 10000
+const database = 'Database'
+
 /**
  * 
  * @param {string} user 
@@ -327,7 +329,7 @@ app.listen(PORT, () => {
 async function getUsers(user) {
   return (await admin
     .firestore()
-    .collection('Database')
+    .collection(database)
     .doc('Users')
     .collection('users')
     .doc(user)
@@ -342,7 +344,7 @@ async function getCurrentBalance(session) {
   let {account} = session
   try {
     const {balance} = (await admin.firestore()
-    .collection('Database')
+    .collection(database)
     .doc(account)
     .get()).data()
     return balance;
@@ -355,7 +357,7 @@ async function getCurrentBalance(session) {
 async function getCurrentTransactionId(session) {
   let {account} = session
   let {transactionId} = (await (admin.firestore()
-  .collection('Database')
+  .collection(database)
   .doc(account)
   .get())).data()
   return transactionId
@@ -371,7 +373,7 @@ async function getTransactions(session) {
   let {account} = session
   try {
     const snapshots = (await admin.firestore()
-    .collection('Database')
+    .collection(database)
     .doc(account)
     .collection('Transactions')
     .get())
@@ -393,12 +395,12 @@ async function getTransactions(session) {
  * 
  * @param {string} transactionId 
  * @param {string} account 
- * @returns 
+ * @returns {Promise<Transaction>}
  */
 async function getTransaction(transactionId, account) {
   return (await admin
     .firestore()
-    .collection('Database')
+    .collection(database)
     .doc(account)
     .collection('Transactions')
     .doc(transactionId)
@@ -408,7 +410,7 @@ async function getTransaction(transactionId, account) {
 
 async function updateBalance(balance, account) {
   return admin.firestore()
-  .collection('Database')
+  .collection(database)
   .doc(account)
   .update({balance})
 }
@@ -423,7 +425,7 @@ function updateTransactions(transactions, account) {
   return transactions.map(
     (transaction) => admin
     .firestore()
-    .collection('Database')
+    .collection(database)
     .doc(account)
     .collection('Transactions')
     .doc(transaction.transactionId.toString())
@@ -441,7 +443,7 @@ function deleteTransactions(transactions, account) {
   return transactions.map(
     (transaction) => admin
       .firestore()
-      .collection('Database')
+      .collection(database)
       .doc(account)
       .collection('Transactions')
       .doc(transaction.transactionId.toString())
@@ -453,7 +455,7 @@ function deleteTransactions(transactions, account) {
 
 async function updateTransactionId(transactionId, account) {
   return admin.firestore()
-  .collection('Database')
+  .collection(database)
   .doc(account)
   .update({transactionId})
 }
@@ -466,7 +468,7 @@ async function updateTransactionId(transactionId, account) {
  */
 async function addToTransactionHistory(transactions, account) {
   return transactions.map(transaction => admin.firestore()
-    .collection('Database')
+    .collection(database)
     .doc(account)
     .collection('History')
     .add(transaction)
@@ -491,7 +493,7 @@ function applyTimeStamp(transactions, purpose) {
 async function getTransactionHistory(account) {
   try {
     const snapshots = (await admin.firestore()
-    .collection('Database')
+    .collection(database)
     .doc(account)
     .collection('History')
     .get())
@@ -527,13 +529,3 @@ async function getTransactionHistory(account) {
  * @property {string?} reimbursedBy - the user who reimbursed the transaction.
  * @property {string?} reimbursedTime - the time that the transaction was reimbursed
  */
-
-app.get("/send-email", async (req, res) => {
-  try {
-      await sendNearingLimitEmailWithTimout();
-      res.send("Email sent successfully");
-  } catch (error) {
-      console.error("Error sending email:", error);
-      res.status(500).send("Internal Server Error");
-  }
-});
