@@ -2,13 +2,17 @@
     <div x-data="{
         grid : null,
         transactions: [],
+        openDeleteModal : false,
         async init() {
             let alpineObj = this
             const approveRenderer = function(params) {
-                const button = document.createElement('button');
-                button.innerHTML = 'Approve';
-                button.classList.add('edit-button');
-                button.addEventListener('click', function () {
+                let flexbox = document.createElement('div')
+                flexbox.classList.add('flex-container')
+
+                const approveButton = document.createElement('button');
+                approveButton.innerHTML = 'Approve';
+                approveButton.classList.add('edit-button');
+                approveButton.addEventListener('click', function () {
                     let rowIndex = params.rowIndex
                     this.innerHTML = 'Loading...'
                     fetch('/approve', {
@@ -23,7 +27,17 @@
                             alpineObj.grid.refreshCells()
                     })
                 })
-                return button
+                flexbox.appendChild(approveButton)
+
+                const deleteButton = document.createElement('button')
+                deleteButton.innerHTML = 'Delete'
+                deleteButton.classList.add('edit-button')
+                deleteButton.addEventListener('click', function() {
+                    $dispatch('delete-modal', {transaction : params.data, url : '/transaction/delete'})
+                })
+                flexbox.appendChild(deleteButton)
+
+                return flexbox
             }
             let {transactions} = (await (await fetch('/transactions')).json())
             this.transactions = transactions.filter((transaction) => !transaction.approved)
@@ -37,8 +51,7 @@
                     field: 'Actions',
                     headerName: 'Actions',
                     cellRenderer: 'approveRenderer',
-                    minWidth: 100,
-                    maxWidth: 100,
+                    minWidth: 150,
                     suppressMenu: true,
                     cellStyle: { textAlign: 'center' }
                     },
@@ -57,7 +70,7 @@
                 },
             })
         }
-        }" ></div>
+        }" >
         <div class="title">
             <h2> Transactions To Approve </h2>
             <div class="title_btns">
@@ -67,5 +80,87 @@
             </div>
         </div>
         <div x-ref="grid" class="table ag-theme-quartz ag-center-cols-viewport" style="width: auto"></div>
+
+
+        <div x-data="{
+            openDeleteModal : false,
+            inputsDelete : {
+                transaction : '',
+                reason : '',
+            },
+            url : '',
+            validateDelete() {
+                return (this.inputsDelete.reason) ? true : false
+            },
+            init() {
+                htmx.on('#delete_button', 'click', (event) => {
+                    console.log(this.inputsDelete)
+                    this.openDeleteModal =false
+                    this.swapMain()
+                    setTimeout(() => {
+                        htmx.ajax('POST', this.url, {
+                            target: 'main',
+                            swap:'outerHTML',
+                            values: this.inputsDelete
+                        })
+                    }, 250);
+                })
+            }
+        }"
+        @delete-modal.window="
+            openDeleteModal = true;
+            inputsDelete.transaction = $event.detail.transaction
+            url = $event.detail.url
+            reason = ''
+        "
+        >
+            <div x-show="openDeleteModal" class="overlay">
+                <div
+                class="modal"
+                @click.outside="openDeleteModal = false"
+                >
+                    <button class="close-button" @click="openDeleteModal = false">&times;</button>
+                    <h2>Delete Transaction</h2>
+                    <form>
+                        <div class="item"
+                        x-data="{
+                            input : '',
+                            errorMessage : '',
+                            initialized : false,
+                            validate() {
+                                this.initialized = true
+                                if (!this.input) {
+                                    this.errorMessage = 'reason required'
+                                    return false
+                                }
+                                this.errorMessage = ''
+                                return true
+                            },
+                            clear() {
+                                this.input = ''
+                                this.errorMessage = ''
+                                this.initialized = false
+                            }
+                        }"
+                        @delete-modal.window="clear()"
+                        >
+                            <span class="errorMessage" x-text="errorMessage"></span>
+                            <input
+                                type="text"
+                                name="reason"
+                                x-on:input="validate(); inputsDelete['reason'] = input"
+                                x-model="input"
+                                x-bind:class="{'error' : errorMessage}"
+                            >
+                            <span class="label">Reason</span>
+                        </div>
+                        <button class="submit-button" id="delete_button" type="button" :disabled="!validateDelete()" >
+                            Delete
+                        </button>
+
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
 </main>

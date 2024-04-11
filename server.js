@@ -250,14 +250,23 @@ app.post("/transaction/delete", (req, res) => {
   let {transaction, reason} = req.body
   transaction = JSON.parse(transaction)
   /** @type {string} */
-  let {account} = req.session
+  let {account, role} = req.session
 
   applyTimeStamp([transaction], "deletedTime")
   transaction.deletedBy = req.session.username
   transaction.deleteReason = reason
 
   deleteTransaction(transaction, account)
-  .then(() => res.render("reimburse"))
+  .then(() => {
+    if (role == 'basic') {
+      res.render("reimburse")
+      return
+    }
+    if (role == 'approver') {
+      res.render("approve")
+      return
+    }
+  })
 
   addToTransactionHistory([transaction], account)
 
