@@ -6,8 +6,9 @@ import serviceAccount from "./serviceAccountKey.json" assert {type : "json"}
 import { 
   sendApprovalMadeEmailWithTimeout, 
   sendNearingLimitEmailWithTimout,
-  sendtransactionMadeEmailWithTimeout,
+  sendTransactionForApprovalEmailWithTimeout,
   sendReimbursementsMadeWithTimeout,
+  sendTransactionDeletedEmail
 } from "./email.js";
 
 const app = express();
@@ -168,7 +169,7 @@ app.post("/transaction", async (req ,res) => {
 
   }
   if (amount >= transactionApprovalLimit) {
-    sendtransactionMadeEmailWithTimeout(account)
+    sendTransactionForApprovalEmailWithTimeout(account)
   }
 
   updateTransactions([transaction], account);
@@ -230,12 +231,12 @@ app.post("/transaction/edit", async (req, res) => {
       transaction["approved"] = true
       transaction["approvedBy"] = 'System'
       applyTimeStamp([transaction], "approvedTime")
-      sendtransactionMadeEmailWithTimeout(req.session.account)
     }
     if (amount >= transactionApprovalLimit) {
       transaction["approved"] = false
       transaction["approvedBy"] = ''
       transaction["approvedTime"] = ''
+      sendTransactionForApprovalEmailWithTimeout(req.session.account)
     }
 
   }
@@ -249,7 +250,7 @@ app.post("/transaction/delete", (req, res) => {
   /** @type {{transaction: Transaction, reason : string}} */
   let {transaction, reason} = req.body
   transaction = JSON.parse(transaction)
-  /** @type {string} */
+  /** @type {{account:string, role:string}} */
   let {account, role} = req.session
 
   applyTimeStamp([transaction], "deletedTime")
@@ -269,6 +270,7 @@ app.post("/transaction/delete", (req, res) => {
   })
 
   addToTransactionHistory([transaction], account)
+  .then(() => sendTransactionDeletedEmail(account))
 
   getCurrentBalance(account)
   .then((balance) => balance + transaction.amount)
