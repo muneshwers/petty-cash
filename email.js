@@ -1,5 +1,7 @@
 import nodemailer from "nodemailer"
 
+let emailsOn = false
+
 const nearingLimitEmailTemplate = (account) => ({
     from: '"Petty Cash Bot" <programmers.muneshwers@gmail.com>',
     to: 'procurement.coor@muneshwers.com, \
@@ -55,6 +57,7 @@ const transactionDeletedEmailTemplate = (account) => ({
 
 function sendEmailFactory(templateBuilder) {
     return async function(account){
+        if (!emailsOn) return
         try {
             const transporter = nodemailer.createTransport({
                 host: 'smtp.gmail.com',

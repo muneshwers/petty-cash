@@ -249,6 +249,8 @@ app.post("/transaction/edit", async (req, res) => {
 app.post("/transaction/delete", (req, res) => {
   /** @type {{transaction: Transaction, reason : string}} */
   let {transaction, reason} = req.body
+  console.log(req.body)
+  console.log('hello')
   transaction = JSON.parse(transaction)
   /** @type {{account:string, role:string}} */
   let {account, role} = req.session

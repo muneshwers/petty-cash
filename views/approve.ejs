@@ -2,7 +2,6 @@
     <div x-data="{
         grid : null,
         transactions: [],
-        openDeleteModal : false,
         async init() {
             let alpineObj = this
             const approveRenderer = function(params) {
@@ -110,8 +109,8 @@
         @delete-modal.window="
             openDeleteModal = true;
             inputsDelete.transaction = $event.detail.transaction
+            inputsDelete.reason = ''
             url = $event.detail.url
-            reason = ''
         "
         >
             <div x-show="openDeleteModal" class="overlay">

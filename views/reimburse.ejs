@@ -7,33 +7,6 @@
         grid : null,
         grid2 : null,
         reimbursedTotal: 0,
-        openEditModal: false,
-        openDeleteModal : false,
-        inputs : {
-            transactionId : {value: '', valid: true},
-            amount :  {value: '', valid: true},
-            recipient : {value: '', valid: true},
-            supplier : {value: '', valid: true},
-            description : {value: '', valid: true},
-            date : {value: '', valid: true},
-            originalAmount :  {value: '', valid: true},
-        },
-        inputsDelete : {
-            transaction : '',
-            reason : ''
-        },
-        validateEdit() {
-            let keys = Object.keys(this.inputs)
-            for (let key of keys) {
-                if (!this.inputs[key].valid) {
-                    return false
-                }
-            }
-            return true
-        },
-        validateDelete() {
-            return (this.inputsDelete.reason) ? true : false
-        },
         async init(){
             let alpineObj = this
             const editRenderer = function(params) {
@@ -44,14 +17,7 @@
                     editButton.innerHTML = 'Edit';
                     editButton.classList.add('edit-button');
                     editButton.addEventListener('click', function () {
-                        alpineObj.openEditModal = true
-                        alpineObj.inputs.transactionId.value = params.data.transactionId
-                        alpineObj.inputs.recipient.value = params.data.recipient
-                        alpineObj.inputs.supplier.value = params.data.supplier
-                        alpineObj.inputs.description.value = params.data.description
-                        alpineObj.inputs.originalAmount.value = params.data.amount
-                        alpineObj.inputs.date.value = params.data.date
-                        $dispatch('modal')
+                        $dispatch('modal', {transaction : params.data})
                     })
                     flexbox.appendChild(editButton)
                 }
@@ -60,10 +26,7 @@
                     deleteButton.innerHTML = 'Delete'
                     deleteButton.classList.add('edit-button')
                     deleteButton.addEventListener('click', function() {
-                        alpineObj.openDeleteModal = true
-                        alpineObj.inputsDelete.reason = ''
-                        alpineObj.inputsDelete.transaction = params.data
-                        $dispatch('delete-modal')
+                        $dispatch('delete-modal', {transaction : params.data, url : '/transaction/delete'})
                     })
                     flexbox.appendChild(deleteButton)
                 }
@@ -197,19 +160,6 @@
                     })
                 }, 250);
             })
-
-            htmx.on('#delete_button', 'click', (event) => {
-                                    console.log(this.inputsDelete)
-                                    this.openDeleteModal =false
-                                    this.swapMain()
-                                    setTimeout(() => {
-                                        htmx.ajax('POST', '/transaction/delete', {
-                                            target: 'main',
-                                            swap:'outerHTML',
-                                            values: this.inputsDelete
-                                        })
-                                    }, 250);
-            })
         },
         exportTableAsCsv() {
             let account = this.currAccount
@@ -268,12 +218,43 @@
             </div>
         </div>
     
-        <div x-show="openEditModal"
-            x-data="{ balance: 1000000}"
+        <div
+            x-data="{  
+                openEditModal: false,
+                inputs : {
+                    transactionId : {value: '', valid: true},
+                    amount :  {value: '', valid: true},
+                    recipient : {value: '', valid: true},
+                    supplier : {value: '', valid: true},
+                    description : {value: '', valid: true},
+                    date : {value: '', valid: true},
+                    originalAmount :  {value: '', valid: true},
+                },
+                validateEdit() {
+                    let keys = Object.keys(this.inputs)
+                    for (let key of keys) {
+                        if (!this.inputs[key].valid) {
+                            return false
+                        }
+                    }
+                    return true
+                },
+                balance: 1000000,
+                }"
             x-init=" fetch('/balance').then(data => data.json()).then(json => balance = json.balance)"
-            @modal.window="balance += Number(inputs.originalAmount.value)"
+            @modal.window="
+                openEditModal = true
+                balance += Number(inputs.originalAmount.value)
+                let transaction = $event.detail.transaction
+                inputs.transactionId.value =transaction.transactionId
+                inputs.recipient.value = transaction.recipient
+                inputs.supplier.value = transaction.supplier
+                inputs.description.value = transaction.description
+                inputs.originalAmount.value = transaction.amount
+                inputs.date.value = transaction.date
+            "
             >
-            <div class="overlay">
+            <div x-show="openEditModal" class="overlay">
                 <div class="modal" @click.outside="openEditModal = false">
                     <button class="close-button" @click="openEditModal = false">&times;</button>
                     <h2> Edit Transaction </h2>
@@ -489,8 +470,40 @@
             </div>
         </div>
         </div>
-        <div x-show="openDeleteModal">
-            <div class="overlay">
+        <div x-data="{
+            openDeleteModal : false,
+            inputsDelete : {
+                transaction : '',
+                reason : '',
+            },
+            url : '',
+            validateDelete() {
+                console.log('validate Delete run')
+                return (this.inputsDelete.reason) ? true : false
+            },
+            init() {
+                htmx.on('#delete_button', 'click', (event) => {
+                    console.log(this.inputsDelete)
+                    this.openDeleteModal =false
+                    this.swapMain()
+                    setTimeout(() => {
+                        htmx.ajax('POST', this.url, {
+                            target: 'main',
+                            swap:'outerHTML',
+                            values: this.inputsDelete
+                        })
+                    }, 250);
+                })
+            }
+        }"
+        @delete-modal.window="
+            openDeleteModal = true;
+            inputsDelete.transaction = $event.detail.transaction
+            inputsDelete.reason = ''
+            url = $event.detail.url
+        "
+        >
+            <div x-show="openDeleteModal" class="overlay">
                 <div
                 class="modal"
                 @click.outside="openDeleteModal = false"
