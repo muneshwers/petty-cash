@@ -495,6 +495,14 @@ button {
     color: white;
 }
 
+.flex-container {
+    display: flex;
+    justify-content: space-between;
+    flex-direction: row;
+    align-items: center;
+    height: 100%;
+}
+
 .movedown {
     animation: movedown 0.3s forwards;
 }
@@ -507,3 +515,4 @@ button {
         transform: translateY(0);
     }
 }
+
