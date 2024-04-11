@@ -98,7 +98,7 @@ app.get("/approve", (req, res) => {
 })
 
 app.get("/balance", async (req, res) => {
-  let balance = await getCurrentBalance(req.session)
+  let balance = await getCurrentBalance(req.session.account)
   res.json({balance})
 })
 
@@ -152,7 +152,8 @@ app.post("/transaction", async (req ,res) => {
     amount,
     date,
     createdBy : req.session.username,
-    editable :true,
+    editable : true,
+    deleteable : true,
   }
   let currentId = await getCurrentTransactionId(req.session) 
   currentId = Number(currentId)
@@ -172,7 +173,7 @@ app.post("/transaction", async (req ,res) => {
 
   updateTransactions([transaction], account);
   
-  let balance = await getCurrentBalance(req.session)
+  let balance = await getCurrentBalance(account)
   balance = balance - amount
   if (balance <= 100000) {
     sendNearingLimitEmailWithTimout(account)
@@ -221,7 +222,7 @@ app.post("/transaction/edit", async (req, res) => {
     transaction.amount = originalTransaction.amount
   }
   if (amountChanged) {
-    let balance = await getCurrentBalance(req.session)
+    let balance = await getCurrentBalance(req.session.account)
     balance += (originalTransaction.amount - transaction.amount)
     updateBalance(balance, req.session.account)
 
@@ -244,6 +245,27 @@ app.post("/transaction/edit", async (req, res) => {
   .then(()=> res.render("reimburse"))
 })
 
+app.post("/transaction/delete", (req, res) => {
+  /** @type {{transaction: Transaction, reason : string}} */
+  let {transaction, reason} = req.body
+  transaction = JSON.parse(transaction)
+  /** @type {string} */
+  let {account} = req.session
+
+  applyTimeStamp([transaction], "deletedTime")
+  transaction.deletedBy = req.session.username
+  transaction.deleteReason = reason
+
+  deleteTransaction(transaction, account)
+  .then(() => res.render("reimburse"))
+
+  addToTransactionHistory([transaction], account)
+
+  getCurrentBalance(account)
+  .then((balance) => balance + transaction.amount)
+  .then((newBalance) => updateBalance(newBalance, account))
+
+})
 
 
 //Takes reimbursed total from table and adds to current balance
@@ -255,7 +277,7 @@ app.post("/transaction/reimburse", async (req,res)=>{
 
   let {account} = req.session
 
-  let balance = await getCurrentBalance(req.session)
+  let balance = await getCurrentBalance(account)
   balance = Number(balance) + Number(reimbursedTotal)
   updateBalance(balance, account)
 
@@ -270,6 +292,7 @@ app.post("/transaction/reimburse", async (req,res)=>{
   .then(() => res.render("reimburse"))
   .then(() => sendReimbursementsMadeWithTimeout(account))
 })
+
 
 
 app.post("/account", (req, res) => {
@@ -319,7 +342,7 @@ app.listen(PORT, () => {
 
 
 const transactionApprovalLimit = 10000
-const database = 'Database'
+const database = 'Mock'
 
 /**
  * 
@@ -337,21 +360,16 @@ async function getUsers(user) {
 }
 /**
  * 
- * @param {Session} session 
+ * @param {string} account 
  * @returns {Promise<number>}
  */
-async function getCurrentBalance(session) {
-  let {account} = session
-  try {
-    const {balance} = (await admin.firestore()
-    .collection(database)
-    .doc(account)
-    .get()).data()
-    return balance;
-  } catch (error) {
-    console.error("Error reading current balance:", error);
-    return -1;
-  }
+async function getCurrentBalance(account) {
+  const {balance} = (await admin.firestore()
+  .collection(database)
+  .doc(account)
+  .get()).data()
+  return balance;
+
 }
 
 async function getCurrentTransactionId(session) {
@@ -449,7 +467,22 @@ function deleteTransactions(transactions, account) {
       .doc(transaction.transactionId.toString())
       .delete()
   )
+}
 
+/**
+ * 
+ * @param {Transaction} transaction 
+ * @param {string} account 
+ * @returns {Promise}
+ */
+function deleteTransaction(transaction, account) {
+  return admin
+  .firestore()
+  .collection(database)
+  .doc(account)
+  .collection('Transactions')
+  .doc(transaction.transactionId.toString())
+  .delete()
 }
 
 
@@ -524,8 +557,13 @@ async function getTransactionHistory(account) {
  * @property {string?} approvedTime - The time that the user approved the transaction
  * @property {string} createdBy - The user who created the transaction.
  * @property {string} date - The date that the user created the transaction.
+ * @property {boolean?} editable - if the transaction can be edited
  * @property {string?} editTime - the time that the transaction was edited
  * @property {string?} editedBy - the user who edited the transaction.
  * @property {string?} reimbursedBy - the user who reimbursed the transaction.
  * @property {string?} reimbursedTime - the time that the transaction was reimbursed
+ * @property {boolean?} deleteable  - if the transaction is deleteable
+ * @property {string?} deletedTime - the time a user deleted the transaction
+ * @property {string?} deletedBy - the user that deleted the transaction
+ * @property {string?} deleteReason - the reason the user deleted the transaction
  */

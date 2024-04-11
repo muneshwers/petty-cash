@@ -495,6 +495,30 @@ button {
     color: white;
 }
 
+
+.delete-button {
+    background-color: #0047ab;
+    color: white;
+    padding: 5px 10px;
+    border: 1px solid #0047ab;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.delete-button:hover {
+    background-color: white;
+    color: #0047ab;
+}
+
+.flex-container {
+    display: flex;
+    justify-content: space-between;
+    flex-direction: row;
+    align-items: center;
+    height: 100%;
+}
+
 .movedown {
     animation: movedown 0.3s forwards;
 }
@@ -507,3 +531,4 @@ button {
         transform: translateY(0);
     }
 }
+

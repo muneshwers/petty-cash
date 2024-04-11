@@ -4,10 +4,11 @@
         transactionLog : [],
         toBeReimbursed : [],
         saved : [],
-        open: false,
         grid : null,
         grid2 : null,
         reimbursedTotal: 0,
+        openEditModal: false,
+        openDeleteModal : false,
         inputs : {
             transactionId : {value: '', valid: true},
             amount :  {value: '', valid: true},
@@ -17,7 +18,11 @@
             date : {value: '', valid: true},
             originalAmount :  {value: '', valid: true},
         },
-        validate() {
+        inputsDelete : {
+            transaction : '',
+            reason : ''
+        },
+        validateEdit() {
             let keys = Object.keys(this.inputs)
             for (let key of keys) {
                 if (!this.inputs[key].valid) {
@@ -26,26 +31,43 @@
             }
             return true
         },
+        validateDelete() {
+            return (this.inputsDelete.reason) ? true : false
+        },
         async init(){
             let alpineObj = this
             const editRenderer = function(params) {
-                if (!params.data.editable) {
-                    return
+                let flexbox = document.createElement('div')
+                flexbox.classList.add('flex-container')
+                if (params.data.editable) {
+                    const editButton = document.createElement('button');
+                    editButton.innerHTML = 'Edit';
+                    editButton.classList.add('edit-button');
+                    editButton.addEventListener('click', function () {
+                        alpineObj.openEditModal = true
+                        alpineObj.inputs.transactionId.value = params.data.transactionId
+                        alpineObj.inputs.recipient.value = params.data.recipient
+                        alpineObj.inputs.supplier.value = params.data.supplier
+                        alpineObj.inputs.description.value = params.data.description
+                        alpineObj.inputs.originalAmount.value = params.data.amount
+                        alpineObj.inputs.date.value = params.data.date
+                        $dispatch('modal')
+                    })
+                    flexbox.appendChild(editButton)
                 }
-                const button = document.createElement('button');
-                button.innerHTML = 'Edit';
-                button.classList.add('edit-button');
-                button.addEventListener('click', function () {
-                    alpineObj.open = true
-                    alpineObj.inputs.transactionId.value = params.data.transactionId
-                    alpineObj.inputs.recipient.value = params.data.recipient
-                    alpineObj.inputs.supplier.value = params.data.supplier
-                    alpineObj.inputs.description.value = params.data.description
-                    alpineObj.inputs.originalAmount.value = params.data.amount
-                    alpineObj.inputs.date.value = params.data.date
-                    $dispatch('modal')
-                });
-                return button;
+                if (params.data.deleteable) {
+                    const deleteButton = document.createElement('button')
+                    deleteButton.innerHTML = 'Delete'
+                    deleteButton.classList.add('edit-button')
+                    deleteButton.addEventListener('click', function() {
+                        alpineObj.openDeleteModal = true
+                        alpineObj.inputsDelete.reason = ''
+                        alpineObj.inputsDelete.transaction = params.data
+                        $dispatch('delete-modal')
+                    })
+                    flexbox.appendChild(deleteButton)
+                }
+                return flexbox;
             }
             let {transactions} = (await (await fetch('/transactions')).json())
             let {savedOnAccount} = (await (await fetch('/saved')).json())
@@ -73,8 +95,7 @@
                         field: 'Actions',
                         headerName: 'Actions',
                         cellRenderer: 'editRenderer',
-                        minWidth: 100,
-                        maxWidth: 100,
+                        minWidth: 150,
                         suppressMenu: true,
                         cellStyle: { textAlign: 'center' }
                                 },
@@ -177,6 +198,18 @@
                 }, 250);
             })
 
+            htmx.on('#delete_button', 'click', (event) => {
+                                    console.log(this.inputsDelete)
+                                    this.openDeleteModal =false
+                                    this.swapMain()
+                                    setTimeout(() => {
+                                        htmx.ajax('POST', '/transaction/delete', {
+                                            target: 'main',
+                                            swap:'outerHTML',
+                                            values: this.inputsDelete
+                                        })
+                                    }, 250);
+            })
         },
         exportTableAsCsv() {
             let account = this.currAccount
@@ -234,15 +267,15 @@
                     </div>
             </div>
         </div>
-        <div 
-            x-show="open" 
-            x-data="{ balance: 1000000}" 
+    
+        <div x-show="openEditModal"
+            x-data="{ balance: 1000000}"
             x-init=" fetch('/balance').then(data => data.json()).then(json => balance = json.balance)"
             @modal.window="balance += Number(inputs.originalAmount.value)"
             >
             <div class="overlay">
-                <div class="modal" @click.outside="open = false">
-                    <button class="close-button" @click="open = false">&times;</button>
+                <div class="modal" @click.outside="openEditModal = false">
+                    <button class="close-button" @click="openEditModal = false">&times;</button>
                     <h2> Edit Transaction </h2>
                     <div x-data="{
                         editAmount: false,
@@ -254,7 +287,7 @@
                                 maximumFractionDigits: 0,
                             }).format(number)
                         }
-                    }" 
+                    }"
                     @modal.window="editAmount=false"
                     >
                         <div class="amount-box" x-show="editAmount" x-transition:enter.delay.300ms.duration.300ms>
@@ -262,7 +295,7 @@
                             <div class="amount"><div>New Amount </div> <span style="color: red;" x-text="formatDollar(Math.abs(inputs.amount.value) || 0)"></span></div>
                             <div class="amount"><div>New Remainder </div> <span  x-text="formatDollar(balance - inputs.amount.value)" ></span></div>
                         </div>
-        
+
                         <form :class="{'movedown' : editAmount}" hx-post="/transaction/edit" hx-target="main" hx-trigger="submit delay:0.25s">
                             <div class="edit-form">
                                 <div class="item">
@@ -439,12 +472,12 @@
                                 </div>
                             </div>
                             <div  class="modal-btns">
-                                <button class="submit-button" @click="open =false; swapMain()" type="submit" :disabled="!validate()" >Update</button>
-                                <button 
+                                <button class="submit-button" @click="openEditModal =false; swapMain()" type="submit" :disabled="!validateEdit()" >Update</button>
+                                <button
                                 class="edit-amount"
-                                type="button" 
-                                x-transition:leave.duration.300ms 
-                                x-show="!editAmount" 
+                                type="button"
+                                x-transition:leave.duration.300ms
+                                x-show="!editAmount"
                                 x-on:click="editAmount = true">
                                     <img src="/static/images/down-arrow.svg" alt="down-arrow" height="10" width="10">
                                     <span>Edit Amount</span>
@@ -452,7 +485,58 @@
                             </div>
                         </form>
                     </div>
-        
+                </div>
+            </div>
+        </div>
+        </div>
+        <div x-show="openDeleteModal">
+            <div class="overlay">
+                <div
+                class="modal"
+                @click.outside="openDeleteModal = false"
+                >
+                    <button class="close-button" @click="openDeleteModal = false">&times;</button>
+                    <h2>Delete Transaction</h2>
+                    <form>
+                        <div class="item"
+                        x-data="{
+                            input : '',
+                            errorMessage : '',
+                            initialized : false,
+                            validate() {
+                                this.initialized = true
+                                if (!this.input) {
+                                    this.errorMessage = 'reason required'
+                                    return false
+                                }
+                                this.errorMessage = ''
+                                return true
+                            },
+                            clear() {
+                                this.input = ''
+                                this.errorMessage = ''
+                                this.initialized = false
+                            }
+                        }"
+                        @delete-modal.window="clear()"
+                        >
+                            <span class="errorMessage" x-text="errorMessage"></span>
+                            <input
+                                type="text"
+                                name="reason"
+                                x-on:input="validate(); inputsDelete['reason'] = input"
+                                x-model="input"
+                                x-bind:class="{'error' : errorMessage}"
+                            >
+                            <span class="label">Reason</span>
+                        </div>
+                        <button class="submit-button" id="delete_button" type="button" :disabled="!validateDelete()" >
+                            Delete
+                        </button>
+
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
 </main>
