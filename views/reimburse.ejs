@@ -218,7 +218,7 @@
             </div>
         </div>
     
-        <div
+        <div id="edit-modal"
             x-data="{  
                 openEditModal: false,
                 inputs : {
@@ -243,8 +243,8 @@
                 }"
             x-init=" fetch('/balance').then(data => data.json()).then(json => balance = json.balance)"
             @modal.window="
+                balance -= (inputs.originalAmount.value) ? Number(inputs.originalAmount.value) : 0
                 openEditModal = true
-                balance += Number(inputs.originalAmount.value)
                 let transaction = $event.detail.transaction
                 inputs.transactionId.value =transaction.transactionId
                 inputs.recipient.value = transaction.recipient
@@ -252,6 +252,8 @@
                 inputs.description.value = transaction.description
                 inputs.originalAmount.value = transaction.amount
                 inputs.date.value = transaction.date
+                inputs.amount.value = ''
+                balance += Number(inputs.originalAmount.value)
             "
             >
             <div x-show="openEditModal" class="overlay">
@@ -470,7 +472,8 @@
             </div>
         </div>
         </div>
-        <div x-data="{
+        <div id="delete-modal"
+        x-data="{
             openDeleteModal : false,
             inputsDelete : {
                 transaction : '',
