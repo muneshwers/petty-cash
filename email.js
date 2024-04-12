@@ -1,6 +1,7 @@
 import nodemailer from "nodemailer"
+import config from "./config.js"
 
-let emailsOn = false
+let {emailsOn} = config
 
 const nearingLimitEmailTemplate = (account) => ({
     from: '"Petty Cash Bot" <programmers.muneshwers@gmail.com>',

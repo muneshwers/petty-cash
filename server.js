@@ -10,6 +10,7 @@ import {
   sendReimbursementsMadeWithTimeout,
   sendTransactionDeletedEmail
 } from "./email.js";
+import config from "./config.js"
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -351,9 +352,8 @@ app.listen(PORT, () => {
   console.log(`App is running on port ${PORT}`);
 });
 
-
 const transactionApprovalLimit = 10000
-const database = 'Mock'
+const {database} = config
 
 /**
  * 
