@@ -116,7 +116,7 @@
                     params.api.setNodesSelected({ nodes : selectedNodes,  newValue : true})
                 },
             })
-            let account = this.currAccount
+            let account = this.accountTextMap[this.currAccount]
             this.grid2 = agGrid.createGrid(this.$refs.myGrid2, {
                 rowData : this.toBeReimbursed,
                 domLayout: 'autoHeight',
@@ -164,9 +164,9 @@
             let account = this.currAccount
             console.log(account)
             let accountToCodeMap = {
-                Muneshwers : 'ML',
-                Barges : 'BS',
-                Paragon : 'PT'
+                muneshwers : 'ML',
+                barges : 'BS',
+                paragon : 'PT'
             }
             let code = accountToCodeMap[account]
             const processCellCallback = (params) => {                
@@ -480,12 +480,10 @@
             },
             url : '',
             validateDelete() {
-                console.log('validate Delete run')
                 return (this.inputsDelete.reason) ? true : false
             },
             init() {
                 htmx.on('#delete_button', 'click', (event) => {
-                    console.log(this.inputsDelete)
                     this.openDeleteModal =false
                     this.swapMain()
                     setTimeout(() => {

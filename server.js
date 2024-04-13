@@ -20,6 +20,7 @@ admin.initializeApp({
 })
 
 const checkLoggedIn = (req, res, next) => {
+  console.log(req.url)
   const unprotectedUrl = [
     "/",
     "/login",
@@ -56,8 +57,8 @@ app.get("/", (req, res) => {
 })
 
 app.get("/home", (req, res) => {
-  let {role} = req.session
-  res.render("home", {role})
+  let {role, account} = req.session
+  res.render("home", {role, account})
 })
 
 app.get("/login", (req, res) => {
@@ -90,7 +91,7 @@ app.post("/login/user", async (req, res) => {
   req.session.account = 'muneshwers';
   req.session.role = role
   req.session.saved = {}
-  res.render("home", {role})
+  res.render("home", {role, account : req.session.account})
   return
   
 })
@@ -309,7 +310,7 @@ app.post("/transaction/reimburse", async (req,res)=>{
 
 app.post("/account", (req, res) => {
   const {account} = req.body;
-  req.session.account = account.toLowerCase()
+  req.session.account = account
   if (req.session.role === 'approver'){
     res.render("approve")
     return

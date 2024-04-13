@@ -4,7 +4,7 @@
         grid : null,
         async init(){
             let {transactionHistory} = (await (await fetch('/transactionHistory')).json())
-            let account = this.currAccount
+            let account = this.accountTextMap[this.currAccount]
             this.grid = agGrid.createGrid(this.$refs.myGrid, {
                 rowData : transactionHistory,
                 domLayout: 'autoHeight',
@@ -39,9 +39,9 @@
         exportTableAsCsv() {
             let account = this.currAccount
             let accountToCodeMap = {
-                Muneshwers : 'ML',
-                Barges : 'BS',
-                Paragon : 'PT'
+                muneshwers : 'ML',
+                barges : 'BS',
+                paragon : 'PT'
             }
             let code = accountToCodeMap[account]
             const processCellCallback = (params) => {

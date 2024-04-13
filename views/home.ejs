@@ -2,8 +2,13 @@
     <div
     x-data="{
         tab : 'transactions',
-        currAccount : 'Muneshwers',
-        accounts : ['Muneshwers', 'Paragon', 'Barges'],
+        currAccount : '<%=account%>',
+        accounts : ['muneshwers', 'paragon', 'barges'],
+        accountTextMap : {
+            'muneshwers' : 'Muneshwers',
+            'paragon' : 'Paragon',
+            'barges' : 'Barges'
+        },
         open : false,
         toggle () {
             if (this.open) {
@@ -54,14 +59,14 @@
             <div class="navbar">
                 <div class="account">
                     <button x-ref="button" x-on:click="toggle()">
-                        <span x-text="currAccount"></span>  
+                        <span x-text="accountTextMap[currAccount]"></span>  
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
                             <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
                         </svg> 
                     </button>
                     <div class="panel" x-show="open" x-transition.duration.300ms.origin.top.left x-on:click.outside="close($refs.button)">
                         <template x-for="account in accounts">
-                            <div class="panel-item" x-on:click="swapAccount(account)"   x-text="account"></div>
+                            <div class="panel-item" x-on:click="swapAccount(account)"   x-text="accountTextMap[account]"></div>
                         </template>
                     </div>
                 </div>
@@ -79,8 +84,13 @@
     <div
     x-data="{
         tab : 'transactions',
-        currAccount : 'Muneshwers',
-        accounts : ['Muneshwers', 'Paragon', 'Barges'],
+        currAccount :'<%=account%>',
+        accounts : ['muneshwers', 'paragon', 'barges'],
+        accountTextMap : {
+            'muneshwers' : 'Muneshwers',
+            'paragon' : 'Paragon',
+            'barges' : 'Barges'
+        },
         open : false,
         toggle () {
             if (this.open) {
@@ -131,14 +141,14 @@
             <div class="navbar">
                 <div class="account">
                     <button x-ref="button" x-on:click="toggle()">
-                        <span x-text="currAccount"></span>  
+                        <span x-text="accountTextMap[currAccount]"></span>  
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
                             <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
                         </svg> 
                     </button>
                     <div class="panel" x-show="open" x-transition.duration.300ms.origin.top.left x-on:click.outside="close($refs.button)">
                         <template x-for="account in accounts">
-                            <div class="panel-item" x-on:click="swapAccount(account)"   x-text="account"></div>
+                            <div class="panel-item" x-on:click="swapAccount(account)"   x-text="accountTextMap[account]"></div>
                         </template>
                     </div>
                 </div>
