@@ -47,12 +47,12 @@
                 components: {approveRenderer},
                 columnDefs : [
                     {
-                    field: 'Actions',
-                    headerName: 'Actions',
-                    cellRenderer: 'approveRenderer',
-                    minWidth: 150,
-                    suppressMenu: true,
-                    cellStyle: { textAlign: 'center' }
+                        field: 'Actions',
+                        headerName: 'Actions',
+                        cellRenderer: 'approveRenderer',
+                        minWidth: 150,
+                        suppressMenu: true,
+                        cellStyle: { textAlign: 'center' }
                     },
                     { field: 'transactionId', headerName : 'Voucher Number'},
                     { field: 'description'},
@@ -61,6 +61,7 @@
                     { field: 'supplier' },
                     { field: 'createdBy' },
                     { field: 'date'},
+                    { field: 'timeStamp' }
                     
                 ],
                 defaultColDef: {

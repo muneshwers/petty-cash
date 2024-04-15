@@ -31,13 +31,22 @@
                 }
                 return flexbox;
             }
+            const queryRender = function(params) {
+                const queryButton = document.createElement('button')
+                queryButton.innerHTML = '?'
+                queryButton.classList.add('query-button')
+                queryButton.addEventListener('click', function () {
+                    $dispatch('query-modal', {transaction : params.data})
+                })
+                return queryButton
+            }
             let {transactions} = (await (await fetch('/transactions')).json())
             let {savedOnAccount} = (await (await fetch('/saved')).json())
             this.saved = savedOnAccount
             this.grid = agGrid.createGrid(this.$refs.myGrid, {
                 rowData : transactions,
                 domLayout: 'autoHeight',
-                components: {editRenderer},
+                components: {editRenderer, queryRender},
                 columnDefs : [
                     { field: 'transactionId', 
                     checkboxSelection: function (params) {
@@ -48,20 +57,29 @@
                     headerName : 'Voucher Number'},
                     { field: 'description'},
                     { field: 'amount' },
-                    {field : 'approved'},
+                    { field : 'approved'},
                     { field: 'recipient' },
                     { field: 'supplier' },
                     { field: 'createdBy' },
                     { field: 'date'},
-                    {
+                    { field: 'timeStamp' },
+                    { 
                         field: 'Actions',
                         headerName: 'Actions',
                         cellRenderer: 'editRenderer',
                         minWidth: 150,
                         suppressMenu: true,
                         cellStyle: { textAlign: 'center' }
-                                },
-                            ],
+                    },
+                    {
+                        field : 'Query',
+                        headerName : 'Query',
+                        cellRenderer: 'queryRender',
+                        minWidth: 100,
+                        suppressMenu: true,
+                        cellStyle: { textAlign: 'center' }
+                    }
+                ],
                 defaultColDef: {
                     filter: 'agTextColumnFilter',
                     floatingFilter: true,
@@ -504,8 +522,7 @@
         "
         >
             <div x-show="openDeleteModal" class="overlay">
-                <div
-                class="modal"
+                <div class="modal"
                 @click.outside="openDeleteModal = false"
                 >
                     <button class="close-button" @click="openDeleteModal = false">&times;</button>
@@ -550,6 +567,66 @@
                     </form>
                 </div>
             </div>
+        </div>
+        </div>
+        <div id="query-modal"
+        x-data="{
+            queryGrid : null,
+            openQueryModal : false,
+            loading : true,
+            data : [],
+            queryTransactionHistory(transaction) {
+                this.loading = true
+                fetch('/transaction/query/'+transaction.transactionId).
+                then((transactionsJson) => transactionsJson.json()).
+                then((transactionsObj) => {
+                    let {transactions} = transactionsObj
+                    transactions.push(transaction)
+                    this.data = transactions
+                    this.queryGrid = agGrid.createGrid(this.$refs.queryGrid, {
+                        rowData : this.data,
+                        columnDefs : [
+                            { field: 'transactionId', headerName : 'Voucher Number'},
+                            { field: 'description'},
+                            { field: 'amount' },
+                            { field: 'recipient' },
+                            { field: 'supplier' },
+                            { field: 'createdBy' },
+                            { field: 'date' },
+                            { field: 'timeStamp' },
+                            { field: 'editedBy' },
+                            { field: 'editTime'},
+                            { field: 'reimbursedBy' },
+                            { field: 'reimbursedTime'},
+                            { field: 'deletedBy'},
+                            { field: 'deletedTime'},
+                            { field: 'deleteReason'}
+                        ],
+                        defaultColDef: {
+                            filter: 'agTextColumnFilter',
+                            floatingFilter: true,
+                        },
+                    })
+                    this.loading = false
+               })
+            },
+        }"
+        @query-modal.window="
+        openQueryModal = true
+        queryTransactionHistory($event.detail.transaction)
+        "
+        >
+         <div x-show="openQueryModal" class="overlay" >
+            <div class="modal" @click.outside="openQueryModal = false">
+                <button class="close-button" @click="openQueryModal = false">&times;</button>
+                <h2>View Transaction History</h2>
+                <div x-show="loading">
+                    <span>Loading...</span>
+                </div>
+                <div x-show="!loading" x-ref="queryGrid" class="table ag-theme-quartz ag-center-cols-viewport" style="width: auto">
+                </div>
+            </div>
+         </div>
         </div>
     </div>
 </main>

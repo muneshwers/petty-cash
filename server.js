@@ -1,5 +1,6 @@
 import express from "express";
-import expressSession, { Session } from "express-session";
+import "dotenv/config"
+import expressSession from "express-session";
 import bodyParser from "body-parser";
 import admin from "firebase-admin"
 import serviceAccount from "./serviceAccountKey.json" assert {type : "json"}
@@ -20,7 +21,6 @@ admin.initializeApp({
 })
 
 const checkLoggedIn = (req, res, next) => {
-  console.log(req.url)
   const unprotectedUrl = [
     "/",
     "/login",
@@ -106,18 +106,29 @@ app.get("/balance", async (req, res) => {
 })
 
 app.get("/transactions", async (req, res) => {
-  let transactions = await getTransactions(req.session)
+  let transactions = await getTransactions(req.session.account)
+  res.json({transactions})
+})
+
+app.get("/transaction/query/:id", async (req, res) => {
+  let id = Number(req.params.id)
+  let {account} = req.session
+  let docs = (await queryTransaction(account, id)).docs
+  let transactions = []
+  for (let doc of docs) {
+    transactions.push(doc.data())
+  }
   res.json({transactions})
 })
 
 app.get("/transactionId", async (req, res) => {
-  let transactionId = await getCurrentTransactionId(req.session) 
+  let transactionId = await getCurrentTransactionId(req.session.account)
   res.json({transactionId})
 })
 
 app.get("/transactionHistory", async (req, res) => {
   let {account} = req.session
-  let transactionHistory = await getTransactionHistory(account)
+  let transactionHistory = await getTransactionsHistory(account)
   res.json({transactionHistory})
 })
 
@@ -158,7 +169,7 @@ app.post("/transaction", async (req ,res) => {
     editable : true,
     deleteable : true,
   }
-  let currentId = await getCurrentTransactionId(req.session) 
+  let currentId = await getCurrentTransactionId(account) 
   currentId = Number(currentId)
   if (currentId > transactionId) {
     transactionId = currentId
@@ -168,12 +179,11 @@ app.post("/transaction", async (req ,res) => {
     transaction['approved'] = true
     transaction['approvedBy'] = 'System'
     applyTimeStamp([transaction], 'approvedTime')
-
   }
   if (amount >= transactionApprovalLimit) {
     sendTransactionForApprovalEmailWithTimeout(account)
   }
-
+  applyTimeStamp([transaction], "timeStamp")
   updateTransactions([transaction], account);
   
   let balance = await getCurrentBalance(account)
@@ -242,7 +252,7 @@ app.post("/transaction/edit", async (req, res) => {
     }
 
   }
-
+  applyTimeStamp([originalTransaction], "timeStamp")
   Object.assign(originalTransaction, transaction)
   Promise.all(updateTransactions([originalTransaction], req.session.account))
   .then(()=> res.render("reimburse"))
@@ -256,6 +266,7 @@ app.post("/transaction/delete", (req, res) => {
   let {account, role} = req.session
 
   applyTimeStamp([transaction], "deletedTime")
+  applyTimeStamp([transaction], "timeStamp")
   transaction.deletedBy = req.session.username
   transaction.deleteReason = reason
 
@@ -281,7 +292,6 @@ app.post("/transaction/delete", (req, res) => {
 })
 
 
-//Takes reimbursed total from table and adds to current balance
 app.post("/transaction/reimburse", async (req,res)=>{
 
   /** @type {{reimbursedTotal:number, toBeReimbursed: Array<Transaction>}} */
@@ -295,6 +305,7 @@ app.post("/transaction/reimburse", async (req,res)=>{
   updateBalance(balance, account)
 
   applyTimeStamp(toBeReimbursed, "reimbursedTime")
+  applyTimeStamp(toBeReimbursed, "timeStamp")
   for (let transaction of toBeReimbursed) {
     transaction['reimbursedBy'] = req.session.username;
   }
@@ -384,8 +395,12 @@ async function getCurrentBalance(account) {
 
 }
 
-async function getCurrentTransactionId(session) {
-  let {account} = session
+/**
+ * 
+ * @param {string} account
+ * @returns 
+ */
+async function getCurrentTransactionId(account) {
   let {transactionId} = (await (admin.firestore()
   .collection(database)
   .doc(account)
@@ -396,11 +411,10 @@ async function getCurrentTransactionId(session) {
 
 /**
  * 
- * @param {Session} session 
+ * @param {string} account 
  * @returns {Promise<Array<Transaction>>}
  */
-async function getTransactions(session) {
-  let {account} = session
+async function getTransactions(account) {
   try {
     const snapshots = (await admin.firestore()
     .collection(database)
@@ -535,7 +549,7 @@ function applyTimeStamp(transactions, purpose) {
 }
 
 
-async function getTransactionHistory(account) {
+async function getTransactionsHistory(account) {
   try {
     const snapshots = (await admin.firestore()
     .collection(database)
@@ -554,6 +568,22 @@ async function getTransactionHistory(account) {
   }
 }
 
+/**
+ * 
+ * @param {string} account 
+ * @param {number} transactionId 
+ */
+async function queryTransaction(account, transactionId) {
+  return admin
+  .firestore()
+  .collection(database)
+  .doc(account)
+  .collection('History')
+  .where('transactionId', "==", transactionId)
+  .orderBy("timeStamp")
+  .get()
+}
+
 
 /**
  * Represents a transaction.
@@ -569,6 +599,7 @@ async function getTransactionHistory(account) {
  * @property {string?} approvedTime - The time that the user approved the transaction
  * @property {string} createdBy - The user who created the transaction.
  * @property {string} date - The date that the user created the transaction.
+ * @property {string} timeStamp - The time that transaction was created/edited/deleted/reimbursed
  * @property {boolean?} editable - if the transaction can be edited
  * @property {string?} editTime - the time that the transaction was edited
  * @property {string?} editedBy - the user who edited the transaction.

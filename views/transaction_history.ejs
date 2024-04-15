@@ -15,19 +15,20 @@
                     { field: 'recipient' },
                     { field: 'supplier' },
                     { field: 'createdBy' },
-                    { field: 'date'},
-                    {headerName: 'Account', 
+                    { field: 'date' },
+                    { field: 'timeStamp' },
+                    { headerName: 'Account', 
                         valueGetter: function (params) {
                             return account 
                         },
                     },
                     { field: 'editedBy' },
-                    {field: 'editTime'},
+                    { field: 'editTime'},
                     { field: 'reimbursedBy' },
-                    {field : 'reimbursedTime'},
-                    {field : 'deletedBy'},
-                    {field : 'deletedTime'},
-                    {field : 'deleteReason'}
+                    { field: 'reimbursedTime'},
+                    { field: 'deletedBy'},
+                    { field: 'deletedTime'},
+                    { field: 'deleteReason'}
                 ],
                 defaultColDef: {
                     filter: 'agTextColumnFilter',
