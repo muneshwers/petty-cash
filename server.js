@@ -118,6 +118,7 @@ app.get("/transaction/query/:id", async (req, res) => {
   for (let doc of docs) {
     transactions.push(doc.data())
   }
+  console.log(transactions)
   res.json({transactions})
 })
 

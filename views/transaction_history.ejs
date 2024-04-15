@@ -3,12 +3,30 @@
         transactionLog : [],
         grid : null,
         async init(){
+            const queryRender = function(params) {
+                const queryButton = document.createElement('button')
+                queryButton.innerHTML = '?'
+                queryButton.classList.add('query-button')
+                queryButton.addEventListener('click', function () {
+                    $dispatch('query-modal', {transaction : params.data})
+                })
+                return queryButton
+            }
             let {transactionHistory} = (await (await fetch('/transactionHistory')).json())
             let account = this.accountTextMap[this.currAccount]
             this.grid = agGrid.createGrid(this.$refs.myGrid, {
                 rowData : transactionHistory,
+                components: {queryRender},
                 domLayout: 'autoHeight',
                 columnDefs : [
+                    {
+                        field : 'Query',
+                        headerName : 'Query',
+                        cellRenderer: 'queryRender',
+                        maxWidth: 85,
+                        suppressMenu: true,
+                        cellStyle: { textAlign: 'center' }
+                    },
                     { field: 'transactionId', headerName : 'Voucher Number'},
                     { field: 'description'},
                     { field: 'amount' },
@@ -67,5 +85,63 @@
             </div>
         </div>
         <div x-ref="myGrid" class="table ag-theme-quartz ag-center-cols-viewport" style="width: auto"></div>
+        <div id="query-modal"
+        x-data="{
+            queryGrid : null,
+            openQueryModal : false,
+            loading : true,
+            data : [],
+            queryTransactionHistory(transaction) {
+                this.loading = true
+                fetch('/transaction/query/'+transaction.transactionId).
+                then((transactionsJson) => transactionsJson.json()).
+                then((transactionsObj) => {
+                    let {transactions} = transactionsObj
+                    this.data = transactions
+                    this.queryGrid = agGrid.createGrid(this.$refs.queryGrid, {
+                        rowData : this.data,
+                        columnDefs : [
+                            { field: 'transactionId', headerName : 'Voucher Number'},
+                            { field: 'description'},
+                            { field: 'amount' },
+                            { field: 'recipient' },
+                            { field: 'supplier' },
+                            { field: 'createdBy' },
+                            { field: 'date' },
+                            { field: 'timeStamp' },
+                            { field: 'editedBy' },
+                            { field: 'editTime'},
+                            { field: 'reimbursedBy' },
+                            { field: 'reimbursedTime'},
+                            { field: 'deletedBy'},
+                            { field: 'deletedTime'},
+                            { field: 'deleteReason'}
+                        ],
+                        defaultColDef: {
+                            filter: 'agTextColumnFilter',
+                            floatingFilter: true,
+                        },
+                    })
+                    this.loading = false
+               })
+            },
+        }"
+        @query-modal.window="
+        openQueryModal = true
+        queryTransactionHistory($event.detail.transaction)
+        "
+        >
+         <div x-show="openQueryModal" class="overlay" >
+            <div class="modal" @click.outside="openQueryModal = false">
+                <button class="close-button" @click="openQueryModal = false">&times;</button>
+                <h2>View Transaction History</h2>
+                <div x-show="loading">
+                    <span>Loading...</span>
+                </div>
+                <div x-show="!loading" x-ref="queryGrid" class="table ag-theme-quartz ag-center-cols-viewport" style="width: auto">
+                </div>
+            </div>
+         </div>
+        </div>
     </div>
 </main>
