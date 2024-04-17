@@ -316,6 +316,7 @@ app.post("/transaction/reimburse", async (req,res)=>{
   Promise.all(deleteTransactions(toBeReimbursed, account))
   .then(() => res.render("reimburse"))
   .then(() => sendReimbursementsMadeWithTimeout(account))
+  .then(() => sendReimbursementsToAdaptorServer(toBeReimbursed))
 })
 
 
@@ -567,6 +568,22 @@ async function getTransactionsHistory(account) {
     console.error("Error reading transaction history:", error);
     return []
   }
+}
+
+/**
+ * 
+ * @param {Array<Transaction>} reimbursements 
+ */
+function sendReimbursementsToAdaptorServer(reimbursements) {
+  fetch("https://adaptor-server-csi5xpfnxa-rj.a.run.app/pettycash/reimbursements", {
+      method : "POST",
+      headers : {
+          "Content-Type" : "application/json"
+      },
+      body : JSON.stringify({reimbursements})
+  }).then(
+      (response) => console.log(response)
+  )
 }
 
 /**
