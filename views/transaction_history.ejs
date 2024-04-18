@@ -4,6 +4,9 @@
         grid : null,
         async init(){
             const queryRender = function(params) {
+                if (!params.data.timeStamp){
+                    return
+                }
                 const queryButton = document.createElement('button')
                 queryButton.innerHTML = '?'
                 queryButton.classList.add('query-button')
@@ -90,16 +93,17 @@
             queryGrid : null,
             openQueryModal : false,
             loading : true,
-            data : [],
-            queryTransactionHistory(transaction) {
+            async queryTransactionHistory(transaction) {
                 this.loading = true
-                fetch('/transaction/query/'+transaction.transactionId).
-                then((transactionsJson) => transactionsJson.json()).
-                then((transactionsObj) => {
-                    let {transactions} = transactionsObj
-                    this.data = transactions
+                let {transactions} = await (await fetch('/transaction/query/'+transaction.transactionId)).json()
+                    if (this.queryGrid) {
+                        this.queryGrid.setRowData(transactions)
+                        this.queryGrid.refreshCells()
+                        this.loading = false
+                        return
+                    }
                     this.queryGrid = agGrid.createGrid(this.$refs.queryGrid, {
-                        rowData : this.data,
+                        rowData : transactions,
                         columnDefs : [
                             { field: 'transactionId', headerName : 'Voucher Number'},
                             { field: 'description'},
@@ -123,7 +127,6 @@
                         },
                     })
                     this.loading = false
-               })
             },
         }"
         @query-modal.window="
