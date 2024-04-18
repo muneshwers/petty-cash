@@ -118,7 +118,6 @@ app.get("/transaction/query/:id", async (req, res) => {
   for (let doc of docs) {
     transactions.push(doc.data())
   }
-  console.log(transactions)
   res.json({transactions})
 })
 
@@ -557,6 +556,7 @@ async function getTransactionsHistory(account) {
     .collection(database)
     .doc(account)
     .collection('History')
+    .orderBy("transactionId", 'desc')
     .get())
     /** @type {Array<Transaction>}*/
     let transactions = []
@@ -575,7 +575,8 @@ async function getTransactionsHistory(account) {
  * @param {Array<Transaction>} reimbursements 
  */
 function sendReimbursementsToAdaptorServer(reimbursements) {
-  fetch("https://adaptor-server-csi5xpfnxa-rj.a.run.app/pettycash/reimbursements", {
+  let {adaptorServerUrl} = config
+  fetch(adaptorServerUrl, {
       method : "POST",
       headers : {
           "Content-Type" : "application/json"

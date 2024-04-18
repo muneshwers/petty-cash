@@ -4,12 +4,14 @@ const config = {
     development : {
         mode : 'development',
         database : 'Mock',
-        emailsOn : false
+        emailsOn : false,
+        adaptorServerUrl :  "https://adaptor-server-csi5xpfnxa-rj.a.run.app/pettycash/test/reimbursements"
     },
     production : {
         mode : 'production',
         database :'Database',
-        emailsOn : true
+        emailsOn : true,
+        adaptorServerUrl : "https://adaptor-server-csi5xpfnxa-rj.a.run.app/pettycash/reimbursements"
     }
 }
 const environment= process.env.NODE_ENV || 'production'
