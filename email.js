@@ -35,12 +35,9 @@ const approvalMadeEmailTemplate = (account) => ({
 
 const reimbursementsMadeEmailTemplate = (account) => ({
     from: '"Petty Cash Bot" <programmers.muneshwers@gmail.com>',
-    to: 'procurement.coor@muneshwers.com, \
-    procurement.clerk@muneshwers.com, \
-    procurement.clerk2@muneshwers.com, \
-    procurement.supv@muneshwers.com',
+    to: 'mngt.acct@muneshwers.com',
     subject: `Petty Cash (${account}) - Transactions Reimbursed!`,
-    text: `Transactions have been reimburse for (${account})! Log in to Quickbooks view transactions.`,
+    text: `Transactions have been reimbursed for (${account})! Log in to Quickbooks view transactions.`,
     html: `<b>Transactions have been reimbursed for (${account}).</b>`,
 })
 
