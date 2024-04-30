@@ -2,9 +2,20 @@
     <div x-data="{
         grid : null,
         transactions: [],
-        openDeleteModal : false,
         async init() {
             let alpineObj = this
+            const queryRender = function(params) {
+                if (!params.data.timeStamp) {
+                    return
+                }
+                const queryButton = document.createElement('button')
+                queryButton.innerHTML = '?'
+                queryButton.classList.add('query-button')
+                queryButton.addEventListener('click', function () {
+                    $dispatch('query-modal', {transaction : params.data})
+                })
+                return queryButton
+            }
             const approveRenderer = function(params) {
                 let flexbox = document.createElement('div')
                 flexbox.classList.add('flex-container')
@@ -41,19 +52,26 @@
             }
             let {transactions} = (await (await fetch('/transactions')).json())
             this.transactions = transactions.filter((transaction) => !transaction.approved)
-            console.log(transactions)
             this.grid = agGrid.createGrid(this.$refs.grid, {
                 rowData : this.transactions,
                 domLayout: 'autoHeight',
-                components: {approveRenderer},
+                components: {approveRenderer, queryRender},
                 columnDefs : [
                     {
-                    field: 'Actions',
-                    headerName: 'Actions',
-                    cellRenderer: 'approveRenderer',
-                    minWidth: 150,
-                    suppressMenu: true,
-                    cellStyle: { textAlign: 'center' }
+                        field : 'Query',
+                        headerName : 'Query',
+                        cellRenderer: 'queryRender',
+                        maxWidth: 100,
+                        suppressMenu: true,
+                        cellStyle: { textAlign: 'center' }
+                    },
+                    {
+                        field: 'Actions',
+                        headerName: 'Actions',
+                        cellRenderer: 'approveRenderer',
+                        minWidth: 150,
+                        suppressMenu: true,
+                        cellStyle: { textAlign: 'center' }
                     },
                     { field: 'transactionId', headerName : 'Voucher Number'},
                     { field: 'description'},
@@ -62,6 +80,7 @@
                     { field: 'supplier' },
                     { field: 'createdBy' },
                     { field: 'date'},
+                    { field: 'timeStamp' }
                     
                 ],
                 defaultColDef: {
@@ -94,7 +113,6 @@
             },
             init() {
                 htmx.on('#delete_button', 'click', (event) => {
-                    console.log(this.inputsDelete)
                     this.openDeleteModal =false
                     this.swapMain()
                     setTimeout(() => {
@@ -110,8 +128,8 @@
         @delete-modal.window="
             openDeleteModal = true;
             inputsDelete.transaction = $event.detail.transaction
+            inputsDelete.reason = ''
             url = $event.detail.url
-            reason = ''
         "
         >
             <div x-show="openDeleteModal" class="overlay">
@@ -161,6 +179,65 @@
                     </form>
                 </div>
             </div>
+        </div>
+        <div id="query-modal"
+        x-data="{
+            queryGrid : null,
+            openQueryModal : false,
+            loading : true,
+            async queryTransactionHistory(transaction) {
+                this.loading = true
+                let {transactions} = await (await fetch('/transaction/query/'+transaction.transactionId)).json()
+                transactions.push(transaction)
+                    if (this.queryGrid) {
+                        this.queryGrid.setRowData(transactions)
+                        this.queryGrid.refreshCells()
+                        this.loading = false
+                        return
+                    }
+                    this.queryGrid = agGrid.createGrid(this.$refs.queryGrid, {
+                        rowData : transactions,
+                        columnDefs : [
+                            { field: 'transactionId', headerName : 'Voucher Number'},
+                            { field: 'description'},
+                            { field: 'amount' },
+                            { field: 'recipient' },
+                            { field: 'supplier' },
+                            { field: 'createdBy' },
+                            { field: 'date' },
+                            { field: 'timeStamp' },
+                            { field: 'editedBy' },
+                            { field: 'editTime'},
+                            { field: 'reimbursedBy' },
+                            { field: 'reimbursedTime'},
+                            { field: 'deletedBy'},
+                            { field: 'deletedTime'},
+                            { field: 'deleteReason'}
+                        ],
+                        defaultColDef: {
+                            filter: 'agTextColumnFilter',
+                            floatingFilter: true,
+                        },
+                    })
+                    this.loading = false
+            },
+        }"
+        @query-modal.window="
+        openQueryModal = true
+        queryTransactionHistory($event.detail.transaction)
+        "
+        >
+         <div x-show="openQueryModal" class="overlay" >
+            <div class="modal" @click.outside="openQueryModal = false">
+                <button class="close-button" @click="openQueryModal = false">&times;</button>
+                <h2>View Transaction History</h2>
+                <div x-show="loading">
+                    <span>Loading...</span>
+                </div>
+                <div x-show="!loading" x-ref="queryGrid" class="table ag-theme-quartz ag-center-cols-viewport" style="width: auto">
+                </div>
+            </div>
+         </div>
         </div>
     </div>
 </main>

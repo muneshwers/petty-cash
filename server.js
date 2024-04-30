@@ -1,21 +1,30 @@
 import express from "express";
-import expressSession, { Session } from "express-session";
+import "dotenv/config"
+import expressSession from "express-session";
 import bodyParser from "body-parser";
-import admin from "firebase-admin"
+import { initializeApp, cert } from "firebase-admin/app"
+import { getFirestore } from "firebase-admin/firestore"
+import { getStorage } from "firebase-admin/storage"
 import serviceAccount from "./serviceAccountKey.json" assert {type : "json"}
 import { 
   sendApprovalMadeEmailWithTimeout, 
   sendNearingLimitEmailWithTimout,
-  sendtransactionMadeEmailWithTimeout,
+  sendTransactionForApprovalEmailWithTimeout,
   sendReimbursementsMadeWithTimeout,
+  sendTransactionDeletedEmail
 } from "./email.js";
+import config from "./config.js"
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-admin.initializeApp({
-  credential : admin.credential.cert(serviceAccount)
+const firebaseApp = initializeApp({
+  credential : cert(serviceAccount),
+  storageBucket : "projectservers.appspot.com",
 })
+
+const firestore = getFirestore(firebaseApp)
+const storage = getStorage(firebaseApp)
 
 const checkLoggedIn = (req, res, next) => {
   const unprotectedUrl = [
@@ -54,8 +63,8 @@ app.get("/", (req, res) => {
 })
 
 app.get("/home", (req, res) => {
-  let {role} = req.session
-  res.render("home", {role})
+  let {role, account} = req.session
+  res.render("home", {role, account})
 })
 
 app.get("/login", (req, res) => {
@@ -88,7 +97,7 @@ app.post("/login/user", async (req, res) => {
   req.session.account = 'muneshwers';
   req.session.role = role
   req.session.saved = {}
-  res.render("home", {role})
+  res.render("home", {role, account : req.session.account})
   return
   
 })
@@ -103,18 +112,29 @@ app.get("/balance", async (req, res) => {
 })
 
 app.get("/transactions", async (req, res) => {
-  let transactions = await getTransactions(req.session)
+  let transactions = await getTransactions(req.session.account)
+  res.json({transactions})
+})
+
+app.get("/transaction/query/:id", async (req, res) => {
+  let id = Number(req.params.id)
+  let {account} = req.session
+  let docs = (await queryTransaction(account, id)).docs
+  let transactions = []
+  for (let doc of docs) {
+    transactions.push(doc.data())
+  }
   res.json({transactions})
 })
 
 app.get("/transactionId", async (req, res) => {
-  let transactionId = await getCurrentTransactionId(req.session) 
+  let transactionId = await getCurrentTransactionId(req.session.account)
   res.json({transactionId})
 })
 
 app.get("/transactionHistory", async (req, res) => {
   let {account} = req.session
-  let transactionHistory = await getTransactionHistory(account)
+  let transactionHistory = await getTransactionsHistory(account)
   res.json({transactionHistory})
 })
 
@@ -155,7 +175,7 @@ app.post("/transaction", async (req ,res) => {
     editable : true,
     deleteable : true,
   }
-  let currentId = await getCurrentTransactionId(req.session) 
+  let currentId = await getCurrentTransactionId(account) 
   currentId = Number(currentId)
   if (currentId > transactionId) {
     transactionId = currentId
@@ -165,12 +185,11 @@ app.post("/transaction", async (req ,res) => {
     transaction['approved'] = true
     transaction['approvedBy'] = 'System'
     applyTimeStamp([transaction], 'approvedTime')
-
   }
   if (amount >= transactionApprovalLimit) {
-    sendtransactionMadeEmailWithTimeout(account)
+    sendTransactionForApprovalEmailWithTimeout(account)
   }
-
+  applyTimeStamp([transaction], "timeStamp")
   updateTransactions([transaction], account);
   
   let balance = await getCurrentBalance(account)
@@ -230,16 +249,16 @@ app.post("/transaction/edit", async (req, res) => {
       transaction["approved"] = true
       transaction["approvedBy"] = 'System'
       applyTimeStamp([transaction], "approvedTime")
-      sendtransactionMadeEmailWithTimeout(req.session.account)
     }
     if (amount >= transactionApprovalLimit) {
       transaction["approved"] = false
       transaction["approvedBy"] = ''
       transaction["approvedTime"] = ''
+      sendTransactionForApprovalEmailWithTimeout(req.session.account)
     }
 
   }
-
+  applyTimeStamp([originalTransaction], "timeStamp")
   Object.assign(originalTransaction, transaction)
   Promise.all(updateTransactions([originalTransaction], req.session.account))
   .then(()=> res.render("reimburse"))
@@ -249,10 +268,11 @@ app.post("/transaction/delete", (req, res) => {
   /** @type {{transaction: Transaction, reason : string}} */
   let {transaction, reason} = req.body
   transaction = JSON.parse(transaction)
-  /** @type {string} */
+  /** @type {{account:string, role:string}} */
   let {account, role} = req.session
 
   applyTimeStamp([transaction], "deletedTime")
+  applyTimeStamp([transaction], "timeStamp")
   transaction.deletedBy = req.session.username
   transaction.deleteReason = reason
 
@@ -269,6 +289,7 @@ app.post("/transaction/delete", (req, res) => {
   })
 
   addToTransactionHistory([transaction], account)
+  .then(() => sendTransactionDeletedEmail(account))
 
   getCurrentBalance(account)
   .then((balance) => balance + transaction.amount)
@@ -277,7 +298,6 @@ app.post("/transaction/delete", (req, res) => {
 })
 
 
-//Takes reimbursed total from table and adds to current balance
 app.post("/transaction/reimburse", async (req,res)=>{
 
   /** @type {{reimbursedTotal:number, toBeReimbursed: Array<Transaction>}} */
@@ -291,6 +311,7 @@ app.post("/transaction/reimburse", async (req,res)=>{
   updateBalance(balance, account)
 
   applyTimeStamp(toBeReimbursed, "reimbursedTime")
+  applyTimeStamp(toBeReimbursed, "timeStamp")
   for (let transaction of toBeReimbursed) {
     transaction['reimbursedBy'] = req.session.username;
   }
@@ -300,13 +321,14 @@ app.post("/transaction/reimburse", async (req,res)=>{
   Promise.all(deleteTransactions(toBeReimbursed, account))
   .then(() => res.render("reimburse"))
   .then(() => sendReimbursementsMadeWithTimeout(account))
+  .then(() => sendReimbursementsToAdaptorServer(toBeReimbursed))
 })
 
 
 
 app.post("/account", (req, res) => {
   const {account} = req.body;
-  req.session.account = account.toLowerCase()
+  req.session.account = account
   if (req.session.role === 'approver'){
     res.render("approve")
     return
@@ -334,8 +356,7 @@ app.post("/approve", (req, res) => {
     editable: false,
   }
   applyTimeStamp([transactionUpdate], "approvedTime")
-  admin
-  .firestore()
+  firestore
   .collection(database)
   .doc(account)
   .collection('Transactions')
@@ -349,9 +370,8 @@ app.listen(PORT, () => {
   console.log(`App is running on port ${PORT}`);
 });
 
-
 const transactionApprovalLimit = 10000
-const database = 'Mock'
+const {database} = config
 
 /**
  * 
@@ -359,8 +379,7 @@ const database = 'Mock'
  * @returns 
  */
 async function getUsers(user) {
-  return (await admin
-    .firestore()
+  return (await firestore
     .collection(database)
     .doc('Users')
     .collection('users')
@@ -373,7 +392,7 @@ async function getUsers(user) {
  * @returns {Promise<number>}
  */
 async function getCurrentBalance(account) {
-  const {balance} = (await admin.firestore()
+  const {balance} = (await firestore
   .collection(database)
   .doc(account)
   .get()).data()
@@ -381,9 +400,13 @@ async function getCurrentBalance(account) {
 
 }
 
-async function getCurrentTransactionId(session) {
-  let {account} = session
-  let {transactionId} = (await (admin.firestore()
+/**
+ * 
+ * @param {string} account
+ * @returns 
+ */
+async function getCurrentTransactionId(account) {
+  let {transactionId} = (await (firestore
   .collection(database)
   .doc(account)
   .get())).data()
@@ -393,13 +416,12 @@ async function getCurrentTransactionId(session) {
 
 /**
  * 
- * @param {Session} session 
+ * @param {string} account 
  * @returns {Promise<Array<Transaction>>}
  */
-async function getTransactions(session) {
-  let {account} = session
+async function getTransactions(account) {
   try {
-    const snapshots = (await admin.firestore()
+    const snapshots = (await firestore
     .collection(database)
     .doc(account)
     .collection('Transactions')
@@ -425,8 +447,7 @@ async function getTransactions(session) {
  * @returns {Promise<Transaction>}
  */
 async function getTransaction(transactionId, account) {
-  return (await admin
-    .firestore()
+  return (await firestore
     .collection(database)
     .doc(account)
     .collection('Transactions')
@@ -436,7 +457,7 @@ async function getTransaction(transactionId, account) {
 }
 
 async function updateBalance(balance, account) {
-  return admin.firestore()
+  return firestore
   .collection(database)
   .doc(account)
   .update({balance})
@@ -450,8 +471,7 @@ async function updateBalance(balance, account) {
  */
 function updateTransactions(transactions, account) {
   return transactions.map(
-    (transaction) => admin
-    .firestore()
+    (transaction) => firestore
     .collection(database)
     .doc(account)
     .collection('Transactions')
@@ -468,8 +488,7 @@ function updateTransactions(transactions, account) {
  */
 function deleteTransactions(transactions, account) {
   return transactions.map(
-    (transaction) => admin
-      .firestore()
+    (transaction) => firestore
       .collection(database)
       .doc(account)
       .collection('Transactions')
@@ -485,8 +504,7 @@ function deleteTransactions(transactions, account) {
  * @returns {Promise}
  */
 function deleteTransaction(transaction, account) {
-  return admin
-  .firestore()
+  return firestore
   .collection(database)
   .doc(account)
   .collection('Transactions')
@@ -496,7 +514,7 @@ function deleteTransaction(transaction, account) {
 
 
 async function updateTransactionId(transactionId, account) {
-  return admin.firestore()
+  return firestore
   .collection(database)
   .doc(account)
   .update({transactionId})
@@ -509,7 +527,7 @@ async function updateTransactionId(transactionId, account) {
  * @returns {Array<Promise>}
  */
 async function addToTransactionHistory(transactions, account) {
-  return transactions.map(transaction => admin.firestore()
+  return transactions.map(transaction => firestore
     .collection(database)
     .doc(account)
     .collection('History')
@@ -532,12 +550,13 @@ function applyTimeStamp(transactions, purpose) {
 }
 
 
-async function getTransactionHistory(account) {
+async function getTransactionsHistory(account) {
   try {
-    const snapshots = (await admin.firestore()
+    const snapshots = (await firestore
     .collection(database)
     .doc(account)
     .collection('History')
+    .orderBy("transactionId", 'desc')
     .get())
     /** @type {Array<Transaction>}*/
     let transactions = []
@@ -549,6 +568,38 @@ async function getTransactionHistory(account) {
     console.error("Error reading transaction history:", error);
     return []
   }
+}
+
+/**
+ * 
+ * @param {Array<Transaction>} reimbursements 
+ */
+function sendReimbursementsToAdaptorServer(reimbursements) {
+  let {adaptorServerUrl} = config
+  fetch(adaptorServerUrl, {
+      method : "POST",
+      headers : {
+          "Content-Type" : "application/json"
+      },
+      body : JSON.stringify({reimbursements})
+  }).then(
+      (response) => console.log(response)
+  )
+}
+
+/**
+ * 
+ * @param {string} account 
+ * @param {number} transactionId 
+ */
+async function queryTransaction(account, transactionId) {
+  return firestore
+  .collection(database)
+  .doc(account)
+  .collection('History')
+  .where('transactionId', "==", transactionId)
+  .orderBy("timeStamp")
+  .get()
 }
 
 
@@ -566,6 +617,7 @@ async function getTransactionHistory(account) {
  * @property {string?} approvedTime - The time that the user approved the transaction
  * @property {string} createdBy - The user who created the transaction.
  * @property {string} date - The date that the user created the transaction.
+ * @property {string} timeStamp - The time that transaction was created/edited/deleted/reimbursed
  * @property {boolean?} editable - if the transaction can be edited
  * @property {string?} editTime - the time that the transaction was edited
  * @property {string?} editedBy - the user who edited the transaction.
