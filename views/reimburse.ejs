@@ -29,6 +29,14 @@
                     })
                     flexbox.appendChild(deleteButton)
                 }
+                const uploadButton = document.createElement('button')
+                uploadButton.innerHTML = 'Receipt'
+                uploadButton.classList.add('edit-button')
+                uploadButton.addEventListener('click', function() {
+                    $dispatch('upload-modal', {transaction : params.data, url : '/transaction/delete'})
+                })
+                flexbox.appendChild(uploadButton)
+                
                 return flexbox;
             }
             const queryRender = function(params) {
@@ -632,5 +640,48 @@
             </div>
          </div>
         </div>
+        <div id="upload-modal"
+        x-data="{
+            openUploadModal: false,
+            uploadProgress: 0,
+            uploadFile: null,
+            uploadErrorMessage: '',
+            async uploadFileHandler() {
+                try {
+                    const formData = new FormData();
+                    formData.append('file', this.uploadFile);
+    
+                    const response = await fetch('/upload', {
+                        method: 'POST',
+                        body: formData,
+                    });
+                    if (response.ok) {
+                        console.log('File uploaded successfully');
+                        this.uploadProgress = 0;
+                        this.uploadFile = null;
+                        this.uploadErrorMessage = '';
+                        this.openUploadModal = false;
+                    } else {
+                        console.error('Upload failed:', response.statusText);
+                        this.uploadErrorMessage = 'Upload failed. Please try again.';
+                    }
+                } catch (error) {
+                    console.error('Upload failed:', error);
+                    this.uploadErrorMessage = 'Upload failed. Please try again.';
+                }
+            }
+        }"
+        @upload-modal.window="openUploadModal = true"
+    >
+        <div x-show="openUploadModal" class="overlay">
+            <div class="modal" @click.outside="openUploadModal = false">
+                <button class="close-button" @click="openUploadModal = false">&times;</button>
+                <h2>Upload File</h2>
+                <input type="file" @change="uploadFile = $event.target.files[0]">
+                <div x-show="uploadErrorMessage" class="error-message">{{ uploadErrorMessage }}</div>
+                <button @click="uploadFileHandler()">Upload</button>
+            </div>
+        </div>
+    </div>    
     </div>
 </main>

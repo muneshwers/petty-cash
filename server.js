@@ -2,7 +2,10 @@ import express from "express";
 import "dotenv/config"
 import expressSession from "express-session";
 import bodyParser from "body-parser";
-import admin from "firebase-admin"
+import multer from "multer";
+import { initializeApp, cert } from "firebase-admin/app"
+import { getFirestore } from "firebase-admin/firestore"
+import { getStorage } from "firebase-admin/storage"
 import serviceAccount from "./serviceAccountKey.json" assert {type : "json"}
 import { 
   sendApprovalMadeEmailWithTimeout, 
@@ -16,9 +19,40 @@ import config from "./config.js"
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-admin.initializeApp({
-  credential : admin.credential.cert(serviceAccount)
+const firebaseApp = initializeApp({
+  credential : cert(serviceAccount),
+  storageBucket : "projectservers.appspot.com",
 })
+
+const firestore = getFirestore(firebaseApp)
+const storage = getStorage(firebaseApp)
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024,
+  },
+});
+
+app.post('/upload', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).send('No files were uploaded.');
+    }
+
+    const file = req.file;
+
+    const fileUploadResult = await storage.bucket().upload('./static/images/' + file.originalname,
+    );
+
+    console.log('File uploaded successfully:', fileUploadResult);
+
+    return res.sendStatus(200);
+  } catch (error) {
+    console.error('Upload failed:', error);
+    return res.status(500).send('Upload failed. Please try again.');
+  }
+});
 
 const checkLoggedIn = (req, res, next) => {
   const unprotectedUrl = [
@@ -350,8 +384,7 @@ app.post("/approve", (req, res) => {
     editable: false,
   }
   applyTimeStamp([transactionUpdate], "approvedTime")
-  admin
-  .firestore()
+  firestore
   .collection(database)
   .doc(account)
   .collection('Transactions')
@@ -374,8 +407,7 @@ const {database} = config
  * @returns 
  */
 async function getUsers(user) {
-  return (await admin
-    .firestore()
+  return (await firestore
     .collection(database)
     .doc('Users')
     .collection('users')
@@ -388,7 +420,7 @@ async function getUsers(user) {
  * @returns {Promise<number>}
  */
 async function getCurrentBalance(account) {
-  const {balance} = (await admin.firestore()
+  const {balance} = (await firestore
   .collection(database)
   .doc(account)
   .get()).data()
@@ -402,7 +434,7 @@ async function getCurrentBalance(account) {
  * @returns 
  */
 async function getCurrentTransactionId(account) {
-  let {transactionId} = (await (admin.firestore()
+  let {transactionId} = (await (firestore
   .collection(database)
   .doc(account)
   .get())).data()
@@ -417,7 +449,7 @@ async function getCurrentTransactionId(account) {
  */
 async function getTransactions(account) {
   try {
-    const snapshots = (await admin.firestore()
+    const snapshots = (await firestore
     .collection(database)
     .doc(account)
     .collection('Transactions')
@@ -443,8 +475,7 @@ async function getTransactions(account) {
  * @returns {Promise<Transaction>}
  */
 async function getTransaction(transactionId, account) {
-  return (await admin
-    .firestore()
+  return (await firestore
     .collection(database)
     .doc(account)
     .collection('Transactions')
@@ -454,7 +485,7 @@ async function getTransaction(transactionId, account) {
 }
 
 async function updateBalance(balance, account) {
-  return admin.firestore()
+  return firestore
   .collection(database)
   .doc(account)
   .update({balance})
@@ -468,8 +499,7 @@ async function updateBalance(balance, account) {
  */
 function updateTransactions(transactions, account) {
   return transactions.map(
-    (transaction) => admin
-    .firestore()
+    (transaction) => firestore
     .collection(database)
     .doc(account)
     .collection('Transactions')
@@ -486,8 +516,7 @@ function updateTransactions(transactions, account) {
  */
 function deleteTransactions(transactions, account) {
   return transactions.map(
-    (transaction) => admin
-      .firestore()
+    (transaction) => firestore
       .collection(database)
       .doc(account)
       .collection('Transactions')
@@ -503,8 +532,7 @@ function deleteTransactions(transactions, account) {
  * @returns {Promise}
  */
 function deleteTransaction(transaction, account) {
-  return admin
-  .firestore()
+  return firestore
   .collection(database)
   .doc(account)
   .collection('Transactions')
@@ -514,7 +542,7 @@ function deleteTransaction(transaction, account) {
 
 
 async function updateTransactionId(transactionId, account) {
-  return admin.firestore()
+  return firestore
   .collection(database)
   .doc(account)
   .update({transactionId})
@@ -527,7 +555,7 @@ async function updateTransactionId(transactionId, account) {
  * @returns {Array<Promise>}
  */
 async function addToTransactionHistory(transactions, account) {
-  return transactions.map(transaction => admin.firestore()
+  return transactions.map(transaction => firestore
     .collection(database)
     .doc(account)
     .collection('History')
@@ -552,7 +580,7 @@ function applyTimeStamp(transactions, purpose) {
 
 async function getTransactionsHistory(account) {
   try {
-    const snapshots = (await admin.firestore()
+    const snapshots = (await firestore
     .collection(database)
     .doc(account)
     .collection('History')
@@ -593,8 +621,7 @@ function sendReimbursementsToAdaptorServer(reimbursements) {
  * @param {number} transactionId 
  */
 async function queryTransaction(account, transactionId) {
-  return admin
-  .firestore()
+  return firestore
   .collection(database)
   .doc(account)
   .collection('History')
