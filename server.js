@@ -15,23 +15,29 @@ import {
   sendTransactionDeletedEmail
 } from "./email.js";
 import config from "./config.js"
+import mime from "mime-types"
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 const firebaseApp = initializeApp({
-  credential : cert(serviceAccount),
-  storageBucket : "projectservers.appspot.com",
-})
+  credential: cert(serviceAccount),
+  storageBucket: "projectservers.appspot.com",
+});
 
-const firestore = getFirestore(firebaseApp)
-const storage = getStorage(firebaseApp)
+const firestore = getFirestore(firebaseApp);
+const storage = getStorage(firebaseApp);
 
 const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: {
-    fileSize: 10 * 1024 * 1024,
-  },
+  dest: 'tmp/uploads/',
+  fileFilter: (req, file, cb) => {
+    const mimeType = mime.lookup(file.originalname);
+    if (!mimeType) {
+      cb(new Error('Invalid file type'));
+    } else {
+      cb(null, true);
+    }
+  }
 });
 
 app.post('/upload', upload.single('file'), async (req, res) => {
@@ -41,9 +47,13 @@ app.post('/upload', upload.single('file'), async (req, res) => {
     }
 
     const file = req.file;
+    const filename = file.originalname;
 
-    const fileUploadResult = await storage.bucket().upload('./static/images/' + file.originalname,
-    );
+    console.log(file);
+
+    const fileUploadResult = await storage.bucket().upload(file.path, {
+      destination: filename
+    });
 
     console.log('File uploaded successfully:', fileUploadResult);
 
@@ -53,6 +63,8 @@ app.post('/upload', upload.single('file'), async (req, res) => {
     return res.status(500).send('Upload failed. Please try again.');
   }
 });
+
+
 
 const checkLoggedIn = (req, res, next) => {
   const unprotectedUrl = [
