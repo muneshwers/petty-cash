@@ -645,6 +645,7 @@
             openUploadModal: false,
             uploadProgress: 0,
             uploadFile: null,
+            previewImage: '/static/images/noimage.png',
             uploadErrorMessage: '',
             async uploadFileHandler() {
                 try {
@@ -687,7 +688,7 @@
                     </div>
                     <div class="preview-section">
                         <div class="receipt-container">
-                            <img src="/static/images/noimage.png" alt="receipt preview" class="receipt-image">
+                            <img x-bind:src="previewImage" alt="receipt preview" class="receipt-image">
                         </div>
                     </div>
                 </div>
