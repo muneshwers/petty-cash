@@ -40,30 +40,6 @@ const upload = multer({
   }
 });
 
-app.post('/upload', upload.single('file'), async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).send('No files were uploaded.');
-    }
-
-    const file = req.file;
-    const filename = file.originalname;
-
-    console.log(file);
-
-    const fileUploadResult = await storage.bucket().upload(file.path, {
-      destination: filename
-    });
-
-    console.log('File uploaded successfully:', fileUploadResult);
-
-    return res.sendStatus(200);
-  } catch (error) {
-    console.error('Upload failed:', error);
-    return res.status(500).send('Upload failed. Please try again.');
-  }
-});
-
 
 
 const checkLoggedIn = (req, res, next) => {
@@ -406,6 +382,29 @@ app.post("/approve", (req, res) => {
   .then(() => sendApprovalMadeEmailWithTimeout(account))
 })
 
+app.post('/upload', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).send('No files were uploaded.');
+    const file = req.file;
+    const filename = file.originalname;
+    let {account} = req.session
+    let transactionId  = req.body.transactionId;
+    console.log(transactionId)
+    console.log(filename)
+    if (!transactionId) return res.status(400).send('Transaction ID is missing.');
+
+    const imageUrl = await uploadImageToStorage(file, filename);
+    console.log(imageUrl)
+    await associateImageWithTransaction(transactionId, imageUrl,account);
+
+    return res.status(200).json({ imageUrl: imageUrl });
+  } catch (error) {
+    console.error('Upload failed:', error);
+    return res.status(500).send('Upload failed. Please try again.');
+  }
+});
+
+
 app.listen(PORT, () => {
   console.log(`App is running on port ${PORT}`);
 });
@@ -640,6 +639,21 @@ async function queryTransaction(account, transactionId) {
   .where('transactionId', "==", transactionId)
   .orderBy("timeStamp")
   .get()
+}
+
+async function uploadImageToStorage(file, filename) {
+  const bucket = storage.bucket();
+  await bucket.upload(file.path, { destination: filename });
+  const [url] = await bucket.file(filename).getSignedUrl({ action: 'read', expires: '01-01-3000' });
+  return url;
+}
+
+async function mapImageWithTransaction(transactionId, imageUrl,account) {
+  try {
+    await firestore.collection(database).doc(account).collection('Transactions').doc(transactionId).update({ imageUrl: imageUrl });
+  } catch (error) {
+    console.error("Error associating image with transaction:", error);
+  }
 }
 
 
