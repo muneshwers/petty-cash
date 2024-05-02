@@ -677,9 +677,21 @@
             <div class="modal" @click.outside="openUploadModal = false">
                 <button class="close-button" @click="openUploadModal = false">&times;</button>
                 <h2>Upload File</h2>
-                <input type="file" @change="uploadFile = $event.target.files[0]">
-                <div x-show="uploadErrorMessage" class="error-message">{{ uploadErrorMessage }}</div>
-                <button @click="uploadFileHandler()">Upload</button>
+                <div class="upload-body">
+                    <div class="upload-section">
+                        <div class="upload-input-container">
+                            <input type="file" @change="uploadFile = $event.target.files[0]">
+                            <button class="submit-button upload-button" @click="uploadFileHandler()">Upload</button>
+                        </div>
+                        <div x-show="uploadErrorMessage" class="error-message" x-text="uploadErrorMessage"></div>
+                    </div>
+                    <div class="preview-section">
+                        <div class="receipt-container">
+                            <img src="/static/images/noimage.png" alt="receipt preview" class="receipt-image">
+                        </div>
+                    </div>
+                </div>
+                
             </div>
         </div>
     </div>    
