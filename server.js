@@ -389,13 +389,10 @@ app.post('/upload', upload.single('file'), async (req, res) => {
     const filename = file.originalname;
     let {account} = req.session
     let transactionId  = req.body.transactionId;
-    console.log(transactionId)
-    console.log(filename)
     if (!transactionId) return res.status(400).send('Transaction ID is missing.');
 
     const imageUrl = await uploadImageToStorage(file, filename);
-    console.log(imageUrl)
-    await associateImageWithTransaction(transactionId, imageUrl,account);
+    await mapImageWithTransaction(transactionId, imageUrl,account);
 
     return res.status(200).json({ imageUrl: imageUrl });
   } catch (error) {

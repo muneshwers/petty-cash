@@ -74,6 +74,7 @@
                     { field: 'createdBy' },
                     { field: 'date'},
                     { field: 'timeStamp' },
+                    { field: 'imageUrl'},
                     { 
                         field: 'Actions',
                         headerName: 'Actions',
@@ -645,12 +646,14 @@
             openUploadModal: false,
             uploadProgress: 0,
             uploadFile: null,
+            transactionData: '',
             previewImage: '/static/images/noimage.png',
             uploadErrorMessage: '',
             async uploadFileHandler() {
                 try {
                     const formData = new FormData();
                     formData.append('file', this.uploadFile);
+                    formData.append('transactionId', this.transactionData.transactionId);
     
                     const response = await fetch('/upload', {
                         method: 'POST',
@@ -672,7 +675,11 @@
                 }
             }
         }"
-        @upload-modal.window="openUploadModal = true"
+        @upload-modal.window="
+            openUploadModal = true;
+            transactionData = $event.detail.transaction;
+            previewImage = $event.detail.transaction.imageUrl;
+        "
     >
         <div x-show="openUploadModal" class="overlay">
             <div class="modal" @click.outside="openUploadModal = false">
