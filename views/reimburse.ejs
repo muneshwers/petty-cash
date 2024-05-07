@@ -688,7 +688,7 @@
                 <div class="upload-body">
                     <div class="upload-section">
                         <div class="upload-input-container">
-                            <input type="file" @change="uploadFile = $event.target.files[0]" accept="image/png, image/gif, image/jpeg">
+                            <input type="file" @change="uploadFile = $event.target.files[0]; uploadErrorMessage='' " accept="image/png, image/gif, image/jpeg">
                             <button class="submit-button upload-button" @click="uploadFileHandler()">Upload</button>
                         </div>
                         <div x-show="uploadErrorMessage" class="error-message" x-text="uploadErrorMessage"></div>
