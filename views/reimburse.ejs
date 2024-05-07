@@ -647,6 +647,7 @@
             uploadProgress: 0,
             uploadFile: null,
             transactionData: '',
+            buttonToggle: false,
             previewImage: '/static/images/noimage.png',
             uploadErrorMessage: '',
             async uploadFileHandler() {
@@ -673,7 +674,12 @@
                     console.error('Upload failed:', error);
                     this.uploadErrorMessage = 'Upload failed. Please try again.';
                 }
+            },
+            updateFileName(event) {
+                const fileName = event.target.files[0].name;
+                document.getElementById('file-name').textContent = fileName;
             }
+
         }"
         @upload-modal.window="
             openUploadModal = true;
@@ -688,8 +694,14 @@
                 <div class="upload-body">
                     <div class="upload-section">
                         <div class="upload-input-container">
-                            <input type="file" @change="uploadFile = $event.target.files[0]; uploadErrorMessage='' " accept="image/png, image/gif, image/jpeg">
-                            <button class="submit-button upload-button" @click="uploadFileHandler()">Upload</button>
+                            <div class="file-input">
+                                <label for="file-upload" class="file-input-btn">Choose File</label>
+                                <input id="file-upload" type="file"
+                                    @change="uploadFile = $event.target.files[0]; uploadErrorMessage=''; buttonToggle=true; updateFileName(event);"
+                                    accept="image/png, image/gif, image/jpeg">
+                                <span class="file-input-label" id="file-name"></span>
+                            </div>
+                            <button x-show="buttonToggle" class="submit-button upload-button" @click="uploadFileHandler()">Upload</button>
                         </div>
                         <div x-show="uploadErrorMessage" class="error-message" x-text="uploadErrorMessage"></div>
                     </div>
