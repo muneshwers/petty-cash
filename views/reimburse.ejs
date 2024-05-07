@@ -678,7 +678,7 @@
         @upload-modal.window="
             openUploadModal = true;
             transactionData = $event.detail.transaction;
-            previewImage = $event.detail.transaction.imageUrl;
+            previewImage = $event.detail.transaction.imageUrl || previewImage;
         "
     >
         <div x-show="openUploadModal" class="overlay">
