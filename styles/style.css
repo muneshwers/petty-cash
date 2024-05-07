@@ -532,7 +532,7 @@ button {
 }
 
 .receipt-container {
-    border: 1px black solid;
+    border: 1px rgba(182, 182, 182, 0.445) solid;
     height: 90%;
     width: 60%;
     object-fit: contain;
