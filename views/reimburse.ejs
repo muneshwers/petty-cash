@@ -84,7 +84,7 @@
                     checkboxSelection: function (params) {
                         return params.data.approved
                         },
-                    suppressSorting : true,
+                    sortable: false,
                     headerCheckboxSelection: true,
                     headerName : 'Voucher Number'},
                     { field: 'description'},
@@ -95,13 +95,15 @@
                     { field: 'createdBy' },
                     { field: 'date'},
                     { field: 'timeStamp' },
-                    { field: 'imageUrl'},
+                    { field: 'imageUrl',
+                        hide: true
+                    },
                     { 
                         field: 'Actions',
                         headerName: 'Actions',
                         cellRenderer: 'actionRenderer',
                         minWidth: 150,
-                        suppressMenu: true,
+                        suppressHeaderMenuButton: true,
                         cellStyle: { textAlign: 'center' }
                     },
                     {
@@ -109,7 +111,7 @@
                         headerName : 'Query',
                         cellRenderer: 'queryRender',
                         minWidth: 100,
-                        suppressMenu: true,
+                        suppressHeaderMenuButton: true,
                         cellStyle: { textAlign: 'center' }
                     }
                 ],
@@ -684,7 +686,7 @@
                     if (response.ok) {
                         console.log('File uploaded successfully');
                         this.uploadProgress = 0;
-                        this.uploadFile = null;
+                        this.uploadFile = [];
                         this.uploadErrorMessage = '';
                         this.openUploadModal = false;
                     } else {

@@ -610,18 +610,21 @@ button {
     text-indent: 1px;
     cursor: pointer;
     text-align: center;
-    background-color: transparent;
+    background-color: red;
+}
+
+.action-dropdown > option {
+    color: pink;
+    padding: 10px;
 }
 
 .action-dropdown::-ms-expand {
     display: none;
 }
 
-.action-dropdown:hover {
-    background-color: #ffffff;
-    transition: 0.3s;
+.action-dropdown>option:hover {
+    background-color: green;
 }
-
 
 
 

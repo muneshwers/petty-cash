@@ -380,7 +380,7 @@ app.post("/approve", (req, res) => {
   .update(transactionUpdate)
   .then(() => res.sendStatus(200))
   .then(() => sendApprovalMadeEmailWithTimeout(account))
-})
+});
 
 app.post('/upload', upload.single('file'), async (req, res) => {
   try {
@@ -394,8 +394,8 @@ app.post('/upload', upload.single('file'), async (req, res) => {
 
     const imageUrl = await uploadImageToStorage(file, filename);
     await mapImageWithTransaction(transactionId, imageUrl,account);
-
-    return res.status(200).json({ imageUrl: imageUrl });
+    res.render("reimburse");
+    return;
   } catch (error) {
     console.error('Upload failed:', error);
     return res.status(500).send('Upload failed. Please try again.');
@@ -643,6 +643,7 @@ async function uploadImageToStorage(file, filename) {
   const bucket = storage.bucket();
   await bucket.upload(file.path, { destination: filename });
   const [url] = await bucket.file(filename).getSignedUrl({ action: 'read', expires: '01-01-3000' });
+  console.log(bucket.upload);
   return url;
 }
 
