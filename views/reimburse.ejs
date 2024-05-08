@@ -21,7 +21,7 @@
 
                 const defaultOption = document.createElement('option');
                 defaultOption.value = 'default';
-                defaultOption.textContent = 'Actions';
+                defaultOption.textContent = '...';
                 dropdown.appendChild(defaultOption);
 
                 const editOption = document.createElement('option');
@@ -39,20 +39,21 @@
                 receiptOption.textContent = 'Receipt';
                 dropdown.appendChild(receiptOption);
 
-                dropdown.addEventListener('change', () => {
+                dropdown.addEventListener('click', () => {
                     const action = dropdown.value;
                     switch (action) {
                     case 'edit':
                         $dispatch('modal', {transaction : params.data});
+                        dropdown.value='default';
                         break;
                     case 'delete':
                         $dispatch('delete-modal', {transaction : params.data, url : '/transaction/delete'});
+                        dropdown.value='default';
                         break;
                     case 'receipt':
                         $dispatch('upload-modal', {transaction : params.data, url : '/transaction/upload-receipt'});
+                        dropdown.value='default';
                         break;
-                    // case 'default':
-                    //     break;
                     }
                 });
 
@@ -735,12 +736,5 @@
             </div>
         </div>
         </div>    
-        <script type="text/x-template" id="action-menu-template">
-            <div class="action-menu">
-                <button class="dropdown-item edit-button">Edit</button>
-                <button class="dropdown-item delete-button">Delete</button>
-                <button class="dropdown-item receipt-button">Receipt</button>
-            </div>
-        </script>
     </div>
 </main>

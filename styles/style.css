@@ -520,6 +520,7 @@ button {
 
 .upload-body {
     display: flex;
+    margin-top: 2%;
 }
 
 .upload-section, .preview-section {
@@ -533,7 +534,7 @@ button {
 
 .receipt-container {
     border: 1px rgba(182, 182, 182, 0.445) solid;
-    height: 90%;
+    height: 100%;
     width: 60%;
     object-fit: contain;
 }
@@ -597,20 +598,32 @@ button {
     padding: 5px;
 }
 
-
 .action-dropdown {
+    -webkit-appearance: none;
+    -moz-appearance: none;
     padding: 8px;
     outline: none;
     border: 0;
     width: 100%;
     height: 100%;
     border-radius: 5px;
+    text-indent: 1px;
+    cursor: pointer;
+    text-align: center;
+    background-color: transparent;
+}
+
+.action-dropdown::-ms-expand {
+    display: none;
 }
 
 .action-dropdown:hover {
     background-color: #ffffff;
     transition: 0.3s;
 }
+
+
+
 
 
 @keyframes movedown {
