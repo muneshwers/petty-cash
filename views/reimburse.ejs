@@ -1,5 +1,9 @@
 <main x-ref="main" class="swappable">
     <div x-data="{
+         openEditModal: false,
+        openDeleteModal: false,
+        openQueryModal: false,
+        openUploadModal: false,
         saveText : 'Save',
         transactionLog : [],
         toBeReimbursed : [],
@@ -8,37 +12,46 @@
         grid2 : null,
         reimbursedTotal: 0,
         async init(){
-            const editRenderer = function(params) {
-                let flexbox = document.createElement('div')
-                flexbox.classList.add('flex-container')
-                if (params.data.editable) {
-                    const editButton = document.createElement('button');
-                    editButton.innerHTML = 'Edit';
-                    editButton.classList.add('edit-button');
-                    editButton.addEventListener('click', function () {
-                        $dispatch('modal', {transaction : params.data})
-                    })
-                    flexbox.appendChild(editButton)
+            const actionRenderer = function(params) {
+            const container = document.createElement('div');
+            container.classList.add('action-container');
+
+            const dropdown = document.createElement('select');
+            dropdown.classList.add('action-dropdown');
+
+            const editOption = document.createElement('option');
+            editOption.value = 'edit';
+            editOption.textContent = 'Edit';
+            dropdown.appendChild(editOption);
+
+            const deleteOption = document.createElement('option');
+            deleteOption.value = 'delete';
+            deleteOption.textContent = 'Delete';
+            dropdown.appendChild(deleteOption);
+
+            const receiptOption = document.createElement('option');
+            receiptOption.value = 'receipt';
+            receiptOption.textContent = 'Receipt';
+            dropdown.appendChild(receiptOption);
+
+            dropdown.addEventListener('change', () => {
+                const action = dropdown.value;
+                switch (action) {
+                case 'edit':
+                    $dispatch('modal', {transaction : params.data});
+                    break;
+                case 'delete':
+                    $dispatch('delete-modal', {transaction : params.data, url : '/transaction/delete'});
+                    break;
+                case 'receipt':
+                    $dispatch('upload-modal', {transaction : params.data, url : '/transaction/upload-receipt'});
+                    break;
                 }
-                if (params.data.deleteable) {
-                    const deleteButton = document.createElement('button')
-                    deleteButton.innerHTML = 'Delete'
-                    deleteButton.classList.add('edit-button')
-                    deleteButton.addEventListener('click', function() {
-                        $dispatch('delete-modal', {transaction : params.data, url : '/transaction/delete'})
-                    })
-                    flexbox.appendChild(deleteButton)
-                }
-                const uploadButton = document.createElement('button')
-                uploadButton.innerHTML = 'Receipt'
-                uploadButton.classList.add('edit-button')
-                uploadButton.addEventListener('click', function() {
-                    $dispatch('upload-modal', {transaction : params.data, url : '/transaction/delete'})
-                })
-                flexbox.appendChild(uploadButton)
-                
-                return flexbox;
-            }
+            });
+
+            container.appendChild(dropdown);
+            return container;
+            };
             const queryRender = function(params) {
                 if (!params.data.timeStamp) {
                     return
@@ -57,7 +70,7 @@
             this.grid = agGrid.createGrid(this.$refs.myGrid, {
                 rowData : transactions,
                 domLayout: 'autoHeight',
-                components: {editRenderer, queryRender},
+                components: {actionRenderer, queryRender},
                 columnDefs : [
                     { field: 'transactionId', 
                     checkboxSelection: function (params) {
@@ -78,7 +91,7 @@
                     { 
                         field: 'Actions',
                         headerName: 'Actions',
-                        cellRenderer: 'editRenderer',
+                        cellRenderer: 'actionRenderer',
                         minWidth: 150,
                         suppressMenu: true,
                         cellStyle: { textAlign: 'center' }
@@ -714,6 +727,13 @@
                 
             </div>
         </div>
-    </div>    
+        </div>    
+        <script type="text/x-template" id="action-menu-template">
+            <div class="action-menu">
+                <button class="dropdown-item edit-button">Edit</button>
+                <button class="dropdown-item delete-button">Delete</button>
+                <button class="dropdown-item receipt-button">Receipt</button>
+            </div>
+        </script>
     </div>
 </main>
