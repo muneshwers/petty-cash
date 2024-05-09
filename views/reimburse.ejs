@@ -667,72 +667,85 @@
         <div id="upload-modal"
         x-data="{
             openUploadModal: false,
-            uploadProgress: 0,
             uploadFile: null,
             transactionData: '',
             buttonToggle: false,
-            previewImage: '/static/images/noimage.png',
+            previewImage: null,
             uploadErrorMessage: '',
+            fileName: '',
             async uploadFileHandler() {
                 try {
-                    const formData = new FormData();
-                    formData.append('file', this.uploadFile);
-                    formData.append('transactionId', this.transactionData.transactionId);
-    
-                    const response = await fetch('/upload', {
+                    fetch('/upload/delete', {
                         method: 'POST',
-                        body: formData,
-                    });
-                    if (response.ok) {
-                        console.log('File uploaded successfully');
-                        this.uploadProgress = 0;
-                        this.uploadFile = [];
-                        this.uploadErrorMessage = '';
-                        this.openUploadModal = false;
-                    } else {
-                        console.error('Upload failed:', response.statusText);
-                        this.uploadErrorMessage = 'Upload failed. Please try again.';
-                    }
+                        headers: {
+                            'Content-Type' : 'application/json',
+                        },
+                        body: JSON.stringify({filename: this.transactionData.filename})
+                    })    
+
+                    this.openUploadModal = false
+                    this.swapMain()
+
+                    const formData = new FormData();
+                    formData.append('file', this.uploadFile)
+                    formData.append('transactionId', this.transactionData.transactionId)
+                    fetch('/upload', {
+                        method : 'POST',
+                        body: formData
+                    })
+                    .then(() => {
+                        this.previewImage = null
+                    })
+                    .then(() => {
+                        htmx.ajax('GET', '/reimburse', {
+                            target: 'main',
+                            swap:'outerHTML'
+                        })
+                    })
+
                 } catch (error) {
                     console.error('Upload failed:', error);
                     this.uploadErrorMessage = 'Upload failed. Please try again.';
                 }
             },
-            updateFileName(event) {
-                const fileName = event.target.files[0].name;
-                document.getElementById('file-name').textContent = fileName;
-            }
 
         }"
         @upload-modal.window="
             openUploadModal = true;
             transactionData = $event.detail.transaction;
-            previewImage = $event.detail.transaction.imageUrl || previewImage;
+            previewImage = $event.detail.transaction.imageUrl || '/static/images/noimage.png';
+
+            buttonToggle = false;
+            uploadErrorMessage = '';
+            uploadFile = null;
         "
+        x-init="$watch('uploadFile', uploadFile => {
+            fileName = uploadFile?.name;
+            if (!uploadFile){
+                $refs.uploadFileInput.value = null
+            }
+        })"
     >
         <div x-show="openUploadModal" class="overlay">
-            <div class="modal" @click.outside="openUploadModal = false">
-                <button class="close-button" @click="openUploadModal = false">&times;</button>
+            <div class="modal" @click.outside="previewImage = null; openUploadModal = false;">
+
+                <button class="close-button" @click="previewImage = null; openUploadModal = false;">&times;</button>
+
                 <h2>Upload File</h2>
-                <div class="upload-body">
-                    <div class="upload-section">
-                        <div class="upload-input-container">
-                            <div class="file-input">
-                                <label for="file-upload" class="file-input-btn">Choose File</label>
-                                <input id="file-upload" type="file"
-                                    @change="uploadFile = $event.target.files[0]; uploadErrorMessage=''; buttonToggle=true; updateFileName(event);"
-                                    accept="image/png, image/gif, image/jpeg">
-                                <span class="file-input-label" id="file-name"></span>
-                            </div>
-                            <button x-show="buttonToggle" class="submit-button upload-button" @click="uploadFileHandler()">Upload</button>
-                        </div>
-                        <div x-show="uploadErrorMessage" class="error-message" x-text="uploadErrorMessage"></div>
-                    </div>
-                    <div class="preview-section">
-                        <div class="receipt-container">
-                            <img x-bind:src="previewImage" alt="receipt preview" class="receipt-image">
-                        </div>
-                    </div>
+
+                <div class="upload-buttons">
+                    <label for="file-upload" id="file-upload-label">Choose File</label>
+                    <input id="file-upload" type="file"
+                        x-ref="uploadFileInput"
+                        @change="uploadFile = $event.target.files[0]; uploadErrorMessage=''; buttonToggle=true;"
+                        accept="image/png, image/gif, image/jpeg">
+                    <span id="file-upload-name" x-text="fileName"></span>
+                    <button type="submit" x-show="buttonToggle" class="submit-button" @click="uploadFileHandler()">Upload</button>
+                    <div x-show="uploadErrorMessage" class="error-message" x-text="uploadErrorMessage"></div>
+                </div>
+
+                <div class="receipt-container">
+                    <img x-bind:src="previewImage" alt="receipt preview" class="receipt-image">
                 </div>
                 
             </div>

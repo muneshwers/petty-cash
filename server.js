@@ -206,7 +206,7 @@ app.post("/transaction", async (req ,res) => {
     sendTransactionForApprovalEmailWithTimeout(account)
   }
   applyTimeStamp([transaction], "timeStamp")
-  updateTransactions([transaction], account);
+  setTransactions([transaction], account);
   
   let balance = await getCurrentBalance(account)
   balance = balance - amount
@@ -276,7 +276,7 @@ app.post("/transaction/edit", async (req, res) => {
   }
   applyTimeStamp([originalTransaction], "timeStamp")
   Object.assign(originalTransaction, transaction)
-  Promise.all(updateTransactions([originalTransaction], req.session.account))
+  Promise.all(setTransactions([originalTransaction], req.session.account))
   .then(()=> res.render("reimburse"))
 })
 
@@ -365,42 +365,56 @@ app.post("/saved", (req, res) => {
 app.post("/approve", (req, res) => {
   /**@type {number} */
   let transactionId = req.body.transactionId
+  /** @type {string} */
   let {account} = req.session
   let transactionUpdate = {
+    transactionId,
     approved: true, 
     approvedBy: req.session.username,
     editable: false,
   }
   applyTimeStamp([transactionUpdate], "approvedTime")
-  firestore
-  .collection(database)
-  .doc(account)
-  .collection('Transactions')
-  .doc(transactionId.toString())
-  .update(transactionUpdate)
+  updateTransaction(transactionUpdate, account)
   .then(() => res.sendStatus(200))
   .then(() => sendApprovalMadeEmailWithTimeout(account))
 });
 
 app.post('/upload', upload.single('file'), async (req, res) => {
   try {
+
     if (!req.file) return res.status(400).send('No files were uploaded.');
     const file = req.file;
-    let filename = file.originalname;
+    let filename = file.originalname
+  
+    /** @type {{account: string}} */
     let {account} = req.session
-    let transactionId  = req.body.transactionId;
-    filename = account+"_"+transactionId+"_"+filename
-    if (!transactionId) return res.status(400).send('Transaction ID is missing.');
 
-    const imageUrl = await uploadImageToStorage(file, filename);
-    await mapImageWithTransaction(transactionId, imageUrl,account);
-    res.render("reimburse");
-    return;
+    /** @type {string} */
+    let transactionId  = req.body.transactionId
+
+    if (!transactionId) return res.status(400).send('transaction id is missing.')
+    filename = account+"_"+transactionId+"_"+filename
+    let imageUrl = await uploadImageToStorage(file, filename)
+    
+    updateTransaction({transactionId, imageUrl, filename}, account)
+    .then(() => res.sendStatus(200))
   } catch (error) {
     console.error('Upload failed:', error);
     return res.status(500).send('Upload failed. Please try again.');
   }
 });
+
+app.post('/upload/delete', (req, res) => {
+  /** @type {{filename: string}} */
+  let {filename} = req.body
+  if (!filename) return
+  try{
+    deleteImageFromStorage(filename)
+    .then(() => res.sendStatus(200))
+  }catch {
+    res.sendStatus(500)
+  }
+})
 
 
 app.listen(PORT, () => {
@@ -506,7 +520,7 @@ async function updateBalance(balance, account) {
  * @param {string} account 
  * @returns {Array<Promise>}
  */
-function updateTransactions(transactions, account) {
+function setTransactions(transactions, account) {
   return transactions.map(
     (transaction) => firestore
     .collection(database)
@@ -515,6 +529,20 @@ function updateTransactions(transactions, account) {
     .doc(transaction.transactionId.toString())
     .set(transaction)
   )
+}
+
+/**
+ * @param {Transaction} transaction
+ * @param {string} account
+ * @returns {Promise}
+ */
+function updateTransaction(transaction, account) {
+  return firestore
+  .collection(database)
+  .doc(account)
+  .collection('Transactions')
+  .doc(transaction.transactionId.toString())
+  .update(transaction)
 }
 
 /**
@@ -639,17 +667,40 @@ async function queryTransaction(account, transactionId) {
   .get()
 }
 
+/**
+ * 
+ * @param {Express.Multer.File} file 
+ * @param {string} filename 
+ * @returns {Promise<string>}
+ */
 async function uploadImageToStorage(file, filename) {
-  const bucket = storage.bucket();
-  await bucket.upload(file.path, { destination: filename });
-  const [url] = await bucket.file(filename).getSignedUrl({ action: 'read', expires: '01-01-3000' });
-  console.log(bucket.upload);
-  return url;
+  const uploadResponse = await storage.bucket().upload(file.path, {destination: filename})
+  const url = (await uploadResponse[0].getSignedUrl({action: 'read', expires : "01-01-3000"}))[0]
+  return url
+
 }
 
-async function mapImageWithTransaction(transactionId, imageUrl,account) {
+/**
+ *
+ * @param {string} path 
+ * @return {Promise}
+ */
+async function deleteImageFromStorage(path) {
+  const file = storage.bucket().file(path)
+  if (!file) {
+    throw Error("image not found")
+  }
+  return file.delete()
+}
+
+async function mapImageWithTransaction(transactionId, imageUrl, account) {
   try {
-    await firestore.collection(database).doc(account).collection('Transactions').doc(transactionId).update({ imageUrl: imageUrl });
+    await firestore
+    .collection(database)
+    .doc(account)
+    .collection('Transactions')
+    .doc(transactionId)
+    .update({ imageUrl: imageUrl });
   } catch (error) {
     console.error("Error associating image with transaction:", error);
   }
@@ -680,4 +731,6 @@ async function mapImageWithTransaction(transactionId, imageUrl,account) {
  * @property {string?} deletedTime - the time a user deleted the transaction
  * @property {string?} deletedBy - the user that deleted the transaction
  * @property {string?} deleteReason - the reason the user deleted the transaction
+ * @property {string?} filename - the file name for the receipt image in storage
+ * @property {string?} imageUrl - the image url for the transaction receipt
  */
