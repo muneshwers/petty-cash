@@ -40,7 +40,8 @@ const upload = multer({
   }
 });
 
-
+const firestore = getFirestore(firebaseApp)
+const storage = getStorage(firebaseApp)
 
 const checkLoggedIn = (req, res, next) => {
   const unprotectedUrl = [
