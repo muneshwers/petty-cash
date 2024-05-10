@@ -395,7 +395,7 @@ app.post('/upload', upload.single('file'), async (req, res) => {
     if (!transactionId) return res.status(400).send('transaction id is missing.')
     filename = account+"_"+transactionId+"_"+filename
     let imageUrl = await uploadImageToStorage(file, filename)
-    
+
     updateTransaction({transactionId, imageUrl, filename}, account)
     .then(() => res.sendStatus(200))
   } catch (error) {
@@ -692,20 +692,6 @@ async function deleteImageFromStorage(path) {
   }
   return file.delete()
 }
-
-async function mapImageWithTransaction(transactionId, imageUrl, account) {
-  try {
-    await firestore
-    .collection(database)
-    .doc(account)
-    .collection('Transactions')
-    .doc(transactionId)
-    .update({ imageUrl: imageUrl });
-  } catch (error) {
-    console.error("Error associating image with transaction:", error);
-  }
-}
-
 
 /**
  * Represents a transaction.

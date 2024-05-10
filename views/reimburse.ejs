@@ -17,7 +17,7 @@
                 const container = document.createElement('div');
                 container.classList.add('action-container');
 
-                if (transaction.editable){
+                if (transaction.editable) {
                     const editButton = document.createElement('button')
                     editButton.classList.add('action-button')
                     editButton.title = 'Edit'
@@ -720,7 +720,7 @@
         "
         x-init="$watch('uploadFile', uploadFile => {
             fileName = uploadFile?.name;
-            if (!uploadFile){
+            if (!uploadFile) {
                 $refs.uploadFileInput.value = null
             }
         })"
