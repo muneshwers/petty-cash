@@ -2,6 +2,7 @@ import express from "express";
 import "dotenv/config"
 import expressSession from "express-session";
 import bodyParser from "body-parser";
+import multer from "multer";
 import { initializeApp, cert } from "firebase-admin/app"
 import { getFirestore } from "firebase-admin/firestore"
 import { getStorage } from "firebase-admin/storage"
@@ -14,14 +15,30 @@ import {
   sendTransactionDeletedEmail
 } from "./email.js";
 import config from "./config.js"
+import mime from "mime-types"
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 const firebaseApp = initializeApp({
-  credential : cert(serviceAccount),
-  storageBucket : "projectservers.appspot.com",
-})
+  credential: cert(serviceAccount),
+  storageBucket: "projectservers.appspot.com",
+});
+
+const firestore = getFirestore(firebaseApp);
+const storage = getStorage(firebaseApp);
+
+const upload = multer({
+  dest: 'tmp/uploads/',
+  fileFilter: (req, file, cb) => {
+    const mimeType = mime.lookup(file.originalname);
+    if (!mimeType) {
+      cb(new Error('Invalid file type'));
+    } else {
+      cb(null, true);
+    }
+  }
+});
 
 const firestore = getFirestore(firebaseApp)
 const storage = getStorage(firebaseApp)
@@ -190,7 +207,7 @@ app.post("/transaction", async (req ,res) => {
     sendTransactionForApprovalEmailWithTimeout(account)
   }
   applyTimeStamp([transaction], "timeStamp")
-  updateTransactions([transaction], account);
+  setTransactions([transaction], account);
   
   let balance = await getCurrentBalance(account)
   balance = balance - amount
@@ -260,7 +277,7 @@ app.post("/transaction/edit", async (req, res) => {
   }
   applyTimeStamp([originalTransaction], "timeStamp")
   Object.assign(originalTransaction, transaction)
-  Promise.all(updateTransactions([originalTransaction], req.session.account))
+  Promise.all(setTransactions([originalTransaction], req.session.account))
   .then(()=> res.render("reimburse"))
 })
 
@@ -349,22 +366,57 @@ app.post("/saved", (req, res) => {
 app.post("/approve", (req, res) => {
   /**@type {number} */
   let transactionId = req.body.transactionId
+  /** @type {string} */
   let {account} = req.session
   let transactionUpdate = {
+    transactionId,
     approved: true, 
     approvedBy: req.session.username,
     editable: false,
   }
   applyTimeStamp([transactionUpdate], "approvedTime")
-  firestore
-  .collection(database)
-  .doc(account)
-  .collection('Transactions')
-  .doc(transactionId.toString())
-  .update(transactionUpdate)
+  updateTransaction(transactionUpdate, account)
   .then(() => res.sendStatus(200))
   .then(() => sendApprovalMadeEmailWithTimeout(account))
+});
+
+app.post('/upload', upload.single('file'), async (req, res) => {
+  try {
+
+    if (!req.file) return res.status(400).send('No files were uploaded.');
+    const file = req.file;
+    let filename = file.originalname
+  
+    /** @type {{account: string}} */
+    let {account} = req.session
+
+    /** @type {string} */
+    let transactionId  = req.body.transactionId
+
+    if (!transactionId) return res.status(400).send('transaction id is missing.')
+    filename = account+"_"+transactionId+"_"+filename
+    let imageUrl = await uploadImageToStorage(file, filename)
+
+    updateTransaction({transactionId, imageUrl, filename}, account)
+    .then(() => res.sendStatus(200))
+  } catch (error) {
+    console.error('Upload failed:', error);
+    return res.status(500).send('Upload failed. Please try again.');
+  }
+});
+
+app.post('/upload/delete', (req, res) => {
+  /** @type {{filename: string}} */
+  let {filename} = req.body
+  if (!filename) return
+  try{
+    deleteImageFromStorage(filename)
+    .then(() => res.sendStatus(200))
+  }catch {
+    res.sendStatus(500)
+  }
 })
+
 
 app.listen(PORT, () => {
   console.log(`App is running on port ${PORT}`);
@@ -469,7 +521,7 @@ async function updateBalance(balance, account) {
  * @param {string} account 
  * @returns {Array<Promise>}
  */
-function updateTransactions(transactions, account) {
+function setTransactions(transactions, account) {
   return transactions.map(
     (transaction) => firestore
     .collection(database)
@@ -478,6 +530,20 @@ function updateTransactions(transactions, account) {
     .doc(transaction.transactionId.toString())
     .set(transaction)
   )
+}
+
+/**
+ * @param {Transaction} transaction
+ * @param {string} account
+ * @returns {Promise}
+ */
+function updateTransaction(transaction, account) {
+  return firestore
+  .collection(database)
+  .doc(account)
+  .collection('Transactions')
+  .doc(transaction.transactionId.toString())
+  .update(transaction)
 }
 
 /**
@@ -602,6 +668,31 @@ async function queryTransaction(account, transactionId) {
   .get()
 }
 
+/**
+ * 
+ * @param {Express.Multer.File} file 
+ * @param {string} filename 
+ * @returns {Promise<string>}
+ */
+async function uploadImageToStorage(file, filename) {
+  const uploadResponse = await storage.bucket().upload(file.path, {destination: filename})
+  const url = (await uploadResponse[0].getSignedUrl({action: 'read', expires : "01-01-3000"}))[0]
+  return url
+
+}
+
+/**
+ *
+ * @param {string} path 
+ * @return {Promise}
+ */
+async function deleteImageFromStorage(path) {
+  const file = storage.bucket().file(path)
+  if (!file) {
+    throw Error("image not found")
+  }
+  return file.delete()
+}
 
 /**
  * Represents a transaction.
@@ -627,4 +718,6 @@ async function queryTransaction(account, transactionId) {
  * @property {string?} deletedTime - the time a user deleted the transaction
  * @property {string?} deletedBy - the user that deleted the transaction
  * @property {string?} deleteReason - the reason the user deleted the transaction
+ * @property {string?} filename - the file name for the receipt image in storage
+ * @property {string?} imageUrl - the image url for the transaction receipt
  */

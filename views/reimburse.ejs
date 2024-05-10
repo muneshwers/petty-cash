@@ -1,5 +1,9 @@
 <main x-ref="main" class="swappable">
     <div x-data="{
+         openEditModal: false,
+        openDeleteModal: false,
+        openQueryModal: false,
+        openUploadModal: false,
         saveText : 'Save',
         transactionLog : [],
         toBeReimbursed : [],
@@ -8,54 +12,86 @@
         grid2 : null,
         reimbursedTotal: 0,
         async init(){
-            const editRenderer = function(params) {
-                let flexbox = document.createElement('div')
-                flexbox.classList.add('flex-container')
-                if (params.data.editable) {
-                    const editButton = document.createElement('button');
-                    editButton.innerHTML = 'Edit';
-                    editButton.classList.add('edit-button');
-                    editButton.addEventListener('click', function () {
-                        $dispatch('modal', {transaction : params.data})
+            const actionRenderer = function(params) {
+                let transaction = params.data
+                const container = document.createElement('div');
+                container.classList.add('action-container');
+
+                if (transaction.editable) {
+                    const editButton = document.createElement('button')
+                    editButton.classList.add('action-button')
+                    editButton.title = 'Edit'
+                    const icon = document.createElement('i')
+                    icon.classList.add('fas')
+                    icon.classList.add('fa-pen-to-square')
+                    editButton.appendChild(icon)
+                    editButton.addEventListener('click', () => {
+                        $dispatch('modal', {transaction}); 
                     })
-                    flexbox.appendChild(editButton)
+
+                    container.appendChild(editButton)
                 }
-                if (params.data.deleteable) {
+
+                if (transaction.deleteable) {
                     const deleteButton = document.createElement('button')
-                    deleteButton.innerHTML = 'Delete'
-                    deleteButton.classList.add('edit-button')
-                    deleteButton.addEventListener('click', function() {
-                        $dispatch('delete-modal', {transaction : params.data, url : '/transaction/delete'})
+                    deleteButton.classList.add('action-button')
+                    deleteButton.title = 'Delete'
+                    const icon = document.createElement('i')
+                    icon.classList.add('fa-solid')
+                    icon.classList.add('fa-xmark')
+                    deleteButton.appendChild(icon)
+                    deleteButton.addEventListener('click', () => {
+                        $dispatch('delete-modal', {transaction, url : '/transaction/delete'});
                     })
-                    flexbox.appendChild(deleteButton)
+
+                    container.appendChild(deleteButton)
                 }
-                return flexbox;
-            }
-            const queryRender = function(params) {
-                if (!params.data.timeStamp) {
-                    return
+
+                if (transaction.timeStamp) {
+                    const queryButton= document.createElement('button')
+                    queryButton.classList.add('action-button')
+                    queryButton.title = 'Query'
+                    const icon = document.createElement('i')
+                    icon.classList.add('fa-solid')
+                    icon.classList.add('fa-question')
+                    queryButton.appendChild(icon)
+                    queryButton.addEventListener('click', () => {
+                        $dispatch('query-modal', {transaction})
+                    })
+
+                    container.appendChild(queryButton)
                 }
-                const queryButton = document.createElement('button')
-                queryButton.innerHTML = '?'
-                queryButton.classList.add('query-button')
-                queryButton.addEventListener('click', function () {
-                    $dispatch('query-modal', {transaction : params.data})
-                })
-                return queryButton
-            }
+
+                if (transaction) {
+                    const uploadButton= document.createElement('button')
+                    uploadButton.classList.add('action-button')
+                    uploadButton.title = 'Upload'
+                    const icon = document.createElement('i')
+                    icon.classList.add('fa-solid')
+                    icon.classList.add('fa-receipt')
+                    uploadButton.appendChild(icon)
+                    uploadButton.addEventListener('click', () => {
+                        $dispatch('upload-modal', {transaction});
+                    })
+
+                    container.appendChild(uploadButton)
+                }
+                return container;
+            };
+            
             let {transactions} = (await (await fetch('/transactions')).json())
             let {savedOnAccount} = (await (await fetch('/saved')).json())
             this.saved = savedOnAccount
             this.grid = agGrid.createGrid(this.$refs.myGrid, {
                 rowData : transactions,
                 domLayout: 'autoHeight',
-                components: {editRenderer, queryRender},
+                components: {actionRenderer},
                 columnDefs : [
                     { field: 'transactionId', 
                     checkboxSelection: function (params) {
                         return params.data.approved
                         },
-                    suppressSorting : true,
+                    sortable: false,
                     headerCheckboxSelection: true,
                     headerName : 'Voucher Number'},
                     { field: 'description'},
@@ -66,22 +102,17 @@
                     { field: 'createdBy' },
                     { field: 'date'},
                     { field: 'timeStamp' },
+                    { field: 'imageUrl',
+                        hide: true
+                    },
                     { 
                         field: 'Actions',
                         headerName: 'Actions',
-                        cellRenderer: 'editRenderer',
+                        cellRenderer: 'actionRenderer',
                         minWidth: 150,
-                        suppressMenu: true,
+                        suppressHeaderMenuButton: true,
                         cellStyle: { textAlign: 'center' }
                     },
-                    {
-                        field : 'Query',
-                        headerName : 'Query',
-                        cellRenderer: 'queryRender',
-                        minWidth: 100,
-                        suppressMenu: true,
-                        cellStyle: { textAlign: 'center' }
-                    }
                 ],
                 defaultColDef: {
                     filter: 'agTextColumnFilter',
@@ -161,7 +192,7 @@
                 },
                 getRowStyle: function(params) {
                     if (params.node.rowIndex === params.api.getDisplayedRowCount() - 1) {
-                        return { fontWeight: 'bold'}
+                        return { fontWeight: 'bold', color : '#0047ab'}
                     }
                     return null;
                 },
@@ -632,5 +663,92 @@
             </div>
          </div>
         </div>
+        <div id="upload-modal"
+        x-data="{
+            openUploadModal: false,
+            uploadFile: null,
+            transactionData: '',
+            buttonToggle: false,
+            previewImage: null,
+            uploadErrorMessage: '',
+            fileName: '',
+            async uploadFileHandler() {
+                try {
+                    fetch('/upload/delete', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type' : 'application/json',
+                        },
+                        body: JSON.stringify({filename: this.transactionData.filename})
+                    })    
+
+                    this.openUploadModal = false
+                    this.swapMain()
+
+                    const formData = new FormData();
+                    formData.append('file', this.uploadFile)
+                    formData.append('transactionId', this.transactionData.transactionId)
+                    fetch('/upload', {
+                        method : 'POST',
+                        body: formData
+                    })
+                    .then(() => {
+                        this.previewImage = null
+                    })
+                    .then(() => {
+                        htmx.ajax('GET', '/reimburse', {
+                            target: 'main',
+                            swap:'outerHTML'
+                        })
+                    })
+
+                } catch (error) {
+                    console.error('Upload failed:', error);
+                    this.uploadErrorMessage = 'Upload failed. Please try again.';
+                }
+            },
+
+        }"
+        @upload-modal.window="
+            openUploadModal = true;
+            transactionData = $event.detail.transaction;
+            previewImage = $event.detail.transaction.imageUrl || '/static/images/noimage.png';
+
+            buttonToggle = false;
+            uploadErrorMessage = '';
+            uploadFile = null;
+        "
+        x-init="$watch('uploadFile', uploadFile => {
+            fileName = uploadFile?.name;
+            if (!uploadFile) {
+                $refs.uploadFileInput.value = null
+            }
+        })"
+    >
+        <div x-show="openUploadModal" class="overlay">
+            <div class="modal" @click.outside="previewImage = null; openUploadModal = false;">
+
+                <button class="close-button" @click="previewImage = null; openUploadModal = false;">&times;</button>
+
+                <h2>Upload File</h2>
+
+                <div class="upload-buttons">
+                    <label for="file-upload" id="file-upload-label">Choose File</label>
+                    <input id="file-upload" type="file"
+                        x-ref="uploadFileInput"
+                        @change="uploadFile = $event.target.files[0]; uploadErrorMessage=''; buttonToggle=true;"
+                        accept="image/png, image/gif, image/jpeg">
+                    <span id="file-upload-name" x-text="fileName"></span>
+                    <button type="submit" x-show="buttonToggle" class="submit-button" @click="uploadFileHandler()">Upload</button>
+                    <div x-show="uploadErrorMessage" class="error-message" x-text="uploadErrorMessage"></div>
+                </div>
+
+                <div class="receipt-container">
+                    <img x-bind:src="previewImage" alt="receipt preview" class="receipt-image">
+                </div>
+                
+            </div>
+        </div>
+        </div>    
     </div>
 </main>
