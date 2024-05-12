@@ -3,31 +3,55 @@
         transactionLog : [],
         grid : null,
         async init(){
-            const queryRender = function(params) {
-                if (!params.data.timeStamp){
-                    return
+            const actionRenderer = function(params) {
+                let transaction = params.data
+                const container = document.createElement('div');
+                container.classList.add('action-container');
+
+                if (transaction.timeStamp) {
+                    const queryButton= document.createElement('button')
+                    queryButton.classList.add('action-button')
+                    queryButton.title = 'Query'
+                    const icon = document.createElement('i')
+                    icon.classList.add('fa-solid')
+                    icon.classList.add('fa-question')
+                    queryButton.appendChild(icon)
+                    queryButton.addEventListener('click', () => {
+                        $dispatch('query-modal', {transaction})
+                    })
+
+                    container.appendChild(queryButton)
                 }
-                const queryButton = document.createElement('button')
-                queryButton.innerHTML = '?'
-                queryButton.classList.add('query-button')
-                queryButton.addEventListener('click', function () {
-                    $dispatch('query-modal', {transaction : params.data})
-                })
-                return queryButton
+
+                if (transaction.filename) {
+                    const uploadButton= document.createElement('button')
+                    uploadButton.classList.add('action-button')
+                    uploadButton.title = 'Receipt'
+                    const icon = document.createElement('i')
+                    icon.classList.add('fa-solid')
+                    icon.classList.add('fa-receipt')
+                    uploadButton.appendChild(icon)
+                    uploadButton.addEventListener('click', () => {
+                        $dispatch('upload-modal', {transaction});
+                    })
+
+                    container.appendChild(uploadButton)
+                }
+                return container;
             }
             let {transactionHistory} = (await (await fetch('/transactionHistory')).json())
             let account = this.accountTextMap[this.currAccount]
             this.grid = agGrid.createGrid(this.$refs.myGrid, {
                 rowData : transactionHistory,
-                components: {queryRender},
+                components: {actionRenderer},
                 domLayout: 'autoHeight',
                 pagination : true,
                 paginationPageSize : 20,
                 columnDefs : [
                     {
-                        field : 'Query',
-                        headerName : 'Query',
-                        cellRenderer: 'queryRender',
+                        field : 'Action',
+                        headerName : 'Action',
+                        cellRenderer: 'actionRenderer',
                         maxWidth: 85,
                         suppressMenu: true,
                         cellStyle: { textAlign: 'center' }
@@ -149,5 +173,30 @@
             </div>
          </div>
         </div>
+        <div id="upload-modal"
+        x-data="{
+            openUploadModal: false,
+            transactionData: '',
+            previewImage: null,
+        }"
+        @upload-modal.window="
+            openUploadModal = true;
+            transactionData = $event.detail.transaction;
+            previewImage = $event.detail.transaction.imageUrl || '/static/images/noimage.png';
+        "
+    >
+        <div x-show="openUploadModal" class="overlay">
+            <div class="modal" @click.outside="previewImage = null; openUploadModal = false;">
+
+                <button class="close-button" @click="previewImage = null; openUploadModal = false;">&times;</button>
+
+                <h2>Upload File</h2>
+                <div class="receipt-container">
+                    <img x-bind:src="previewImage" alt="receipt preview" class="receipt-image">
+                </div>
+                
+            </div>
+        </div>
+        </div>    
     </div>
 </main>

@@ -77,7 +77,7 @@
                     container.appendChild(uploadButton)
                 }
                 return container;
-            };
+            }
             
             let {transactions} = (await (await fetch('/transactions')).json())
             let {savedOnAccount} = (await (await fetch('/saved')).json())

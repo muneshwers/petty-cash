@@ -6,7 +6,7 @@ import multer from "multer";
 import { initializeApp, cert } from "firebase-admin/app"
 import { getFirestore } from "firebase-admin/firestore"
 import { getStorage } from "firebase-admin/storage"
-import serviceAccount from "./serviceAccountKey.json" assert {type : "json"}
+import serviceAccount from "../serviceAccountKey.json" assert {type : "json"}
 import { 
   sendApprovalMadeEmailWithTimeout, 
   sendNearingLimitEmailWithTimout,
@@ -14,7 +14,7 @@ import {
   sendReimbursementsMadeWithTimeout,
   sendTransactionDeletedEmail
 } from "./email.js";
-import config from "./config.js"
+import config from "../config.js"
 import mime from "mime-types"
 
 const app = express();
@@ -24,9 +24,6 @@ const firebaseApp = initializeApp({
   credential: cert(serviceAccount),
   storageBucket: "projectservers.appspot.com",
 });
-
-const firestore = getFirestore(firebaseApp);
-const storage = getStorage(firebaseApp);
 
 const upload = multer({
   dest: 'tmp/uploads/',
