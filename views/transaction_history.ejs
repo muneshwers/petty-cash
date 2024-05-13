@@ -39,7 +39,7 @@
                 }
                 return container;
             }
-            let {transactionHistory} = (await (await fetch('/transactionHistory')).json())
+            let {transactionHistory} = (await (await fetch('/transactions/history')).json())
             let account = this.accountTextMap[this.currAccount]
             this.grid = agGrid.createGrid(this.$refs.myGrid, {
                 rowData : transactionHistory,

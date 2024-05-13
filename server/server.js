@@ -130,6 +130,11 @@ app.get("/transactions", async (req, res) => {
   res.json({transactions})
 })
 
+app.get("/reimbursements", async (req, res) => {
+  let reimbursements = await getReimbursements(req.session.account)
+  res.json({reimbursements})
+})
+
 app.get("/transaction/query/:id", async (req, res) => {
   let id = Number(req.params.id)
   let {account} = req.session
@@ -146,7 +151,7 @@ app.get("/transactionId", async (req, res) => {
   res.json({transactionId})
 })
 
-app.get("/transactionHistory", async (req, res) => {
+app.get("/transactions/history", async (req, res) => {
   let {account} = req.session
   let transactionHistory = await getTransactionsHistory(account)
   res.json({transactionHistory})
@@ -162,6 +167,10 @@ app.get("/reimburse", (req, res) => {
 
 app.get("/transaction_history", (req, res) => {
   res.render("transaction_history")
+})
+
+app.get("/transaction_sign", (req, res) => {
+  res.render("sign")
 })
 
 app.get("/saved", (req, res) => {
@@ -312,32 +321,67 @@ app.post("/transaction/delete", (req, res) => {
 })
 
 
-app.post("/transaction/reimburse", async (req,res)=>{
-
+app.post("/transaction/reimburse", async (req,res)=> {
   /** @type {{reimbursedTotal:number, toBeReimbursed: Array<Transaction>}} */
   let { reimbursedTotal, toBeReimbursed } = req.body
   toBeReimbursed = JSON.parse(toBeReimbursed)
 
+  /** @type {{account : string}} */
   let {account} = req.session
-
-  let balance = await getCurrentBalance(account)
-  balance = Number(balance) + Number(reimbursedTotal)
-  updateBalance(balance, account)
-
-  applyTimeStamp(toBeReimbursed, "reimbursedTime")
-  applyTimeStamp(toBeReimbursed, "timeStamp")
-  for (let transaction of toBeReimbursed) {
-    transaction['reimbursedBy'] = req.session.username;
-  }
-  addToTransactionHistory(toBeReimbursed, account)
-  req.session.saved[account] = []
-
   Promise.all(deleteTransactions(toBeReimbursed, account))
   .then(() => res.render("reimburse"))
   .then(() => sendReimbursementsMadeWithTimeout(account))
-  .then(() => sendReimbursementsToAdaptorServer(toBeReimbursed))
+
+
+  getCurrentReimbursementId(req.session.account).then(
+    (currentReimbursementId) => {
+
+      /** @type {Reimbursement} */
+      let reimbursement = {
+        account,
+        amount : Number(reimbursedTotal),
+        reimbursementId : Number(currentReimbursementId),
+        transactions : {}
+      }
+      applyTimeStamp(toBeReimbursed, "reimbursedTime")
+      applyTimeStamp(toBeReimbursed, "timeStamp")
+      for (let transaction of toBeReimbursed) {
+        transaction['reimbursedBy'] = req.session.username;
+        reimbursement.transactions[transaction.transactionId.toString()] = transaction
+      }
+
+      addToReimbursementsToSign(reimbursement, account)
+
+      currentReimbursementId = currentReimbursementId + 1
+      updateReimburseId(currentReimbursementId, account)
+
+
+    }
+  )
+  
 })
 
+// app.post("transaction/reimburse/completed", async (req, res) => {
+
+//   /** @type {{completedTotal:number, toBeCompleted: Array<Transaction>}} */
+//   let { completedTotal, toBeCompleted } = req.body
+//   toBeCompleted = JSON.parse(toBeCompleted)
+
+//   let {account} = req.session
+
+//   let balance = await getCurrentBalance(account)
+//   balance = Number(balance) + Number(completedTotal)
+//   updateBalance(balance, account)
+
+//   applyTimeStamp(toBeCompleted, "completedTime")
+//   applyTimeStamp(toBeCompleted, "timeStamp")
+
+//   addToTransactionHistory(toBeCompleted, account)
+
+//   Promise.all(deleteTransactions(toBeCompleted, account))
+//   .then(() => res.render("sign"))
+//   .then(() => sendReimbursementsToAdaptorServer(toBeCompleted))
+// })
 
 
 app.post("/account", (req, res) => {
@@ -452,7 +496,7 @@ async function getCurrentBalance(account) {
 /**
  * 
  * @param {string} account
- * @returns 
+ * @returns {Promise<number>} 
  */
 async function getCurrentTransactionId(account) {
   let {transactionId} = (await (firestore
@@ -461,6 +505,19 @@ async function getCurrentTransactionId(account) {
   .get())).data()
   return transactionId
 
+}
+
+/**
+ * @param {string} account
+ * @returns {Promise<number>}
+ */
+async function getCurrentReimbursementId(account) {
+  let {reimburseId} = (await (firestore
+    .collection(database)
+    .doc(account)
+    .get()
+  )).data()
+  return reimburseId
 }
 
 /**
@@ -475,9 +532,7 @@ async function getTransactions(account) {
     .doc(account)
     .collection('Transactions')
     .get())
-    /**
-     * @type {Array<Transaction>}
-     */
+    /** @type {Array<Transaction>} */
     let transactions = []
     snapshots.forEach((doc) => {
       transactions.push(doc.data())
@@ -487,6 +542,27 @@ async function getTransactions(account) {
     console.error("Error reading current transactions:", error);
     return []
   }
+}
+
+/**
+ * @param {string} account 
+ * @returns {Promise<Array<Reimbursement>>}
+ */
+async function getReimbursements(account) {
+  const snapshots = (await 
+    firestore
+    .collection(database)
+    .doc(account)
+    .collection('Reimbursements')
+    .get()
+  )
+  /** @type {Array<Reimbursement>} */
+  let reimbursements = []
+
+  snapshots.forEach((doc) => {
+    reimbursements.push(doc.data())
+  })
+  return reimbursements
 }
 
 /**
@@ -581,6 +657,32 @@ async function updateTransactionId(transactionId, account) {
   .collection(database)
   .doc(account)
   .update({transactionId})
+}
+
+/**
+ * 
+ * @param {number} reimburseId 
+ * @param {string} account 
+ */
+async function updateReimburseId(reimburseId, account) {
+  return firestore
+  .collection(database)
+  .doc(account)
+  .update({reimburseId})
+}
+
+/**
+ * 
+ * @param {Reimbursement} reimbursement 
+ * @param {string} account
+ */
+async function addToReimbursementsToSign(reimbursement, account) {
+  return firestore
+  .collection(database)
+  .doc(account)
+  .collection('Reimbursements')
+  .doc(reimbursement.reimbursementId.toString())
+  .set(reimbursement)
 }
 
 /**
@@ -717,4 +819,19 @@ async function deleteImageFromStorage(path) {
  * @property {string?} deleteReason - the reason the user deleted the transaction
  * @property {string?} filename - the file name for the receipt image in storage
  * @property {string?} imageUrl - the image url for the transaction receipt
+ */
+
+/**
+ * Represents a reimbursement
+ * @typedef {Object} Reimbursement
+ * @property {number} reimbursementId - The ID fo the reimbursement
+ * @property {amount} amount - The total amount being reimbursed
+ * @property {string} account - The account that the reimbursement is for.
+ * @property {Object<string, Transaction?>} transactions - The transactions to be reimbursed
+ * @property {boolean?} signed - If the transaction was signed
+ * @property {string?} signedBy - The user that signed the transaction
+ * @property {string?} signedTime - The time the user signed the transaction
+ * @property {boolean?} collected - If the reimbursement amount was collected
+ * @property {string?} collectedBy - The user that collected the reimbursement amount
+ * @property {string?} collectedTime - The time the user collected the reimbursement amount
  */

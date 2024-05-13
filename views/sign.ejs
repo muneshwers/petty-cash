@@ -1,0 +1,23 @@
+<main x-ref="main" class="swappable">
+        <div x-data="{
+            grid : null,
+            async init() {
+                let {reimbursements} = (await (await fetch('/reimbursements')).json())
+                this.grid = agGrid.createGrid(this.$refs.grid, {
+                    rowData : reimbursements,
+                    domLayout : 'autoHeight',
+                    columnDefs : [
+                        { field : 'reimbursementId' },
+                        { field : 'amount' },
+                        { field : 'signedBy'},
+                        { field : 'signedTime' },
+                        { field : 'collectedBy' },
+                        { field : 'collectedTime' }
+                    ],
+                })
+            },
+        }">
+            <h2>Transactions To Sign</h2>
+            <div x-ref="grid" class="table ag-theme-quartz ag-center-cols-viewport" style="width: auto"></div>
+        </div>
+</main>
