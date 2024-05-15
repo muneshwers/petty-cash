@@ -197,7 +197,7 @@
             htmx.on('#reimburse_button', 'click', (event) => {
                 this.swapMain()
                 setTimeout(() => {
-                    htmx.ajax('POST', '/transaction/reimburse', {
+                    htmx.ajax('POST', '/reimbursement', {
                         target: 'main', 
                         swap:'outerHTML', 
                         values:{

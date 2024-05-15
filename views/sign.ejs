@@ -1,23 +1,380 @@
-<main x-ref="main" class="swappable">
+<main x-ref="main" class="swappable" >
         <div x-data="{
             grid : null,
+            signApproval : <%= signApproval %>,
             async init() {
+                let alpineObj = this
+                const actionRenderer = function(params) {
+                    let reimbursement = params.data
+
+                    const container = document.createElement('div');
+                    container.classList.add('action-container');
+
+                    if (reimbursement) {
+
+                        const viewButton = document.createElement('button')
+                        viewButton.classList.add('action-button')
+                        viewButton.title = 'View'
+                        const icon = document.createElement('i')
+                        icon.classList.add('fa-solid')
+                        icon.classList.add('fa-eye')
+                        viewButton.appendChild(icon)
+                        viewButton.addEventListener('click', () => {
+                            $dispatch('view-modal', {reimbursement}); 
+                        })
+
+                        container.appendChild(viewButton)
+                    }
+
+                    if (reimbursement) {
+
+                        const signButton = document.createElement('button')
+                        const icon = document.createElement('i')
+                        icon.classList.add('fa-solid')
+                        icon.classList.add('fa-pen-nib')
+                        if (reimbursement.signed) {
+                            icon.style.color = '#228b22'
+                            signButton.classList.add('blank-button')
+                            signButton.title = 'Sign'
+                        }
+
+                        else if (alpineObj.signApproval) {
+                            signButton.classList.add('action-button')
+                            signButton.title = 'Sign'
+                            signButton.addEventListener('click', () => {
+                                icon.classList.remove('fa-pen-nib')
+                                icon.classList.add('fa-circle-notch')
+                                icon.classList.add('fa-spin')
+                                icon.style.color = '#0047ab'
+
+
+                                htmx.ajax('POST', '/reimbursement/sign', {
+                                    target: 'main', 
+                                    swap:'outerHTML', 
+                                    values: {
+                                        reimbursement,
+                                    } 
+                                })
+
+                            })
+                        }
+                        else {
+                            signButton.classList.add('blank-button')
+                        }
+                        
+                        signButton.appendChild(icon)
+                        container.appendChild(signButton)
+
+                    }
+
+                    if (reimbursement.signed) {
+
+                        const collectButton = document.createElement('button')
+                        const icon = document.createElement('i')
+                        icon.classList.add('fa-solid')
+                        icon.classList.add('fa-money-bill')
+                        if (reimbursement.collected) {
+                            icon.style.color = '#228b22'
+                            collectButton.classList.add('blank-button')
+                        }
+                        else {
+                            collectButton.title = 'Collect'
+                            collectButton.classList.add('action-button')
+                            collectButton.addEventListener('click', () => {
+
+                                icon.classList.remove('fa-money-bill')
+                                icon.classList.add('fa-circle-notch')
+                                icon.classList.add('fa-spin')
+                                icon.style.color = '#0047ab'
+
+
+                                htmx.ajax('POST', '/reimbursement/collect', {
+                                    target: 'main', 
+                                    swap:'outerHTML', 
+                                    values: {
+                                        reimbursement,
+                                    } 
+                                })
+
+                            })
+                        }
+                        collectButton.appendChild(icon)
+                        container.appendChild(collectButton)
+
+                    }
+
+                    if (reimbursement.signed && reimbursement.collected) {
+                        const completeButton = document.createElement('button')
+                        completeButton.classList.add('action-button')
+                        const icon = document.createElement('i')
+                        icon.classList.add('fa-solid')
+                        icon.classList.add('fa-thumbs-up')
+                        completeButton.appendChild(icon)
+                        completeButton.title = 'Complete'
+
+                        completeButton.addEventListener('click', () => {
+                            $dispatch('complete-modal', {reimbursement}); 
+                        })
+
+                        container.appendChild(completeButton)
+                    }
+
+                    return container
+
+                }
+
                 let {reimbursements} = (await (await fetch('/reimbursements')).json())
                 this.grid = agGrid.createGrid(this.$refs.grid, {
                     rowData : reimbursements,
+                    components : {actionRenderer},
                     domLayout : 'autoHeight',
                     columnDefs : [
                         { field : 'reimbursementId' },
                         { field : 'amount' },
+                        { 
+                            field: 'Actions',
+                            headerName: 'Actions',
+                            cellRenderer: 'actionRenderer',
+                            minWidth: 150,
+                            suppressHeaderMenuButton: true,
+                            cellStyle: { textAlign: 'center' }
+                        },
                         { field : 'signedBy'},
                         { field : 'signedTime' },
                         { field : 'collectedBy' },
                         { field : 'collectedTime' }
                     ],
                 })
+
+                for (let reimbursement of reimbursements) {
+                    if (reimbursement.signed && reimbursement.collected) {
+                        $dispatch('complete-modal', {reimbursement})
+                        break
+                    }
+                }
+
             },
         }">
-            <h2>Transactions To Sign</h2>
+            <h2>Reimbursements To Sign</h2>
             <div x-ref="grid" class="table ag-theme-quartz ag-center-cols-viewport" style="width: auto"></div>
+            
+            <div id="complete-modal"
+            x-data="{
+                openCompleteModal : false,
+                reimbursement : null,
+                async init() {
+                    this.$refs.confirm.addEventListener('click', () => {
+                        swapMain()
+                        htmx.ajax('POST', '/reimbursement/completed', 
+                        {
+                            target: 'main', 
+                            swap:'outerHTML', 
+                            values: {
+                                reimbursement : this.reimbursement,
+                            } 
+                        })
+                    })
+                }
+            }"
+            @complete-modal.window="openCompleteModal = true; reimbursement = $event.detail.reimbursement"
+            >
+                <div x-show="openCompleteModal" class="overlay" >
+                    <div class="modal" @click.outside="openCompleteModal = false">
+                        <button class="close-button" @click="openCompleteModal = false">&times;</button>
+                        <h2>Complete Reimbursement <span x-text="reimbursement?.reimbursementId"></span>?</h2>
+                        <div style="margin: 15px;">This will archieve the reimbursement</div>
+                        <div class="table_btns">
+                            <button class="solid" x-ref="confirm">
+                                Confirm
+                            </button>
+                            <button class="reverse" @click="openCompleteModal = false" >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="view-modal"
+            x-data="{
+                openViewModal : false,
+                reimbursement : null,
+                viewGrid : null,
+                async renderViewTable() {
+
+                    let alpineObj = this
+                    let transactions = Object.values(alpineObj.reimbursement.transactions) 
+
+                    if (this.viewGrid) {
+                        this.viewGrid.setRowData(transactions)
+                        this.viewGrid.refreshCells()
+                        return
+                    }
+
+                    const actionRenderer = function(params) {
+                        let transaction = params.data
+                        const container = document.createElement('div');
+                        container.classList.add('action-container');
+
+                        if (transaction.timeStamp) {
+                            const queryButton= document.createElement('button')
+                            queryButton.classList.add('action-button')
+                            queryButton.title = 'Query'
+                            const icon = document.createElement('i')
+                            icon.classList.add('fa-solid')
+                            icon.classList.add('fa-question')
+                            queryButton.appendChild(icon)
+                            queryButton.addEventListener('click', () => {
+                                $dispatch('query-modal', {transaction})
+                            })
+
+                            container.appendChild(queryButton)
+                        }
+
+                        if (transaction.filename) {
+                            const uploadButton= document.createElement('button')
+                            uploadButton.classList.add('action-button')
+                            uploadButton.title = 'Receipt'
+                            const icon = document.createElement('i')
+                            icon.classList.add('fa-solid')
+                            icon.classList.add('fa-receipt')
+                            uploadButton.appendChild(icon)
+                            uploadButton.addEventListener('click', () => {
+                                $dispatch('upload-modal', {transaction});
+                            })
+
+                            container.appendChild(uploadButton)
+                        }
+                        return container;
+                    }      
+
+                    this.viewGrid = agGrid.createGrid(this.$refs.viewGrid, {
+                    rowData : transactions,
+                    domLayout: 'autoHeight',
+                    components: {actionRenderer},
+                    columnDefs : [
+                        { field: 'transactionId', 
+                        headerName : 'Voucher Number'},
+                        { field: 'description'},
+                        { field: 'amount' },
+                        { field : 'approved'},
+                        { field: 'recipient' },
+                        { field: 'supplier' },
+                        { field: 'createdBy' },
+                        { field: 'date'},
+                        { field: 'timeStamp' },
+                        { 
+                            field: 'Actions',
+                            headerName: 'Actions',
+                            cellRenderer: 'actionRenderer',
+                            minWidth: 150,
+                            suppressHeaderMenuButton: true,
+                            cellStyle: { textAlign: 'center' }
+                        },
+                    ],
+                    defaultColDef: {
+                        filter: 'agTextColumnFilter',
+                        floatingFilter: true,
+                        width: 120,
+                    },
+                
+                })
+                }
+            }"
+            @view-modal.window="openViewModal = true; reimbursement = $event.detail.reimbursement; renderViewTable()"
+            >
+                <div x-show="openViewModal" class="overlay" >
+                    <div class="modal">
+                        <button class="close-button" @click="openViewModal = false">&times;</button>
+                        <h2>View Reimbursement <span x-text="reimbursement?.reimbursementId"></span></h2>
+                        <div x-ref="viewGrid" class="table ag-theme-quartz ag-center-cols-viewport" style="width: auto"></div> 
+                    </div>
+                </div>
+
+                <div id="query-modal"
+                x-data="{
+                    queryGrid : null,
+                    openQueryModal : false,
+                    loading : true,
+                    async queryTransactionHistory(transaction) {
+                        this.loading = true
+                        let {transactions} = await (await fetch('/transaction/query/'+transaction.transactionId)).json()
+                        transaction.transactionId = Number(transaction.transactionId)
+                        transactions.push(transaction)
+                            if (this.queryGrid) {
+                                this.queryGrid.setRowData(transactions)
+                                this.queryGrid.refreshCells()
+                                this.loading = false
+                                return
+                            }
+                            this.queryGrid = agGrid.createGrid(this.$refs.queryGrid, {
+                                rowData : transactions,
+                                columnDefs : [
+                                    { field: 'transactionId', headerName : 'Voucher Number'},
+                                    { field: 'description'},
+                                    { field: 'amount' },
+                                    { field: 'recipient' },
+                                    { field: 'supplier' },
+                                    { field: 'createdBy' },
+                                    { field: 'date' },
+                                    { field: 'timeStamp' },
+                                    { field: 'editedBy' },
+                                    { field: 'editTime'},
+                                    { field: 'reimbursedBy' },
+                                    { field: 'reimbursedTime'},
+                                    { field: 'deletedBy'},
+                                    { field: 'deletedTime'},
+                                    { field: 'deleteReason'}
+                                ],
+                                defaultColDef: {
+                                    filter: 'agTextColumnFilter',
+                                    floatingFilter: true,
+                                },
+                            })
+                            this.loading = false
+                    },
+                }"
+                @query-modal.window="
+                openQueryModal = true
+                queryTransactionHistory($event.detail.transaction)
+                "
+                >
+                 <div x-show="openQueryModal" class="overlay" >
+                    <div class="modal" @click.outside="openQueryModal = false">
+                        <button class="close-button" @click="openQueryModal = false">&times;</button>
+                        <h2>View Transaction History</h2>
+                        <div x-show="loading">
+                            <span>Loading...</span>
+                        </div>
+                        <div x-show="!loading" x-ref="queryGrid" class="table ag-theme-quartz ag-center-cols-viewport" style="width: auto">
+                        </div>
+                    </div>
+                 </div>
+                </div>
+                <div id="upload-modal"
+                x-data="{
+                    openUploadModal: false,
+                    transactionData: '',
+                    previewImage: null,
+                }"
+                @upload-modal.window="
+                    openUploadModal = true;
+                    transactionData = $event.detail.transaction;
+                    previewImage = $event.detail.transaction.imageUrl || '/static/images/noimage.png';
+                "
+            >
+                    <div x-show="openUploadModal" class="overlay">
+                        <div class="modal" @click.outside="previewImage = null; openUploadModal = false;">
+            
+                            <button class="close-button" @click="previewImage = null; openUploadModal = false;">&times;</button>
+            
+                            <h2>Upload File</h2>
+                            <div class="receipt-container">
+                                <img x-bind:src="previewImage" alt="receipt preview" class="receipt-image">
+                            </div>
+                            
+                        </div>
+                    </div>
+                </div>    
+            </div>
         </div>
 </main>

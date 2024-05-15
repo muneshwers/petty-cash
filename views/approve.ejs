@@ -4,29 +4,53 @@
         transactions: [],
         async init() {
             let alpineObj = this
-            const queryRender = function(params) {
-                if (!params.data.timeStamp) {
-                    return
-                }
-                const queryButton = document.createElement('button')
-                queryButton.innerHTML = '?'
-                queryButton.classList.add('query-button')
-                queryButton.addEventListener('click', function () {
-                    $dispatch('query-modal', {transaction : params.data})
-                })
-                return queryButton
-            }
-            const approveRenderer = function(params) {
-                let flexbox = document.createElement('div')
-                flexbox.classList.add('flex-container')
+            const actionRenderer = function(params) {
+                let transaction = params.data
+                const container = document.createElement('div');
+                container.classList.add('action-container');
 
-                const approveButton = document.createElement('button');
-                approveButton.innerHTML = 'Approve';
-                approveButton.classList.add('edit-button');
-                approveButton.addEventListener('click', function () {
+                if (transaction.timeStamp) {
+                    const queryButton= document.createElement('button')
+                    queryButton.classList.add('action-button')
+                    queryButton.title = 'Query'
+                    const icon = document.createElement('i')
+                    icon.classList.add('fa-solid')
+                    icon.classList.add('fa-question')
+                    queryButton.appendChild(icon)
+                    queryButton.addEventListener('click', () => {
+                        $dispatch('query-modal', {transaction})
+                    })
+
+                    container.appendChild(queryButton)
+                }
+
+                if (transaction) {
+                    const deleteButton = document.createElement('button')
+                    deleteButton.classList.add('action-button')
+                    deleteButton.title = 'Delete'
+                    const icon = document.createElement('i')
+                    icon.classList.add('fa-solid')
+                    icon.classList.add('fa-xmark')
+                    deleteButton.appendChild(icon)
+                    deleteButton.addEventListener('click', () => {
+                        $dispatch('delete-modal', {transaction, url : '/transaction/delete'});
+                    })
+
+                    container.appendChild(deleteButton)
+                }
+
+                if (transaction) {
+                    const approveButton = document.createElement('button')
+                    approveButton.classList.add('action-button')
+                    approveButton.title = 'Approve'
+                    const icon = document.createElement('i')
+                    icon.classList.add('fa-solid')
+                    icon.classList.add('fa-check')
+                    approveButton.appendChild(icon)
+                    approveButton.addEventListener('click', () => {
                     let rowIndex = params.rowIndex
                     this.innerHTML = 'Loading...'
-                    fetch('/approve', {
+                    fetch('/transaction/approve', {
                         method: 'POST',
                         headers: {
                             'Content-Type' : 'application/json',
@@ -38,38 +62,25 @@
                             alpineObj.grid.refreshCells()
                     })
                 })
-                flexbox.appendChild(approveButton)
 
-                const deleteButton = document.createElement('button')
-                deleteButton.innerHTML = 'Delete'
-                deleteButton.classList.add('edit-button')
-                deleteButton.addEventListener('click', function() {
-                    $dispatch('delete-modal', {transaction : params.data, url : '/transaction/delete'})
-                })
-                flexbox.appendChild(deleteButton)
+                    container.appendChild(approveButton)
+                }
 
-                return flexbox
+                return container;
             }
+
             let {transactions} = (await (await fetch('/transactions')).json())
             this.transactions = transactions.filter((transaction) => !transaction.approved)
             this.grid = agGrid.createGrid(this.$refs.grid, {
                 rowData : this.transactions,
                 domLayout: 'autoHeight',
-                components: {approveRenderer, queryRender},
+                components: {actionRenderer},
                 columnDefs : [
                     {
-                        field : 'Query',
-                        headerName : 'Query',
-                        cellRenderer: 'queryRender',
+                        field : 'Actions',
+                        headerName : 'Actions',
+                        cellRenderer: 'actionRenderer',
                         maxWidth: 100,
-                        suppressMenu: true,
-                        cellStyle: { textAlign: 'center' }
-                    },
-                    {
-                        field: 'Actions',
-                        headerName: 'Actions',
-                        cellRenderer: 'approveRenderer',
-                        minWidth: 150,
                         suppressMenu: true,
                         cellStyle: { textAlign: 'center' }
                     },

@@ -170,7 +170,9 @@ app.get("/transaction_history", (req, res) => {
 })
 
 app.get("/transaction_sign", (req, res) => {
-  res.render("sign")
+  let { role } = req.session
+  let signApproval = (role == 'approver') ? true : false
+  res.render("sign", {signApproval})
 })
 
 app.get("/saved", (req, res) => {
@@ -320,8 +322,57 @@ app.post("/transaction/delete", (req, res) => {
 
 })
 
+app.post("/reimbursement/sign", async (req, res) => {
+  /** @type {{reimbursement : Reimbursement}} */
+  let { reimbursement } = req.body
+  reimbursement = JSON.parse(reimbursement)
+  /** @type {{account: string }} */
+  let { account } = req.session
+  /** @type {Reimbursement}  */
+  let reimbursementUpdate = {}
+  reimbursementUpdate.reimbursementId = reimbursement.reimbursementId
+  reimbursementUpdate.signed = true
+  reimbursementUpdate.signedBy = req.session.username
+  applyTimeStamp([reimbursementUpdate], "signedTime")
+  updateReimbursement(reimbursementUpdate, account)
+  .then(() => {
+    res.render("sign", {signApproval : true} )
+  })
+  .then(() => {
+    let transactions = Object.values(reimbursement.transactions)
+    sendReimbursementsToAdaptorServer(transactions)
+  })
+})
 
-app.post("/transaction/reimburse", async (req,res)=> {
+
+app.post("/reimbursement/collect", async (req, res) => {
+  /** @type {{reimbursement : Reimbursement}} */
+  let { reimbursement } = req.body
+  reimbursement = JSON.parse(reimbursement)
+
+  /** @type {{account: string }} */
+  let { account } = req.session
+
+  /** @type {Reimbursement}  */
+  let reimbursementUpdate = {}
+  reimbursementUpdate.reimbursementId = reimbursement.reimbursementId
+  reimbursementUpdate.collected = true
+  reimbursementUpdate.collectedBy = req.session.username
+  applyTimeStamp([reimbursementUpdate], "collectedTime")
+
+  updateReimbursement(reimbursementUpdate, account).then(() => {
+    res.redirect("/transaction_sign")
+  })
+
+  getCurrentBalance(account).then((balance) => {
+    balance = Number(balance) + Number(reimbursement.amount)
+    updateBalance(balance, account)
+  })
+
+
+})
+
+app.post("/reimbursement", async (req,res)=> {
   /** @type {{reimbursedTotal:number, toBeReimbursed: Array<Transaction>}} */
   let { reimbursedTotal, toBeReimbursed } = req.body
   toBeReimbursed = JSON.parse(toBeReimbursed)
@@ -361,27 +412,27 @@ app.post("/transaction/reimburse", async (req,res)=> {
   
 })
 
-// app.post("transaction/reimburse/completed", async (req, res) => {
+app.post("/reimbursement/completed", async (req, res) => {
 
-//   /** @type {{completedTotal:number, toBeCompleted: Array<Transaction>}} */
-//   let { completedTotal, toBeCompleted } = req.body
-//   toBeCompleted = JSON.parse(toBeCompleted)
+  /** @type {{reimbursement : Reimbursement}} */
+  let { reimbursement } = req.body
+  reimbursement = JSON.parse(reimbursement)
+  /** @type {{account : string}} */
+  let {account} = req.session
 
-//   let {account} = req.session
+  deleteReimbursement(reimbursement, account)
+  .then(() => res.redirect("/transaction_sign"))
 
-//   let balance = await getCurrentBalance(account)
-//   balance = Number(balance) + Number(completedTotal)
-//   updateBalance(balance, account)
+  new Promise((resolve, reject) => {
+    let transactions = Object.values(reimbursement.transactions)
+    applyTimeStamp(transactions, "completedTime")
+    applyTimeStamp(transactions, "timeStamp")
+    addToTransactionHistory(transactions, account)
+  })
 
-//   applyTimeStamp(toBeCompleted, "completedTime")
-//   applyTimeStamp(toBeCompleted, "timeStamp")
+  addToReimbursementHistory(reimbursement)
 
-//   addToTransactionHistory(toBeCompleted, account)
-
-//   Promise.all(deleteTransactions(toBeCompleted, account))
-//   .then(() => res.render("sign"))
-//   .then(() => sendReimbursementsToAdaptorServer(toBeCompleted))
-// })
+})
 
 
 app.post("/account", (req, res) => {
@@ -404,7 +455,7 @@ app.post("/saved", (req, res) => {
   res.sendStatus(200)
 })
 
-app.post("/approve", (req, res) => {
+app.post("/transaction/approve", (req, res) => {
   /**@type {number} */
   let transactionId = req.body.transactionId
   /** @type {string} */
@@ -687,6 +738,58 @@ async function addToReimbursementsToSign(reimbursement, account) {
 
 /**
  * 
+ * @param {Reimbursement} reimbursement 
+ * @param {string} account 
+ */
+async function updateReimbursement(reimbursement, account) {
+  return firestore
+  .collection(database)
+  .doc(account)
+  .collection('Reimbursements')
+  .doc(reimbursement.reimbursementId.toString())
+  .update(reimbursement)
+
+}
+
+/**
+ * 
+ * @param {Reimbursement} reimbursement 
+ * @param {string} account 
+ */
+async function deleteReimbursement(reimbursement, account) {
+  return firestore
+  .collection(database)
+  .doc(account)
+  .collection('Reimbursements')
+  .doc(reimbursement.reimbursementId.toString())
+  .delete()
+}
+
+/**
+ * 
+ * @param {Reimbursement} reimbursement 
+ * @param {string} account 
+ */
+async function addToReimbursementHistory(reimbursement, account) {
+
+  let reimbursementCopy = {...reimbursement}
+  reimbursementCopy.transactions = Object
+  .values(reimbursement.transactions)
+  .map(transaction => transaction.transactionId)
+
+  /** @type {ReimbursementRecord} */
+  let reimbursementRecord = reimbursementCopy
+  
+  return firestore
+  .collection(database)
+  .doc(account)
+  .collection('Reimbursement History')
+  .doc(reimbursementRecord.reimbursementId.toString())
+  .set(reimbursementRecord)
+}
+
+/**
+ * 
  * @param {Array<Transaction>} transactions 
  * @param {string} account
  * @returns {Array<Promise>}
@@ -702,15 +805,15 @@ async function addToTransactionHistory(transactions, account) {
 
 /**
  * 
- * @param {Array<Transaction>} transactions 
+ * @param {Array<Object>} objects 
  * @param {string} purpose 
  */
-function applyTimeStamp(transactions, purpose) {
+function applyTimeStamp(objects, purpose) {
   const date = new Date();
   const options = { timeZone: 'America/Guyana',  timeZoneName: 'short' };
   const formattedDate = date.toLocaleString('en-US', options);
-  for (let transaction of transactions) {
-    transaction[purpose] = formattedDate
+  for (let object of objects) {
+    object[purpose] = formattedDate
   }
 }
 
@@ -835,3 +938,25 @@ async function deleteImageFromStorage(path) {
  * @property {string?} collectedBy - The user that collected the reimbursement amount
  * @property {string?} collectedTime - The time the user collected the reimbursement amount
  */
+
+/**
+ * Represents a reimbursement in the database history
+ * @typedef {Object} ReimbursementRecord
+ * @property {number} reimbursementId - The ID fo the reimbursement
+ * @property {amount} amount - The total amount being reimbursed
+ * @property {string} account - The account that the reimbursement is for.
+ * @property {Array<number>} transactions - The transaction Ids that have been reimbursed
+ * @property {boolean} signed - If the transaction was signed
+ * @property {string} signedBy - The user that signed the transaction
+ * @property {string} signedTime - The time the user signed the transaction
+ * @property {boolean} collected - If the reimbursement amount was collected
+ * @property {string} collectedBy - The user that collected the reimbursement amount
+ * @property {string} collectedTime - The time the user collected the reimbursement amount
+ */
+
+
+//TODO
+//Make the reimbursement history page
+//Download all the receipt images upon sending to Adaptor server
+//Send email to specific persons depending on the account
+//Taxable transactions
