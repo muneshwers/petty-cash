@@ -33,13 +33,29 @@ const approvalMadeEmailTemplate = (account) => ({
     html:`<b>Your transactions have been approved for (${account})! Log in to reimburse.</b>`,
 })
 
-const reimbursementsMadeEmailTemplate = (account) => ({
-    from: '"Petty Cash Bot" <programmers.muneshwers@gmail.com>',
-    to: 'mngt.acct@muneshwers.com',
-    subject: `Petty Cash (${account}) - Transactions Reimbursed!`,
-    text: `Transactions have been reimbursed for (${account})! Log in to Quickbooks view transactions.`,
-    html: `<b>Transactions have been reimbursed for (${account}).</b>`,
-})
+/**
+ * 
+ * @param {string} account 
+ */
+const reimbursementsMadeEmailTemplate = (account) => {
+
+    const reimbursementsRecipients = {
+        barges : 'accounts.sup@bargesolutionsgy.com',
+        muneshwers : 'mngt.acct@muneshwers.com',
+        paragon : 'accounts.sup@paragon-transportation.com',
+        meals : 'acc.snrclerk@muneshwers.com'
+    };
+
+    const recipients = reimbursementsRecipients[account]
+    const emailTemplate = {
+            from: '"Petty Cash Bot" <programmers.muneshwers@gmail.com>',
+            to: recipients,
+            subject: `Petty Cash (${account}) - Transactions Reimbursed!`,
+            text: `Transactions have been reimbursed for (${account})! Log in to Quickbooks view transactions.`,
+            html: `<b>Transactions have been reimbursed for (${account}).</b>`,
+        };
+    return emailTemplate;
+};
 
 const transactionDeletedEmailTemplate = (account) => ({
     from: '"Petty Cash Bot" <programmers.muneshwers@gmail.com>',
@@ -49,7 +65,7 @@ const transactionDeletedEmailTemplate = (account) => ({
     procurement.supv@muneshwers.com,\
     fin.acct@muneshwers.com',
     subject: `Petty Cash (${account}) - Transactions Deleted!`,
-    text: `Warning! A transaction has been deleted. For more inform look at History page.`,
+    text: `Warning! A transaction has been deleted. For more information look at History page.`,
     html: `<b>Transaction Deleted for (${account}).</b>`,
 })
 
