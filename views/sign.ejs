@@ -157,7 +157,7 @@
         }">
             <h2>Reimbursements To Sign</h2>
             <div x-ref="grid" class="table ag-theme-quartz ag-center-cols-viewport" style="width: auto"></div>
-            
+
             <div id="complete-modal"
             x-data="{
                 openCompleteModal : false,
@@ -230,13 +230,16 @@
                             container.appendChild(queryButton)
                         }
 
-                        if (transaction.filename) {
+                        if (transaction) {
                             const uploadButton= document.createElement('button')
                             uploadButton.classList.add('action-button')
                             uploadButton.title = 'Receipt'
                             const icon = document.createElement('i')
                             icon.classList.add('fa-solid')
                             icon.classList.add('fa-receipt')
+                            if (!transaction.filename) {
+                                icon.style.color = '#cd5c5c' 
+                            }
                             uploadButton.appendChild(icon)
                             uploadButton.addEventListener('click', () => {
                                 $dispatch('upload-modal', {transaction});
@@ -353,27 +356,91 @@
                 <div id="upload-modal"
                 x-data="{
                     openUploadModal: false,
+                    uploadFile: null,
                     transactionData: '',
+                    buttonToggle: false,
                     previewImage: null,
+                    uploadErrorMessage: '',
+                    fileName: '',
+                    async uploadFileHandler() {
+                        try {
+                            fetch('/upload/delete', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type' : 'application/json',
+                                },
+                                body: JSON.stringify({filename: this.transactionData.filename})
+                            })    
+
+                            this.openUploadModal = false
+                            this.openViewModal = false
+                            this.swapMain()
+
+                            const formData = new FormData();
+                            formData.append('file', this.uploadFile)
+                            formData.append('transactionId', this.transactionData.transactionId)
+                            formData.append('reimbursement', JSON.stringify(this.reimbursement))
+                            fetch('/upload/sign', {
+                                method : 'POST',
+                                body: formData
+                            })
+                            .then(() => {
+                                this.previewImage = null
+                            })
+                            .then(() => {
+                                htmx.ajax('GET', '/transaction_sign', {
+                                    target: 'main',
+                                    swap:'outerHTML'
+                                })
+                            })
+
+                        } catch (error) {
+                            console.error('Upload failed:', error);
+                            this.uploadErrorMessage = 'Upload failed. Please try again.';
+                        }
+                    },
+
                 }"
                 @upload-modal.window="
                     openUploadModal = true;
                     transactionData = $event.detail.transaction;
                     previewImage = $event.detail.transaction.imageUrl || '/static/images/noimage.png';
+
+                    buttonToggle = false;
+                    uploadErrorMessage = '';
+                    uploadFile = null;
                 "
+                x-init="$watch('uploadFile', uploadFile => {
+                    fileName = uploadFile?.name;
+                    if (!uploadFile) {
+                        $refs.uploadFileInput.value = null
+                    }
+                })"
             >
-                    <div x-show="openUploadModal" class="overlay">
-                        <div class="modal" @click.outside="previewImage = null; openUploadModal = false;">
-            
-                            <button class="close-button" @click="previewImage = null; openUploadModal = false;">&times;</button>
-            
-                            <h2>Upload File</h2>
-                            <div class="receipt-container">
-                                <img x-bind:src="previewImage" alt="receipt preview" class="receipt-image">
-                            </div>
-                            
+                <div x-show="openUploadModal" class="overlay">
+                    <div class="modal" @click.outside="previewImage = null; openUploadModal = false;">
+
+                        <button class="close-button" @click="previewImage = null; openUploadModal = false;">&times;</button>
+
+                        <h2>Upload File</h2>
+
+                        <div class="upload-buttons">
+                            <label for="file-upload" id="file-upload-label">Choose File</label>
+                            <input id="file-upload" type="file"
+                                x-ref="uploadFileInput"
+                                @change="uploadFile = $event.target.files[0]; uploadErrorMessage=''; buttonToggle=true;"
+                                accept="image/png, image/gif, image/jpeg">
+                            <span id="file-upload-name" x-text="fileName"></span>
+                            <button type="submit" x-show="buttonToggle" class="submit-button" @click="uploadFileHandler()">Upload</button>
+                            <div x-show="uploadErrorMessage" class="error-message" x-text="uploadErrorMessage"></div>
                         </div>
+
+                        <div class="receipt-container">
+                            <img x-bind:src="previewImage" alt="receipt preview" class="receipt-image">
+                        </div>
+                        
                     </div>
+                </div>
                 </div>    
             </div>
         </div>
