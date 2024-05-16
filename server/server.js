@@ -169,6 +169,10 @@ app.get("/transaction_history", (req, res) => {
   res.render("transaction_history")
 })
 
+app.get("/reimbursement_history", (req, res) => {
+  res.render("reimbursement_history")
+})
+
 app.get("/transaction_sign", (req, res) => {
   let { role } = req.session
   let signApproval = (role == 'approver') ? true : false
@@ -430,7 +434,7 @@ app.post("/reimbursement/completed", async (req, res) => {
     addToTransactionHistory(transactions, account)
   })
 
-  addToReimbursementHistory(reimbursement)
+  addToReimbursementHistory(reimbursement, account)
 
 })
 
@@ -496,6 +500,39 @@ app.post('/upload', upload.single('file'), async (req, res) => {
     return res.status(500).send('Upload failed. Please try again.');
   }
 });
+
+
+app.post('/upload/sign', upload.single('file'), async (req, res) => {
+  try {
+
+    if (!req.file) return res.status(400).send('No files were uploaded.');
+    const file = req.file;
+    let filename = file.originalname
+  
+    /** @type {{account: string}} */
+    let {account} = req.session
+
+    /** @type {string} */
+    let transactionId  = req.body.transactionId
+
+    /** @type {Reimbursement} */
+    let reimbursement = JSON.parse(req.body.reimbursement)
+
+    if (!transactionId) return res.status(400).send('transaction id is missing.')
+    filename = account+"_"+transactionId+"_"+filename
+    let imageUrl = await uploadImageToStorage(file, filename)
+
+    let transaction = reimbursement.transactions[transactionId]
+    transaction.imageUrl = imageUrl
+    transaction.filename = filename
+    updateReimbursement(reimbursement, account)
+    .then(() => res.sendStatus(200))
+  } catch (error) {
+    console.error('Upload failed:', error);
+    return res.status(500).send('Upload failed. Please try again.');
+  }
+});
+
 
 app.post('/upload/delete', (req, res) => {
   /** @type {{filename: string}} */
@@ -956,7 +993,6 @@ async function deleteImageFromStorage(path) {
 
 
 //TODO
-//Make the reimbursement history page
-//Download all the receipt images upon sending to Adaptor server
+//Download all the receipt images
 //Send email to specific persons depending on the account
 //Taxable transactions
