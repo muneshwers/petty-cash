@@ -170,6 +170,36 @@
                     }
                     this.viewGrid.exportDataAsCsv({processCellCallback})
                 },
+                async downloadAllImages() {
+                    let alpineObj = this
+                    let transactions = Object.values(alpineObj.reimbursement.transactions)
+                    transactions = transactions.filter((transaction) => (transaction.filename)) 
+                    let promises = transactions.map(async (transaction) => {
+                        const response = await fetch(transaction.imageUrl)
+                        const blob = await response.blob()
+                        return blob
+                    })
+                    const blobs = await Promise.all(promises)
+
+                    const zip = new JSZip()
+                    blobs.forEach((blob, index) => {
+                        zip.file(`${transactions[index].filename}`, blob)
+                    })
+                    const zipFile = await zip.generateAsync({type : 'blob'})
+
+                    let a = document.createElement('a')
+                    let folderName = `${this.reimbursement.account}-${this.reimbursement.reimbursementId}`
+                    a.download = folderName
+                    let url = URL.createObjectURL(zipFile)
+                    a.href = url
+                    let modal = document.querySelector('#view-modal').querySelector('.modal')
+                    modal.appendChild(a)
+                    a.click()
+                    a.remove()
+
+                    URL.revokeObjectURL(url)
+
+                }
             }"
             @view-modal.window="openViewModal = true; reimbursement = $event.detail.reimbursement; renderViewTable()"
             >
@@ -180,12 +210,16 @@
                         <div class="title">
                             <h2>View Reimbursement <span x-text="reimbursement?.reimbursementId"></span></h2>
                             <div class="title_btns">
-                                <button type="button" class="export_btn" @click="exportTableAsCsv()">
+                                <button title="Download Table" type="button" class="export_btn" @click="exportTableAsCsv()">
                                     <img src="/static/images/download.svg" alt="download button" height="25" width="25">
+                                </button>
+
+                                <button title="Download Images" type="button" class="export_btn" @click="downloadAllImages()">
+                                    <i style="padding: 5px;" class="fa-solid fa-download"></i>
                                 </button>
                             </div>
                         </div>
-                        <div x-ref="viewGrid" class="table ag-theme-quartz ag-center-cols-viewport" style="width: 90%"></div> 
+                        <div x-ref="viewGrid" class="table ag-theme-quartz ag-center-cols-viewport" style="width: auto"></div> 
                     </div>
                 </div>
 

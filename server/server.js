@@ -994,6 +994,5 @@ async function deleteImageFromStorage(path) {
 
 //TODO
 //Transactions with receipts do not show up in query
-//Download all the receipt images
-//Send email to specific persons depending on the account
+//Upload images to google drive
 //Taxable transactions
