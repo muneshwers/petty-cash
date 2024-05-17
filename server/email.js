@@ -1,7 +1,11 @@
 import nodemailer from "nodemailer"
 import config from "../config.js"
+import google from '@googleapis/drive';
+import fs from 'fs';
 
 let {emailsOn} = config
+
+const folderId = '1OXEBsZ9ZHEQhYyodYg4IKV2TALqrdmpE';
 
 const nearingLimitEmailTemplate = (account) => ({
     from: '"Petty Cash Bot" <programmers.muneshwers@gmail.com>',
@@ -92,6 +96,45 @@ const transactionDeletedEmailTemplate = (account) => {
     return emailTemplate;
 };
 
+async function sendEmailWithDriveUpload(account) {
+    const link = await uploadToDrive(auth, './server/receipts.jpg', 'receipts.jpg');
+
+    const emailTemplate = {
+        from: '"Petty Cash Bot" <programmers.muneshwers@gmail.com>',
+        to: 'programmer@muneshwers.com',
+        subject: `Petty Cash (${account}) - Transactions Deleted!`,
+        text: `Warning! A transaction has been deleted. For more information look at History page. Link to receipts: ${link}`,
+        html: `<b>Transaction Deleted for (${account}).</b> Link to receipts: <a href="${link}">${link}</a>`
+    };
+
+    return emailTemplate;
+}
+
+async function uploadToDrive(auth, filePath, fileName) {
+    const drive = google.drive({ version: 'v3', auth });
+    const fileMetadata = {
+        'name': fileName,
+        parents: [folderId]
+    };
+    const media = {
+        mimeType: 'image/jpeg',
+        body: fs.createReadStream(filePath)
+    };
+
+    const response = await drive.files.create({
+        resource: fileMetadata,
+        media: media,
+        fields: 'webViewLink'
+    });
+
+    return response.data.webViewLink;
+}
+
+const auth = new google.auth.GoogleAuth({
+    keyFile: './projectservers-2779d6d73579.json',
+    scopes: ['https://www.googleapis.com/auth/drive.file']
+});
+
 function sendEmailFactory(templateBuilder) {
     return async function(account){
         if (!emailsOn) return
@@ -105,7 +148,7 @@ function sendEmailFactory(templateBuilder) {
                     pass: 'dcmdgjlbkxsgpysi',
                 },
             });
-            let template = templateBuilder(account)
+            let template = await templateBuilder(account)
             const info = await transporter.sendMail(template);
             console.log('Message sent: %s', info.messageId);
 
