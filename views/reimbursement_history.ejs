@@ -244,7 +244,9 @@
                         <div x-show="loading">
                             <span>Loading...</span>
                         </div>
-                        <div x-show="!loading" x-ref="queryGrid" class="table ag-theme-quartz ag-center-cols-viewport" style="width: auto">
+                        <div x-show="!loading" >
+                            <div x-ref="queryGrid" class="table ag-theme-quartz ag-center-cols-viewport" style="width: auto">
+                        </div>
                         </div>
                     </div>
                  </div>
@@ -254,6 +256,21 @@
                     openUploadModal: false,
                     transactionData: '',
                     previewImage: null,
+                    async downloadImage() {
+                        const image = await fetch(this.previewImage)
+                        const imageBlob = await image.blob()
+                        const imageURL = URL.createObjectURL(imageBlob)
+
+                        const link = document.createElement('a')
+                        link.href = imageURL
+                        link.download = this.transactionData.filename
+
+                        let modal = document.querySelector('#upload-modal').querySelector('.modal')
+
+                        modal.appendChild(link)
+                        link.click()
+                        modal.removeChild(link)
+                    },
                 }"
                 @upload-modal.window="
                     openUploadModal = true;
@@ -267,6 +284,9 @@
                             <button class="close-button" @click="previewImage = null; openUploadModal = false;">&times;</button>
             
                             <h2>Uploaded</h2>
+                            <div x-show="previewImage != '/static/images/noimage.png' " class="download-button">
+                                <i @click="downloadImage()" class="fa-solid fa-download"></i>
+                            </div>
                             <div class="receipt-container">
                                 <img x-bind:src="previewImage" alt="receipt preview" class="receipt-image">
                             </div>

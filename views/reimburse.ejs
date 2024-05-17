@@ -703,6 +703,21 @@
                     this.uploadErrorMessage = 'Upload failed. Please try again.';
                 }
             },
+            async downloadImage() {
+                const image = await fetch(this.previewImage)
+                const imageBlob = await image.blob()
+                const imageURL = URL.createObjectURL(imageBlob)
+
+                const link = document.createElement('a')
+                link.href = imageURL
+                link.download = this.transactionData.filename
+
+                let modal = document.querySelector('#upload-modal').querySelector('.modal')
+
+                modal.appendChild(link)
+                link.click()
+                modal.removeChild(link)
+            },
 
         }"
         @upload-modal.window="
@@ -738,7 +753,9 @@
                     <button type="submit" x-show="buttonToggle" class="submit-button" @click="uploadFileHandler()">Upload</button>
                     <div x-show="uploadErrorMessage" class="error-message" x-text="uploadErrorMessage"></div>
                 </div>
-
+                <div x-show="previewImage != '/static/images/noimage.png' " class="download-button">
+                    <i @click="downloadImage()" class="fa-solid fa-download"></i>
+                </div>
                 <div class="receipt-container">
                     <img x-bind:src="previewImage" alt="receipt preview" class="receipt-image">
                 </div>
