@@ -77,30 +77,30 @@ const reimbursementsMadeEmailTemplate = (account) => {
     return emailTemplate;
 };
 
-// /**
-//  * 
-//  * @param {string} account 
-//  */
-// const transactionDeletedEmailTemplate = (account) => {
+/**
+ * 
+ * @param {string} account 
+ */
+const transactionDeletedEmailTemplate = (account) => {
 
-//     const deletedRecipients = {
-//         procurement: 'procurement.coor@muneshwers.com, procurement.clerk@muneshwers.com, procurement.clerk2@muneshwers.com, procurement.supv@muneshwers.com, fin.acct@muneshwers.com',
-//         meals: 'acc.snrclerk@muneshwers.com'
-//     };
+    const deletedRecipients = {
+        procurement: 'procurement.coor@muneshwers.com, procurement.clerk@muneshwers.com, procurement.clerk2@muneshwers.com, procurement.supv@muneshwers.com, fin.acct@muneshwers.com',
+        meals: 'acc.snrclerk@muneshwers.com'
+    };
 
-//     let recipients = deletedRecipients[account];
-//     if (!recipients) { recipients = deletedRecipients['procurement']; }
-//     const emailTemplate = {
-//         from: '"Petty Cash Bot" <programmers.muneshwers@gmail.com>',
-//         to: recipients,
-//         subject: `Petty Cash (${account}) - Transactions Deleted!`,
-//         text: `Warning! A transaction has been deleted. For more information look at History page.`,
-//         html: `<b>Transaction Deleted for (${account}).</b>`,
-//     };
-//     return emailTemplate;
-// };
+    let recipients = deletedRecipients[account];
+    if (!recipients) { recipients = deletedRecipients['procurement']; }
+    const emailTemplate = {
+        from: '"Petty Cash Bot" <programmers.muneshwers@gmail.com>',
+        to: recipients,
+        subject: `Petty Cash (${account}) - Transactions Deleted!`,
+        text: `Warning! A transaction has been deleted. For more information look at History page.`,
+        html: `<b>Transaction Deleted for (${account}).</b>`,
+    };
+    return emailTemplate;
+};
 
-async function transactionDeletedEmailTemplate(account) {
+async function testupload(account) {
     const link = await uploadToDrive(auth, './server/receipts.jpg', 'receipts.jpg', account);
 
     const emailTemplate = {
