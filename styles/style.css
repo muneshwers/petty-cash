@@ -350,15 +350,24 @@ main {
 
 }
 
+
+
 input {
     background: #fff;
-    border: 1px solid #d0d0d0;
+    border: 2px solid #97979756;
     float: left;
     font-size: 15px;
     height: 15px;
     margin: 0;
     padding: 10px;
     max-width: 75vw;
+    outline: none;
+    border-radius: 10px;
+}
+
+input:focus,
+input:hover {
+    border: 2px solid #0047ab;
 }
 
 input.error {
@@ -366,6 +375,13 @@ input.error {
     border: 2px solid #cc0033;
     outline: none;
 }
+
+input.error:hover,
+input.error:focus {
+    background-color: #fce4e4;
+    border: 2px solid #cc0033;
+}
+
 
 .transaction-form {
     display: grid;
@@ -502,21 +518,22 @@ h2 {
 
 .limit {
     padding: 30px;
-    width: 100%;
-    border: 1px solid #cc003398;;
-    background-color: #fce4e4;
+    max-width: 500px;
+    /* border: 1px solid #ed053f98;; */
+    background-color: #ffdede;
     display: flex;
     flex-direction: row;
     text-align: center;
     justify-content: center;
     align-items: center;
     border-radius: 20px;
+    color: rgb(110, 0, 0);
     /* From https://css.glass */
     border-radius: 16px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
     backdrop-filter: blur(7px);
     -webkit-backdrop-filter: blur(7px);
-    border: 1px solid rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(255, 0, 0, 0.08);
 }
 
 .limit svg {
@@ -549,11 +566,6 @@ h2 {
 .readonly {
     color: #686868;
     cursor: not-allowed;
-}
-
-input {
-    border-radius: 10px;
-    outline: none;
 }
 
 input.default {

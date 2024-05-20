@@ -98,7 +98,7 @@
                                     }">
                             <span class="errorMessage" x-text="errorMessage"></span>
                             <input x-on:input="let valid = validate(); $dispatch('validation', {valid, field : 'recipient', input})"
-                                x-model="input" x-bind:class="errorMessage ? 'error' : 'default'" type="text" name="recipient" id="recipient">
+                                x-model="input" x-bind:class="{'error' : errorMessage}" type="text" name="recipient" id="recipient">
                             <span class="label">Recipient</span>
                         </div>
                         <div @validation="
@@ -119,7 +119,7 @@
                                 }">
                             <span class="errorMessage" x-text="errorMessage"></span>
                             <input x-on:input="let valid = validate(); $dispatch('validation', {valid, field : 'supplier', input})"
-                                x-model="input" x-bind:class="errorMessage ? 'error' : 'default'" type="text" name="supplier" id="supplier">
+                                x-model="input" x-bind:class="{'error' : errorMessage}" type="text" name="supplier" id="supplier">
                             <span class="label">Supplier</span>
                         </div>
                         <div @validation="
@@ -141,7 +141,7 @@
                                     }">
                             <span class="errorMessage" x-text="errorMessage"></span>
                             <input x-on:input="let valid = validate(); $dispatch('validation', {valid, field : 'description', input})"
-                                x-model="input" x-bind:class="errorMessage ? 'error' : 'default'" type="text" name="description" id="description">
+                                x-model="input" x-bind:class="{'error' : errorMessage}" type="text" name="description" id="description">
                             <span class="label">Description</span>
                         </div>
                         <div @validation="
@@ -175,7 +175,7 @@
                                     }">
                             <span class="errorMessage" x-text="errorMessage"></span>
                             <input x-on:input="let valid = validate(); $dispatch('validation', {valid, field : 'amount', input})"
-                                x-model="input" x-bind:class="errorMessage ? 'error' : 'default'" type="number" name="amount" id="amount">
+                                x-model="input" x-bind:class="{'error' : errorMessage}" type="number" name="amount" id="amount">
                             <span class="label">Amount</span>
                         </div>
                         <div class="item" x-data="{
@@ -194,7 +194,7 @@
                                     }">
                             <span class="errorMessage" x-text="errorMessage"></span>
                             <input x-on:input="let valid = validate(); $dispatch('validation', {valid, field : 'date', input})"
-                                x-model="input" x-bind:class="errorMessage ? 'error' : 'default'" type="date" name="date" id="date">
+                                x-model="input" x-bind:class="{'error' : errorMessage}" type="date" name="date" id="date">
                             <span class="label">Date</span>
                         </div>
                         <button class="submit-button" @click="swapMain()" type="submit" :disabled="!validate()">Submit</button>
