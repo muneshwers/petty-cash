@@ -245,7 +245,9 @@
         <div class="reimburse_container">
             <div class="section1">
                 <h2>Current Transactions</h2>
-                <div x-ref="myGrid" class="table ag-theme-quartz ag-center-cols-viewport" style="width: auto"></div>
+                <div class="table-card">
+                    <div x-ref="myGrid" class="table ag-theme-quartz ag-center-cols-viewport" style="width: auto"></div>
+                </div>
             </div>
             <div class="section2">
                     <div>
@@ -258,7 +260,9 @@
                                 <button type="button" class="reverse" @click="save()" x-text="saveText"></button>
                             </div>
                         </div>
-                        <div x-ref="myGrid2" id="myGrid2" class="table ag-theme-quartz ag-center-cols-viewport"></div>
+                        <div class="table-card">
+                            <div x-ref="myGrid2" id="myGrid2" class="table ag-theme-quartz ag-center-cols-viewport"></div>
+                        </div>
                         <div class="table_btns" x-show="toBeReimbursed.length > 0">
                             <button id="reimburse_button" class="reverse" type="button">Reimburse</button>
                         </div>
@@ -322,9 +326,9 @@
                     @modal.window="editAmount=false"
                     >
                         <div class="amount-box" x-show="editAmount" x-transition:enter.delay.300ms.duration.300ms>
-                            <div class="amount"><div>New Balance </div> <span style="color: green;"  x-text="formatDollar(balance)" ></span></div>
-                            <div class="amount"><div>New Amount </div> <span style="color: red;" x-text="formatDollar(Math.abs(inputs.amount.value) || 0)"></span></div>
-                            <div class="amount"><div>New Remainder </div> <span  x-text="formatDollar(balance - inputs.amount.value)" ></span></div>
+                            <div class="amount"><div>New Balance </div> <span class="amount-value current"  x-text="formatDollar(balance)" ></span></div>
+                            <div class="amount"><div>New Amount </div> <span class="amount-value deducted" x-text="formatDollar(Math.abs(inputs.amount.value) || 0)"></span></div>
+                            <div class="amount"><div>New Remainder </div> <span class="amount-value remainder" x-text="formatDollar(balance - inputs.amount.value)" ></span></div>
                         </div>
 
                         <form :class="{'movedown' : editAmount}" hx-post="/transaction/edit" hx-target="main" hx-trigger="submit delay:0.25s">

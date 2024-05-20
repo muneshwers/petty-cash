@@ -1,3 +1,87 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Raleway:wght@100..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Raleway:wght@100..900&display=swap');
+
+:root {
+    --moderate-blue: #4876B6;
+    --dark-moderate-blue: #345076;
+    --very-dark-grayish: #3D3938;
+    --grayish-orange: #CDC6B2;
+    --light-grayish-orange: #EDEBE5;
+}
+
+.inter-medium {
+    font-family: "Inter", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 500;
+    font-style: normal;
+    font-variation-settings:
+        "slnt" 0;
+}
+
+.raleway-medium {
+    font-family: "Raleway", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 500;
+    font-style: normal;
+}
+
+/* .raleway-semibold {
+    font-family: "Raleway", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 600;
+    font-style: normal;
+} */
+
+.raleway-semibold {
+    font-family: "Raleway", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 600;
+    font-style: normal;
+}
+
+.poppins-thin {
+    font-family: "Poppins", sans-serif;
+    font-weight: 100;
+    font-style: normal;
+}
+
+.poppins-extralight {
+    font-family: "Poppins", sans-serif;
+    font-weight: 200;
+    font-style: normal;
+}
+
+.poppins-light {
+    font-family: "Poppins", sans-serif;
+    font-weight: 300;
+    font-style: normal;
+}
+
+.poppins-regular {
+    font-family: "Poppins", sans-serif;
+    font-weight: 400;
+    font-style: normal;
+}
+
+.poppins-medium {
+    font-family: "Poppins", sans-serif;
+    font-weight: 500;
+    font-style: normal;
+}
+
+.poppins-semibold {
+    font-family: "Poppins", sans-serif;
+    font-weight: 600;
+    font-style: normal;
+}
+
+.poppins-bold {
+    font-family: "Poppins", sans-serif;
+    font-weight: 700;
+    font-style: normal;
+}
+
 body {
     margin: 0px;
     padding: 0px;
@@ -9,20 +93,47 @@ header {
     border-bottom: 0.5px solid #dcdcdc;
     width: 100%;
     font-size: large;
+    box-shadow: 0px 3px 5px rgba(0, 0, 0, 0.123);
+    background-color: white;
+    padding: 10px;
 }
 
 .header-top{
     display: flex;
     flex-direction: row;
+    justify-content: space-between;
     gap: 20px;
     align-items: center;
-    margin: 2vh;
-    margin-left: 7vw;
+    /* margin: 2vh; */
+    margin-left: 3vw;
     margin-top: 2;
 }
 
-.header-top h1{
+.header-app-name {
+    display: flex;
+    flex-direction: row;
+    gap: 20px;
+    align-items: center;
+}
+
+.header-app-name h1{
     margin: 0;
+}
+
+h1 {
+    font-family: "Raleway", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 500;
+    font-style: normal;
+}
+
+.header-app-title {
+    font-size: 30px;
+    margin: 0;
+    font-family: "Raleway", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 500;
+    font-style: normal;
 }
 
 main.login {
@@ -33,7 +144,7 @@ main.login {
 }
 
 .company {
-    color: #0047ab;
+    color: var(--dark-moderate-blue);
 }
 
 .navbar {
@@ -48,6 +159,12 @@ nav {
     padding: 2vw;
     cursor: pointer;
     transition: color 0.3s;
+    font-family: "Inter", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 300;
+    font-style: normal;
+    font-variation-settings:
+        "slnt" 0;
 }
 
 nav:hover {
@@ -56,16 +173,21 @@ nav:hover {
 
 nav.current {
     color: #0047ab;
+    font-weight: 400;
 }
 
 nav.current:hover {
-    color: #0047ab
+    color: #0047ab;
 }
 
 .swappable {
+    margin-top: 5px;
+    margin-left: 0;
+    margin-right: 0;
     position: relative;
     left: -100%;
     animation: slide-in 0.25s forwards;
+    padding: 10px 50px 50px 50px;
 }
 
 .outswappable {
@@ -98,6 +220,7 @@ nav.current:hover {
     justify-content: center;
     position: relative;
     width: 200px;
+    
 }
 
 .account button {
@@ -107,6 +230,7 @@ nav.current:hover {
     padding: 20px;
     border: none;
     align-items: center;
+    cursor: pointer;
 }
 
 .account button span {
@@ -146,30 +270,60 @@ nav.current:hover {
 main {
     margin: 7vw;
     margin-top: 0;
-
 }
+
 
 input {
     background: #fff;
-    border: 1px solid #d0d0d0;
+    border: 2px solid #97979756;
     float: left;
     font-size: 15px;
     height: 15px;
     margin: 0;
-    padding: 8px;
+    padding: 10px;
     max-width: 75vw;
+    outline: none;
+    border-radius: 10px;
+}
+
+input:focus,
+input:hover {
+    border: 2px solid #0047ab;
 }
 
 input.error {
     background-color: #fce4e4;
-    border: 1px solid #cc0033;
+    border: 2px solid #cc0033;
     outline: none;
 }
+
+input.error:hover,
+input.error:focus {
+    background-color: #fce4e4;
+    border: 2px solid #cc0033;
+}
+
 
 .transaction-form {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 25px;
+}
+
+.input-column form {
+    padding: 30px;
+    border-radius: 10px;
+    /* From https://css.glass */
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(7px);
+    -webkit-backdrop-filter: blur(7px);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.input-column form:hover {
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.11);
+    transition: 0.5s;
 }
 
 .item {
@@ -207,17 +361,47 @@ input.error {
     transition: color 0.3s, font-size 0.3s;
 }
 
+.transaction-container {
+    margin-top: 3vh;
+    display: flex;
+    align-items: flex-start;
+    width: 100%;
+    gap: 100px;
+}
+
+.info-column {
+    width: 40%;
+    position: -webkit-sticky;
+    position: sticky;
+    top: 0;
+}
+
+.input-column {
+    width: 60%;
+    /* overflow-y: scroll */
+}
+
 .amount-box {
     display: flex;
     flex-direction: column;
     font-size: larger;
-    margin-top: 5vh;
     margin-bottom: 5vh;
-    max-width: 800px;
-    background-color: #f0f0f0;
-    border-radius: 10px;
-    border: 1px solid #d0d0d0;
-    padding: 20px;
+    max-width: 500px;
+    padding: 40px;
+    gap: 10px;
+    font-family: "Poppins", sans-serif;
+    font-style: normal;
+    /* From https://css.glass */
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(7px);
+    -webkit-backdrop-filter: blur(7px);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.amount-box:hover {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.11);
+    transition: 0.5s;
 }
 
 .amount-box .amount {
@@ -225,17 +409,52 @@ input.error {
     flex-direction: row;
 }
 
+.amount-value {
+    margin-left: 10px;
+    font-weight: 500;
+}
+
+.current {
+    color: green;
+}
+
+.deducted {
+    color: red;
+}
+
+.remainder {
+    color: black;
+}
+
+.amount {
+    color: rgb(58, 58, 58);
+    font-weight: 300;
+}
+
+h2 {
+    font-family: "Poppins", sans-serif;
+    font-weight: 500;
+    font-style: normal;
+}
+
 .limit {
-    padding: 30px;
-    width: 80vw;
-    border: 1px solid #cc0033;;
-    background-color: #fce4e4;
+    padding: 40px;
+    max-width: 500px;
+    height: 100px;
+    background-color: #ffdede;
     display: flex;
     flex-direction: row;
     text-align: center;
     justify-content: center;
     align-items: center;
     border-radius: 20px;
+    color: rgb(110, 0, 0);
+    /* From https://css.glass */
+    border-radius: 16px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(7px);
+    -webkit-backdrop-filter: blur(7px);
+    border: 1px solid rgba(255, 0, 0, 0.08);
 }
 
 .limit svg {
@@ -270,12 +489,18 @@ input.error {
     cursor: not-allowed;
 }
 
-input {
-    border-radius: 15px;
+input.default {
+    border: 2px solid #97979756;
 }
 
+input.default:focus, input.default:hover {
+    border: 2px solid #0047ab;
+}
+
+
+
 button {
-    border-radius: 15px;
+    border-radius: 10px;
 }
 
 .login-container {
@@ -431,6 +656,32 @@ button {
 
 .reimburse_container > .section2 {
     flex: 1;
+}
+
+.table-card {
+    padding: 20px;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.055);
+    backdrop-filter: blur(7px);
+    -webkit-backdrop-filter: blur(7px);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+}
+.to-sign {
+    padding: 40px;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.055);
+    backdrop-filter: blur(7px);
+    -webkit-backdrop-filter: blur(7px);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.history-container {
+    padding: 40px;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.055);
+    backdrop-filter: blur(7px);
+    -webkit-backdrop-filter: blur(7px);
+    border: 1px solid rgba(255, 255, 255, 0.14);
 }
 
 .action-container {
