@@ -4,7 +4,7 @@ const config = {
     development : {
         mode : 'development',
         database : 'Mock',
-        emailsOn : false,
+        emailsOn : true,
         adaptorServerUrl :  "https://adaptor-server-csi5xpfnxa-rj.a.run.app/pettycash/test/reimbursements"
     },
     production : {

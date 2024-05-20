@@ -8,10 +8,10 @@ import { getFirestore } from "firebase-admin/firestore"
 import { getStorage } from "firebase-admin/storage"
 import serviceAccount from "../serviceAccountKey.json" assert {type : "json"}
 import { 
-  sendApprovalMadeEmailWithTimeout, 
-  sendNearingLimitEmailWithTimout,
-  sendTransactionForApprovalEmailWithTimeout,
-  sendReimbursementsMadeWithTimeout,
+  // sendApprovalMadeEmailWithTimeout, 
+  // sendNearingLimitEmailWithTimout,
+  // sendTransactionForApprovalEmailWithTimeout,
+  // sendReimbursementsMadeWithTimeout,
   sendTransactionDeletedEmail
 } from "./email.js";
 import config from "../config.js"
