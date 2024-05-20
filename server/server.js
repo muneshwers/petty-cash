@@ -3,29 +3,20 @@ import "dotenv/config"
 import expressSession from "express-session";
 import bodyParser from "body-parser";
 import multer from "multer";
-import { initializeApp, cert } from "firebase-admin/app"
-import { getFirestore } from "firebase-admin/firestore"
-import { getStorage } from "firebase-admin/storage"
-import serviceAccount from "../serviceAccountKey.json" assert {type : "json"}
 import { 
   sendApprovalMadeEmailWithTimeout, 
   sendNearingLimitEmailWithTimout,
   sendTransactionForApprovalEmailWithTimeout,
   sendReimbursementsMadeWithTimeout,
   sendTransactionDeletedEmail
-} from "./email.js";
-//import * as Database from "./database_functions.js"
+} from "./email.js"
+import * as Database from "./database_functions.js"
 import { uploadToDrive } from "./gdrive.js"
 import config from "../config.js"
 import mime from "mime-types"
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-
-const firebaseApp = initializeApp({
-  credential: cert(serviceAccount),
-  storageBucket: "projectservers.appspot.com",
-});
 
 const upload = multer({
   dest: 'tmp/uploads/',
@@ -37,10 +28,7 @@ const upload = multer({
       cb(null, true);
     }
   }
-});
-
-const firestore = getFirestore(firebaseApp)
-const storage = getStorage(firebaseApp)
+})
 
 const checkLoggedIn = (req, res, next) => {
   const unprotectedUrl = [
@@ -89,7 +77,7 @@ app.get("/login", (req, res) => {
 
 app.post("/login/user", async (req, res) => {
   const { username, password } = req.body;
-  const user = await getUsers(username);
+  const user = await Database.getUsers(username);
 
   let errorMessage = ''; 
 
@@ -122,29 +110,29 @@ app.get("/approve", (req, res) => {
 })
 
 app.get("/balance", async (req, res) => {
-  let balance = await getCurrentBalance(req.session.account)
+  let balance = await Database.getCurrentBalance(req.session.account)
   res.json({balance})
 })
 
 app.get("/transactions", async (req, res) => {
-  let transactions = await getTransactions(req.session.account)
+  let transactions = await Database.getTransactions(req.session.account)
   res.json({transactions})
 })
 
 app.get("/reimbursements", async (req, res) => {
-  let reimbursements = await getReimbursements(req.session.account)
+  let reimbursements = await Database.getReimbursements(req.session.account)
   res.json({reimbursements})
 })
 
 app.get("/reimbursements/history", async (req, res) => {
-  let reimbursements = await getReimbursementsHistory(req.session.account)
+  let reimbursements = await Database.getReimbursementsHistory(req.session.account)
   res.json({reimbursements})
 })
 
 app.get("/transaction/query/:id", async (req, res) => {
   let id = Number(req.params.id)
   let {account} = req.session
-  let docs = (await queryTransaction(account, id)).docs
+  let docs = (await Database.queryTransaction(account, id)).docs
   let transactions = []
   for (let doc of docs) {
     transactions.push(doc.data())
@@ -153,13 +141,13 @@ app.get("/transaction/query/:id", async (req, res) => {
 })
 
 app.get("/transactionId", async (req, res) => {
-  let transactionId = await getCurrentTransactionId(req.session.account)
+  let transactionId = await Database.getCurrentTransactionId(req.session.account)
   res.json({transactionId})
 })
 
 app.get("/transactions/history", async (req, res) => {
   let {account} = req.session
-  let transactionHistory = await getTransactionsHistory(account)
+  let transactionHistory = await Database.getTransactionsHistory(account)
   res.json({transactionHistory})
 })
 
@@ -210,7 +198,7 @@ app.post("/transaction", async (req ,res) => {
     editable : true,
     deleteable : true,
   }
-  let currentId = await getCurrentTransactionId(account) 
+  let currentId = await Database.getCurrentTransactionId(account) 
   currentId = Number(currentId)
   if (currentId > transactionId) {
     transactionId = currentId
@@ -225,17 +213,17 @@ app.post("/transaction", async (req ,res) => {
     sendTransactionForApprovalEmailWithTimeout(account)
   }
   applyTimeStamp([transaction], "timeStamp")
-  setTransactions([transaction], account);
+  Database.setTransactions([transaction], account);
   
-  let balance = await getCurrentBalance(account)
+  let balance = await Database.getCurrentBalance(account)
   balance = balance - amount
   if (balance <= 100000) {
     sendNearingLimitEmailWithTimout(account)
   }
-  updateBalance(balance, account)
+  Database.updateBalance(balance, account)
 
   transactionId = Number(transactionId) + 1
-  updateTransactionId(transactionId, account)
+  Database.updateTransactionId(transactionId, account)
   .then(() => {
     res.render("create_transaction")
   })
@@ -259,7 +247,7 @@ app.post("/transaction/edit", async (req, res) => {
     date,
   };
 
-  let originalTransaction = await getTransaction(
+  let originalTransaction = await Database.getTransaction(
     transactionId.toString(), 
     req.session.account
   )
@@ -271,14 +259,14 @@ app.post("/transaction/edit", async (req, res) => {
 
   applyTimeStamp([originalTransaction], "editTime")
   originalTransaction.editedBy = req.session.username
-  addToTransactionHistory([{...originalTransaction}], req.session.account)
+  Database.addToTransactionHistory([{...originalTransaction}], req.session.account)
   if (!amountChanged) {
     transaction.amount = originalTransaction.amount
   }
   if (amountChanged) {
-    let balance = await getCurrentBalance(req.session.account)
+    let balance = await Database.getCurrentBalance(req.session.account)
     balance += (originalTransaction.amount - transaction.amount)
-    updateBalance(balance, req.session.account)
+    Database.updateBalance(balance, req.session.account)
 
     if (amount < transactionApprovalLimit) {
       transaction["approved"] = true
@@ -295,7 +283,7 @@ app.post("/transaction/edit", async (req, res) => {
   }
   applyTimeStamp([originalTransaction], "timeStamp")
   Object.assign(originalTransaction, transaction)
-  Promise.all(setTransactions([originalTransaction], req.session.account))
+  Promise.all(Database.setTransactions([originalTransaction], req.session.account))
   .then(()=> res.render("reimburse"))
 })
 
@@ -311,7 +299,7 @@ app.post("/transaction/delete", (req, res) => {
   transaction.deletedBy = req.session.username
   transaction.deleteReason = reason
 
-  deleteTransaction(transaction, account)
+  Database.deleteTransaction(transaction, account)
   .then(() => {
     if (role == 'basic') {
       res.render("reimburse")
@@ -323,12 +311,12 @@ app.post("/transaction/delete", (req, res) => {
     }
   })
 
-  addToTransactionHistory([transaction], account)
+  Database.addToTransactionHistory([transaction], account)
   .then(() => sendTransactionDeletedEmail(account))
 
-  getCurrentBalance(account)
+  Database.getCurrentBalance(account)
   .then((balance) => balance + transaction.amount)
-  .then((newBalance) => updateBalance(newBalance, account))
+  .then((newBalance) => Database.updateBalance(newBalance, account))
 
 })
 
@@ -346,7 +334,7 @@ app.post("/reimbursement/sign", async (req, res) => {
   applyTimeStamp([reimbursementUpdate], "signedTime")
   
   //let transactions = Object.values(reimbursement.transactions)
-  updateReimbursement(reimbursementUpdate, account)
+  Database.updateReimbursement(reimbursementUpdate, account)
   .then(() => res.render("sign", {signApproval : true} ))
   .then(() => uploadToDrive(reimbursement.reimbursementId))
   // .then(() => sendReimbursementsToAdaptorServer(transactions))
@@ -377,13 +365,13 @@ app.post("/reimbursement/collect", async (req, res) => {
   reimbursementUpdate.collectedBy = req.session.username
   applyTimeStamp([reimbursementUpdate], "collectedTime")
 
-  updateReimbursement(reimbursementUpdate, account).then(() => {
+  Database.updateReimbursement(reimbursementUpdate, account).then(() => {
     res.redirect("/transaction_sign")
   })
 
-  getCurrentBalance(account).then((balance) => {
+  Database.getCurrentBalance(account).then((balance) => {
     balance = Number(balance) + Number(reimbursement.amount)
-    updateBalance(balance, account)
+    Database.updateBalance(balance, account)
   })
 
 
@@ -396,12 +384,12 @@ app.post("/reimbursement", async (req,res)=> {
 
   /** @type {{account : string}} */
   let {account} = req.session
-  Promise.all(deleteTransactions(toBeReimbursed, account))
+  Promise.all(Database.deleteTransactions(toBeReimbursed, account))
   .then(() => res.render("reimburse"))
   .then(() => sendReimbursementsMadeWithTimeout(account))
 
 
-  getCurrentReimbursementId(req.session.account).then(
+  Database.getCurrentReimbursementId(req.session.account).then(
     (currentReimbursementId) => {
 
       /** @type {Reimbursement} */
@@ -418,10 +406,10 @@ app.post("/reimbursement", async (req,res)=> {
         reimbursement.transactions[transaction.transactionId.toString()] = transaction
       }
 
-      addToReimbursementsToSign(reimbursement, account)
+      Database.addToReimbursementsToSign(reimbursement, account)
 
       currentReimbursementId = currentReimbursementId + 1
-      updateReimburseId(currentReimbursementId, account)
+      Database.updateReimburseId(currentReimbursementId, account)
 
 
     }
@@ -437,17 +425,17 @@ app.post("/reimbursement/completed", async (req, res) => {
   /** @type {{account : string}} */
   let {account} = req.session
 
-  deleteReimbursement(reimbursement, account)
+  Database.deleteReimbursement(reimbursement, account)
   .then(() => res.redirect("/transaction_sign"))
 
   new Promise((resolve, reject) => {
     let transactions = Object.values(reimbursement.transactions)
     applyTimeStamp(transactions, "completedTime")
     applyTimeStamp(transactions, "timeStamp")
-    addToTransactionHistory(transactions, account)
+    Database.addToTransactionHistory(transactions, account)
   })
 
-  addToReimbursementHistory(reimbursement, account)
+  Database.addToReimbursementHistory(reimbursement, account)
 
 })
 
@@ -484,7 +472,7 @@ app.post("/transaction/approve", (req, res) => {
     editable: false,
   }
   applyTimeStamp([transactionUpdate], "approvedTime")
-  updateTransaction(transactionUpdate, account)
+  Database.updateTransaction(transactionUpdate, account)
   .then(() => res.sendStatus(200))
   .then(() => sendApprovalMadeEmailWithTimeout(account))
 });
@@ -504,10 +492,10 @@ app.post('/upload', upload.single('file'), async (req, res) => {
 
     if (!transactionId) return res.status(400).send('transaction id is missing.')
     filename = account+"_"+transactionId+"_"+filename
-    let imageUrl = await uploadImageToStorage(file, filename)
+    let imageUrl = await Database.uploadImageToStorage(file, filename)
 
     transactionId = Number(transactionId)
-    updateTransaction({transactionId, imageUrl, filename}, account)
+    Database.updateTransaction({transactionId, imageUrl, filename}, account)
     .then(() => res.sendStatus(200))
   } catch (error) {
     console.error('Upload failed:', error);
@@ -534,12 +522,12 @@ app.post('/upload/sign', upload.single('file'), async (req, res) => {
 
     if (!transactionId) return res.status(400).send('transaction id is missing.')
     filename = account+"_"+transactionId+"_"+filename
-    let imageUrl = await uploadImageToStorage(file, filename)
+    let imageUrl = await Database.uploadImageToStorage(file, filename)
 
     let transaction = reimbursement.transactions[transactionId]
     transaction.imageUrl = imageUrl
     transaction.filename = filename
-    updateReimbursement(reimbursement, account)
+    Database.updateReimbursement(reimbursement, account)
     .then(() => res.sendStatus(200))
   } catch (error) {
     console.error('Upload failed:', error);
@@ -553,7 +541,7 @@ app.post('/upload/delete', (req, res) => {
   let {filename} = req.body
   if (!filename) return
   try{
-    deleteImageFromStorage(filename)
+    Database.deleteImageFromStorage(filename)
     .then(() => res.sendStatus(200))
   }catch {
     res.sendStatus(500)
@@ -566,284 +554,6 @@ app.listen(PORT, () => {
 });
 
 const transactionApprovalLimit = 10000
-const {database} = config
-
-/**
- * 
- * @param {string} user 
- * @returns 
- */
-async function getUsers(user) {
-  return (await firestore
-    .collection(database)
-    .doc('Users')
-    .collection('users')
-    .doc(user)
-    .get()).data()
-}
-/**
- * 
- * @param {string} account 
- * @returns {Promise<number>}
- */
-async function getCurrentBalance(account) {
-  const {balance} = (await firestore
-  .collection(database)
-  .doc(account)
-  .get()).data()
-  return balance;
-
-}
-
-/**
- * 
- * @param {string} account
- * @returns {Promise<number>} 
- */
-async function getCurrentTransactionId(account) {
-  let {transactionId} = (await (firestore
-  .collection(database)
-  .doc(account)
-  .get())).data()
-  return transactionId
-
-}
-
-/**
- * @param {string} account
- * @returns {Promise<number>}
- */
-async function getCurrentReimbursementId(account) {
-  let {reimburseId} = (await (firestore
-    .collection(database)
-    .doc(account)
-    .get()
-  )).data()
-  return reimburseId
-}
-
-/**
- * 
- * @param {string} account 
- * @returns {Promise<Array<Transaction>>}
- */
-async function getTransactions(account) {
-  try {
-    const snapshots = (await firestore
-    .collection(database)
-    .doc(account)
-    .collection('Transactions')
-    .get())
-    /** @type {Array<Transaction>} */
-    let transactions = []
-    snapshots.forEach((doc) => {
-      transactions.push(doc.data())
-    })
-    return transactions
-  } catch (error) {
-    console.error("Error reading current transactions:", error);
-    return []
-  }
-}
-
-/**
- * @param {string} account 
- * @returns {Promise<Array<Reimbursement>>}
- */
-async function getReimbursements(account) {
-  const snapshots = (await 
-    firestore
-    .collection(database)
-    .doc(account)
-    .collection('Reimbursements')
-    .get()
-  )
-  /** @type {Array<Reimbursement>} */
-  let reimbursements = []
-
-  snapshots.forEach((doc) => {
-    reimbursements.push(doc.data())
-  })
-  return reimbursements
-}
-
-/**
- * 
- * @param {string} transactionId 
- * @param {string} account 
- * @returns {Promise<Transaction>}
- */
-async function getTransaction(transactionId, account) {
-  return (await firestore
-    .collection(database)
-    .doc(account)
-    .collection('Transactions')
-    .doc(transactionId)
-    .get()
-    ).data()
-}
-
-async function updateBalance(balance, account) {
-  return firestore
-  .collection(database)
-  .doc(account)
-  .update({balance})
-}
-
-/**
- * 
- * @param {Array<Transaction>} transactions 
- * @param {string} account 
- * @returns {Array<Promise>}
- */
-function setTransactions(transactions, account) {
-  return transactions.map(
-    (transaction) => firestore
-    .collection(database)
-    .doc(account)
-    .collection('Transactions')
-    .doc(transaction.transactionId.toString())
-    .set(transaction)
-  )
-}
-
-/**
- * @param {Transaction} transaction
- * @param {string} account
- * @returns {Promise}
- */
-function updateTransaction(transaction, account) {
-  return firestore
-  .collection(database)
-  .doc(account)
-  .collection('Transactions')
-  .doc(transaction.transactionId.toString())
-  .update(transaction)
-}
-
-/**
- *    
- * @param {Array<Transaction>} transactions 
- * @param {string} account 
- * @returns {Array<Promise>}
- */
-function deleteTransactions(transactions, account) {
-  return transactions.map(
-    (transaction) => firestore
-      .collection(database)
-      .doc(account)
-      .collection('Transactions')
-      .doc(transaction.transactionId.toString())
-      .delete()
-  )
-}
-
-/**
- * 
- * @param {Transaction} transaction 
- * @param {string} account 
- * @returns {Promise}
- */
-function deleteTransaction(transaction, account) {
-  return firestore
-  .collection(database)
-  .doc(account)
-  .collection('Transactions')
-  .doc(transaction.transactionId.toString())
-  .delete()
-}
-
-
-async function updateTransactionId(transactionId, account) {
-  return firestore
-  .collection(database)
-  .doc(account)
-  .update({transactionId})
-}
-
-/**
- * 
- * @param {number} reimburseId 
- * @param {string} account 
- */
-async function updateReimburseId(reimburseId, account) {
-  return firestore
-  .collection(database)
-  .doc(account)
-  .update({reimburseId})
-}
-
-/**
- * 
- * @param {Reimbursement} reimbursement 
- * @param {string} account
- */
-async function addToReimbursementsToSign(reimbursement, account) {
-  return firestore
-  .collection(database)
-  .doc(account)
-  .collection('Reimbursements')
-  .doc(reimbursement.reimbursementId.toString())
-  .set(reimbursement)
-}
-
-/**
- * 
- * @param {Reimbursement} reimbursement 
- * @param {string} account 
- */
-async function updateReimbursement(reimbursement, account) {
-  return firestore
-  .collection(database)
-  .doc(account)
-  .collection('Reimbursements')
-  .doc(reimbursement.reimbursementId.toString())
-  .update(reimbursement)
-
-}
-
-/**
- * 
- * @param {Reimbursement} reimbursement 
- * @param {string} account 
- */
-async function deleteReimbursement(reimbursement, account) {
-  return firestore
-  .collection(database)
-  .doc(account)
-  .collection('Reimbursements')
-  .doc(reimbursement.reimbursementId.toString())
-  .delete()
-}
-
-/**
- * 
- * @param {Reimbursement} reimbursement 
- * @param {string} account 
- */
-async function addToReimbursementHistory(reimbursement, account) {
-  return firestore
-  .collection(database)
-  .doc(account)
-  .collection('Reimbursement History')
-  .doc(reimbursement.reimbursementId.toString())
-  .set(reimbursement)
-}
-
-/**
- * 
- * @param {Array<Transaction>} transactions 
- * @param {string} account
- * @returns {Array<Promise>}
- */
-async function addToTransactionHistory(transactions, account) {
-  return transactions.map(transaction => firestore
-    .collection(database)
-    .doc(account)
-    .collection('History')
-    .add(transaction)
-  )
-}
 
 /**
  * 
@@ -856,56 +566,6 @@ function applyTimeStamp(objects, purpose) {
   const formattedDate = date.toLocaleString('en-US', options);
   for (let object of objects) {
     object[purpose] = formattedDate
-  }
-}
-
-/**
- * 
- * @param {string} account 
- * @returns {Promise<Array<Transaction>>}
- */
-async function getTransactionsHistory(account) {
-  try {
-    const snapshots = (await firestore
-    .collection(database)
-    .doc(account)
-    .collection('History')
-    .orderBy("transactionId", 'desc')
-    .get())
-    /** @type {Array<Transaction>}*/
-    let transactions = []
-    snapshots.forEach((doc) => {
-      transactions.push(doc.data())
-    })
-    return transactions
-  } catch (error) {
-    console.error("Error reading transaction history:", error);
-    return []
-  }
-}
-
-/**
- * 
- * @param {string} account 
- * @returns {Promise<Array<Reimbursement>>}
- */
-async function getReimbursementsHistory(account) {
-  try {
-    const snapshots = (await firestore
-    .collection(database)
-    .doc(account)
-    .collection('Reimbursement History')
-    .orderBy("reimbursementId", 'desc')
-    .get())
-    /** @type {Array<Reimbursement>}*/
-    let reimbursements = []
-    snapshots.forEach((doc) => {
-      reimbursements.push(doc.data())
-    })
-    return reimbursements
-  } catch (error) {
-    console.error("Error reading reimbursement history:", error);
-    return []
   }
 }
 
@@ -924,56 +584,6 @@ function sendReimbursementsToAdaptorServer(reimbursements) {
   }).then(
       (response) => console.log(response)
   )
-}
-
-/**
- * 
- * @param {string} account 
- * @param {number} transactionId 
- */
-async function queryTransaction(account, transactionId) {
-  return firestore
-  .collection(database)
-  .doc(account)
-  .collection('History')
-  .where('transactionId', "==", transactionId)
-  .orderBy("timeStamp")
-  .get()
-}
-
-/**
- * 
- * @param {Express.Multer.File} file 
- * @param {string} filename 
- * @returns {Promise<string>}
- */
-async function uploadImageToStorage(file, filename) {
-  const uploadResponse = await storage.bucket().upload(file.path, {destination: filename})
-  const url = (await uploadResponse[0].getSignedUrl({action: 'read', expires : "01-01-3000"}))[0]
-  return url
-
-}
-
-/**
- *
- * @param {string} path 
- * @return {Promise}
- */
-async function deleteImageFromStorage(path) {
-  const file = storage.bucket().file(path)
-  if (!file) {
-    throw Error("image not found")
-  }
-  return file.delete()
-}
-
-/**
- * 
- * @param {string} filename 
- * @returns 
- */
-async function downloadImageFromStorage(filename) {
-  return storage.bucket().file(filename).get()
 }
 
 /**
