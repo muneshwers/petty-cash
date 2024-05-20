@@ -907,8 +907,30 @@ button {
     align-items: center;
 }
 
+
+.download-button {
+    margin-top: 20px;
+}
+
+
+.download-button i {
+    padding: 5px;
+    border-radius: 3px;
+    color: #444;
+    transition: background-color 0.3s ease-in-out;
+}
+
+.download-button i:hover {
+    background-color: #f0f0f0;
+}
+
+.row-reverse {
+    display: flex;
+    flex-direction: row-reverse;
+}
+
 .receipt-container {
-    margin-top: 30px;
+    margin-top: 10px;
     border: 1px rgba(182, 182, 182, 0.445) solid;
     height: 100%;
     object-fit: contain;

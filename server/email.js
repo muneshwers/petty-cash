@@ -22,16 +22,28 @@ const transactionMadeEmailTemplate = (account) => ({
     html: `<b>New Transaction were made for (${account}). Log in to Approve!</b>`,
 })
 
-const approvalMadeEmailTemplate = (account) => ({
-    from: '"Petty Cash Bot" <programmers.muneshwers@gmail.com>',
-    to: 'procurement.coor@muneshwers.com, \
-    procurement.clerk@muneshwers.com, \
-    procurement.clerk2@muneshwers.com, \
-    procurement.supv@muneshwers.com',
-    subject:`Petty Cash (${account}) - Transactions Approved!`,
-    text: `Your transactions have been approved for (${account})! Log in to reimburse.`,
-    html:`<b>Your transactions have been approved for (${account})! Log in to reimburse.</b>`,
-})
+/**
+ * 
+ * @param {string} account 
+ */
+const approvalMadeEmailTemplate = (account) => {
+
+    const approvalRecipients = {
+        procurement : 'procurement.coor@muneshwers.com, procurement.clerk@muneshwers.com, procurement.clerk2@muneshwers.com, procurement.supv@muneshwers.com',
+        meals : 'acc.snrclerk@muneshwers.com'
+    };
+
+    const recipients = approvalRecipients[account]
+    if (!recipients) { recipients = approvalRecipients['procurement']; }
+    const emailTemplate = {
+            from: '"Petty Cash Bot" <programmers.muneshwers@gmail.com>',
+            to: recipients,
+            subject:`Petty Cash (${account}) - Transactions Approved!`,
+            text: `Your transactions have been approved for (${account})! Log in to reimburse.`,
+            html:`<b>Your transactions have been approved for (${account})! Log in to reimburse.</b>`,
+        };
+    return emailTemplate;
+};
 
 /**
  * 
@@ -57,17 +69,28 @@ const reimbursementsMadeEmailTemplate = (account) => {
     return emailTemplate;
 };
 
-const transactionDeletedEmailTemplate = (account) => ({
-    from: '"Petty Cash Bot" <programmers.muneshwers@gmail.com>',
-    to: 'procurement.coor@muneshwers.com,\
-    procurement.clerk@muneshwers.com,\
-    procurement.clerk2@muneshwers.com,\
-    procurement.supv@muneshwers.com,\
-    fin.acct@muneshwers.com',
-    subject: `Petty Cash (${account}) - Transactions Deleted!`,
-    text: `Warning! A transaction has been deleted. For more information look at History page.`,
-    html: `<b>Transaction Deleted for (${account}).</b>`,
-})
+/**
+ * 
+ * @param {string} account 
+ */
+const transactionDeletedEmailTemplate = (account) => {
+
+    const deletedRecipients = {
+        procurement : 'procurement.coor@muneshwers.com, procurement.clerk@muneshwers.com, procurement.clerk2@muneshwers.com, procurement.supv@muneshwers.com, fin.acct@muneshwers.com',
+        meals : 'acc.snrclerk@muneshwers.com'
+    };
+
+    const recipients = deletedRecipients[account]
+    if (!recipients) { recipients = deletedRecipients['procurement']; }
+    const emailTemplate = {
+            from: '"Petty Cash Bot" <programmers.muneshwers@gmail.com>',
+            to: recipients,
+            subject: `Petty Cash (${account}) - Transactions Deleted!`,
+            text: `Warning! A transaction has been deleted. For more information look at History page.`,
+            html: `<b>Transaction Deleted for (${account}).</b>`,
+        };
+    return emailTemplate;
+};
 
 function sendEmailFactory(templateBuilder) {
     return async function(account){

@@ -252,7 +252,7 @@
             <div class="section2">
                     <div>
                         <div class="title" >
-                            <h2>Reimbursements</h2>
+                            <h2>Reimbursing</h2>
                             <div class="title_btns">
                                 <button type="button" @click="exportTableAsCsv()">
                                     <img src="/static/images/download.svg" alt="download button" height="25" width="25">
@@ -707,6 +707,21 @@
                     this.uploadErrorMessage = 'Upload failed. Please try again.';
                 }
             },
+            async downloadImage() {
+                const image = await fetch(this.previewImage)
+                const imageBlob = await image.blob()
+                const imageURL = URL.createObjectURL(imageBlob)
+
+                const link = document.createElement('a')
+                link.href = imageURL
+                link.download = this.transactionData.filename
+
+                let modal = document.querySelector('#upload-modal').querySelector('.modal')
+
+                modal.appendChild(link)
+                link.click()
+                modal.removeChild(link)
+            },
 
         }"
         @upload-modal.window="
@@ -737,12 +752,14 @@
                     <input id="file-upload" type="file"
                         x-ref="uploadFileInput"
                         @change="uploadFile = $event.target.files[0]; uploadErrorMessage=''; buttonToggle=true;"
-                        accept="image/png, image/gif, image/jpeg">
+                        accept="image/png, image/jpeg">
                     <span id="file-upload-name" x-text="fileName"></span>
                     <button type="submit" x-show="buttonToggle" class="submit-button" @click="uploadFileHandler()">Upload</button>
                     <div x-show="uploadErrorMessage" class="error-message" x-text="uploadErrorMessage"></div>
                 </div>
-
+                <div x-show="previewImage != '/static/images/noimage.png' " class="download-button">
+                    <i @click="downloadImage()" class="fa-solid fa-download"></i>
+                </div>
                 <div class="receipt-container">
                     <img x-bind:src="previewImage" alt="receipt preview" class="receipt-image">
                 </div>
