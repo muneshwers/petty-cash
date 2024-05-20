@@ -29,7 +29,7 @@
 
                 }
 
-                let {reimbursements} = (await (await fetch('/reimbursements')).json())
+                let {reimbursements} = (await (await fetch('/reimbursements/history')).json())
                 this.grid = agGrid.createGrid(this.$refs.grid, {
                     rowData : reimbursements,
                     components : {actionRenderer},

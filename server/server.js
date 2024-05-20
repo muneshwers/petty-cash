@@ -14,6 +14,8 @@ import {
   sendReimbursementsMadeWithTimeout,
   sendTransactionDeletedEmail
 } from "./email.js";
+//import * as Database from "./database_functions.js"
+import { uploadToDrive } from "./gdrive.js"
 import config from "../config.js"
 import mime from "mime-types"
 
@@ -71,7 +73,6 @@ app.use(expressSession({
 }))
 app.use(checkLoggedIn)
 
-//Gets users from json file
 app.get("/", (req, res) => {
   res.render("head")
 })
@@ -132,6 +133,11 @@ app.get("/transactions", async (req, res) => {
 
 app.get("/reimbursements", async (req, res) => {
   let reimbursements = await getReimbursements(req.session.account)
+  res.json({reimbursements})
+})
+
+app.get("/reimbursements/history", async (req, res) => {
+  let reimbursements = await getReimbursementsHistory(req.session.account)
   res.json({reimbursements})
 })
 
@@ -338,14 +344,21 @@ app.post("/reimbursement/sign", async (req, res) => {
   reimbursementUpdate.signed = true
   reimbursementUpdate.signedBy = req.session.username
   applyTimeStamp([reimbursementUpdate], "signedTime")
+  
+  //let transactions = Object.values(reimbursement.transactions)
   updateReimbursement(reimbursementUpdate, account)
-  .then(() => {
-    res.render("sign", {signApproval : true} )
-  })
-  .then(() => {
-    let transactions = Object.values(reimbursement.transactions)
-    sendReimbursementsToAdaptorServer(transactions)
-  })
+  .then(() => res.render("sign", {signApproval : true} ))
+  .then(() => uploadToDrive(reimbursement.reimbursementId))
+  // .then(() => sendReimbursementsToAdaptorServer(transactions))
+  // .then(() => {
+  //   let transactionsWithImages = transactions.filter((transaction) => (transaction?.filename))
+  //   let promises = transactionsWithImages.map((transaction) => downloadImageFromStorage(transaction.filename))
+  //   return Promise.all(promises)
+  // })
+  // .then((responses) => {
+  //   let images = responses.map((res) => res[0])
+
+  // })
 })
 
 
@@ -493,6 +506,7 @@ app.post('/upload', upload.single('file'), async (req, res) => {
     filename = account+"_"+transactionId+"_"+filename
     let imageUrl = await uploadImageToStorage(file, filename)
 
+    transactionId = Number(transactionId)
     updateTransaction({transactionId, imageUrl, filename}, account)
     .then(() => res.sendStatus(200))
   } catch (error) {
@@ -808,21 +822,12 @@ async function deleteReimbursement(reimbursement, account) {
  * @param {string} account 
  */
 async function addToReimbursementHistory(reimbursement, account) {
-
-  let reimbursementCopy = {...reimbursement}
-  reimbursementCopy.transactions = Object
-  .values(reimbursement.transactions)
-  .map(transaction => transaction.transactionId)
-
-  /** @type {ReimbursementRecord} */
-  let reimbursementRecord = reimbursementCopy
-  
   return firestore
   .collection(database)
   .doc(account)
   .collection('Reimbursement History')
-  .doc(reimbursementRecord.reimbursementId.toString())
-  .set(reimbursementRecord)
+  .doc(reimbursement.reimbursementId.toString())
+  .set(reimbursement)
 }
 
 /**
@@ -854,7 +859,11 @@ function applyTimeStamp(objects, purpose) {
   }
 }
 
-
+/**
+ * 
+ * @param {string} account 
+ * @returns {Promise<Array<Transaction>>}
+ */
 async function getTransactionsHistory(account) {
   try {
     const snapshots = (await firestore
@@ -871,6 +880,31 @@ async function getTransactionsHistory(account) {
     return transactions
   } catch (error) {
     console.error("Error reading transaction history:", error);
+    return []
+  }
+}
+
+/**
+ * 
+ * @param {string} account 
+ * @returns {Promise<Array<Reimbursement>>}
+ */
+async function getReimbursementsHistory(account) {
+  try {
+    const snapshots = (await firestore
+    .collection(database)
+    .doc(account)
+    .collection('Reimbursement History')
+    .orderBy("reimbursementId", 'desc')
+    .get())
+    /** @type {Array<Reimbursement>}*/
+    let reimbursements = []
+    snapshots.forEach((doc) => {
+      reimbursements.push(doc.data())
+    })
+    return reimbursements
+  } catch (error) {
+    console.error("Error reading reimbursement history:", error);
     return []
   }
 }
@@ -934,6 +968,15 @@ async function deleteImageFromStorage(path) {
 }
 
 /**
+ * 
+ * @param {string} filename 
+ * @returns 
+ */
+async function downloadImageFromStorage(filename) {
+  return storage.bucket().file(filename).get()
+}
+
+/**
  * Represents a transaction.
  * @typedef {Object} Transaction
  * @property {number} transactionId - The ID of the transaction.
@@ -976,23 +1019,6 @@ async function deleteImageFromStorage(path) {
  * @property {string?} collectedTime - The time the user collected the reimbursement amount
  */
 
-/**
- * Represents a reimbursement in the database history
- * @typedef {Object} ReimbursementRecord
- * @property {number} reimbursementId - The ID fo the reimbursement
- * @property {amount} amount - The total amount being reimbursed
- * @property {string} account - The account that the reimbursement is for.
- * @property {Array<number>} transactions - The transaction Ids that have been reimbursed
- * @property {boolean} signed - If the transaction was signed
- * @property {string} signedBy - The user that signed the transaction
- * @property {string} signedTime - The time the user signed the transaction
- * @property {boolean} collected - If the reimbursement amount was collected
- * @property {string} collectedBy - The user that collected the reimbursement amount
- * @property {string} collectedTime - The time the user collected the reimbursement amount
- */
-
-
 //TODO
-//Transactions with receipts do not show up in query
 //Upload images to google drive
 //Taxable transactions

@@ -164,6 +164,7 @@
                 reimbursement : null,
                 async init() {
                     this.$refs.confirm.addEventListener('click', () => {
+                        this.openCompleteModal = false
                         swapMain()
                         htmx.ajax('POST', '/reimbursement/completed', 
                         {

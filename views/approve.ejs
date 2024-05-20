@@ -48,19 +48,23 @@
                     icon.classList.add('fa-check')
                     approveButton.appendChild(icon)
                     approveButton.addEventListener('click', () => {
-                    let rowIndex = params.rowIndex
-                    this.innerHTML = 'Loading...'
-                    fetch('/transaction/approve', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type' : 'application/json',
-                        },
-                        body: JSON.stringify({transactionId : alpineObj.transactions[rowIndex].transactionId})
-                    }).then((_) => {
-                            alpineObj.transactions.splice(rowIndex, 1)
-                            alpineObj.grid.setRowData(alpineObj.transactions)
-                            alpineObj.grid.refreshCells()
-                    })
+
+                        icon.classList.remove('fa-check')
+                        icon.classList.add('fa-circle-notch')
+                        icon.classList.add('fa-spin')
+
+                        let rowIndex = params.rowIndex
+                        fetch('/transaction/approve', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type' : 'application/json',
+                            },
+                            body: JSON.stringify({transactionId : alpineObj.transactions[rowIndex].transactionId})
+                        }).then((_) => {
+                                alpineObj.transactions.splice(rowIndex, 1)
+                                alpineObj.grid.setRowData(alpineObj.transactions)
+                                alpineObj.grid.refreshCells()
+                        })
                 })
 
                     container.appendChild(approveButton)
