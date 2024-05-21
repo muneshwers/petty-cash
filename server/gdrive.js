@@ -22,8 +22,11 @@ export async function createDriveFolder(folderName) {
         fileId: folderId,
         fields: 'id'
     });
-
-    return folderId;
+    const folderLink = `https://drive.google.com/drive/folders/${folderId}`;
+    return {
+        folderId: folderId,
+        folderLink: folderLink
+    };
 }
 
 
@@ -65,3 +68,4 @@ const auth = new google.auth.GoogleAuth({
     scopes: ['https://www.googleapis.com/auth/drive']
 })
 
+export { auth };

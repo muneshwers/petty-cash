@@ -389,7 +389,7 @@ export async function deleteImageFromStorage(path) {
  * @returns 
  */
 export async function downloadImageFromStorage(filename) {
-  return storage.bucket().file(filename).get()
+  return storage.bucket().file(filename).download()
 }
 
 /**

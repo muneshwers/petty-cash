@@ -1,26 +1,36 @@
+import fs from "fs"
 import nodemailer from "nodemailer"
 import config from "../config.js"
+import { uploadFileInDriveFolder } from './gdrive.js'
+import { createDriveFolder } from './gdrive.js'
+import * as path from "path"
 
-let {emailsOn} = config
+let {emailsOn, mode} = config
 
-const nearingLimitEmailTemplate = (account) => ({
-    from: '"Petty Cash Bot" <programmers.muneshwers@gmail.com>',
-    to: 'procurement.coor@muneshwers.com, \
+const nearingLimitEmailTemplate = (account) => { 
+    let recipients = (mode == 'development') ? 'programmers.muneshwers@gmail.com' : 'procurement.coor@muneshwers.com, \
     procurement.clerk@muneshwers.com, \
     procurement.clerk2@muneshwers.com, \
-    procurement.supv@muneshwers.com',
-    subject: `Petty Cash (${account}) - Nearing account limit. Reimburse as soon as possible!`,
-    text: `Nearing account limit for (${account}). Reimburse as soon as possible!`,
-    html: `<b>Nearing account limit for (${account}). Reimburse as soon as possible!</b>`,
-})
+    procurement.supv@muneshwers.com'
+    return {
+        from: '"Petty Cash Bot" <programmers.muneshwers@gmail.com>',
+        to: recipients,
+        subject: `Petty Cash (${account}) - Nearing account limit. Reimburse as soon as possible!`,
+        text: `Nearing account limit for (${account}). Reimburse as soon as possible!`,
+        html: `<b>Nearing account limit for (${account}). Reimburse as soon as possible!</b>`,
+    }
+}
 
-const transactionMadeEmailTemplate = (account) => ({
-    from: '"Petty Cash Bot" <programmers.muneshwers@gmail.com>',
-    to: 'fin.acct@muneshwers.com',
-    subject: `Petty Cash (${account}) - New Transactions Made`,
-    text: `New Transaction were made (${account}). Log in to Approve!`,
-    html: `<b>New Transaction were made for (${account}). Log in to Approve!</b>`,
-})
+const transactionMadeEmailTemplate = (account) => {
+    let recipients = (mode == 'development') ? 'programmers.muneshwers@gmail.com' : 'fin.acct@muneshwers.com'
+    return {
+        from: '"Petty Cash Bot" <programmers.muneshwers@gmail.com>',
+        to: recipients,
+        subject: `Petty Cash (${account}) - New Transactions Made`,
+        text: `New Transaction were made (${account}). Log in to Approve!`,
+        html: `<b>New Transaction were made for (${account}). Log in to Approve!</b>`,
+    }
+}
 
 /**
  * 
@@ -33,7 +43,7 @@ const approvalMadeEmailTemplate = (account) => {
         meals : 'acc.snrclerk@muneshwers.com'
     };
 
-    const recipients = recipientsMap[account] ?? recipientsMap['procurement']
+    const recipients = (mode == 'development') ? 'programmers.muneshwers@gmail.com' : recipientsMap[account] ?? recipientsMap['procurement']
     const emailTemplate = {
             from: '"Petty Cash Bot" <programmers.muneshwers@gmail.com>',
             to: recipients,
@@ -44,29 +54,16 @@ const approvalMadeEmailTemplate = (account) => {
     return emailTemplate;
 };
 
-/**
- * 
- * @param {string} account 
- */
 const reimbursementsMadeEmailTemplate = (account) => {
-
-    const reimbursementsRecipients = {
-        barges : 'accounts.sup@bargesolutionsgy.com',
-        muneshwers : 'mngt.acct@muneshwers.com',
-        paragon : 'accounts.sup@paragon-transportation.com',
-        meals : 'acc.snrclerk@muneshwers.com'
-    };
-
-    const recipients = reimbursementsRecipients[account]
-    const emailTemplate = {
-            from: '"Petty Cash Bot" <programmers.muneshwers@gmail.com>',
-            to: recipients,
-            subject: `Petty Cash (${account}) - Transactions Reimbursed!`,
-            text: `Transactions have been reimbursed for (${account})! Log in to Quickbooks view transactions.`,
-            html: `<b>Transactions have been reimbursed for (${account}).</b>`,
-        };
-    return emailTemplate;
-};
+    let recipients = (mode == 'development') ? 'programmers.muneshwers@gmail.com' : 'gm@muneshwers.com'
+    return{
+        from: '"Petty Cash Bot" <programmers.muneshwers@gmail.com>',
+        to: recipients,
+        subject: `Petty Cash (${account}) - Transactions Reimbursed!`,
+        text: `Transactions have been reimbursed for (${account})! Log in to Petty Cash to sign reimbursements.`,
+        html: `<b>Transactions have been reimbursed for (${account}).</b>`,
+    }
+}
 
 /**
  * 
@@ -79,7 +76,7 @@ const transactionDeletedEmailTemplate = (account) => {
         meals : 'acc.snrclerk@muneshwers.com'
     };
 
-    let recipients = recipientsMap[account] ?? recipientsMap['procurement']
+    let recipients = (mode == 'development') ? 'programmers.muneshwers@gmail.com' : recipientsMap[account] ?? recipientsMap['procurement']
 
     const emailTemplate = {
             from: '"Petty Cash Bot" <programmers.muneshwers@gmail.com>',
@@ -91,25 +88,46 @@ const transactionDeletedEmailTemplate = (account) => {
     return emailTemplate;
 }
 
-const transactionSignedEmailTemplate = (account) => {
-    
-    const reimbursementsRecipients = {
-        barges : 'accounts.sup@bargesolutionsgy.com',
-        muneshwers : 'mngt.acct@muneshwers.com',
-        paragon : 'accounts.sup@paragon-transportation.com',
-        meals : 'acc.snrclerk@muneshwers.com'
-    };
+/**
+ * 
+ * @param {string} account 
+ * @returns {Promise<Object>}
+ */
+const transactionSignedEmailTemplate = async (account) => {
+    const folderName = `${account}-reimbursements`;
+    const directoryPath = './tmp/uploads';
 
-    const recipients = reimbursementsRecipients[account]
-    const emailTemplate = {
+    try {
+        const { folderId, folderLink } = await createDriveFolder(folderName);
+        const files = fs.readdirSync(directoryPath);
+        const uploadPromises = files.map(async (file) => {
+            const filePath = path.join(directoryPath, file);
+            return uploadFileInDriveFolder(filePath, file, folderId);
+        });
+
+        
+        const signedRecipients = {
+            barges: 'accounts.sup@bargesolutionsgy.com',
+            muneshwers: 'mngt.acct@muneshwers.com',
+            paragon: 'accounts.sup@paragon-transportation.com',
+            meals: 'acc.snrclerk@muneshwers.com'
+        };
+
+        const recipients = (mode == 'development') ? 'programmers.muneshwers@gmail.com' : signedRecipients[account];
+        const emailTemplate = {
             from: '"Petty Cash Bot" <programmers.muneshwers@gmail.com>',
             to: recipients,
             subject: `Petty Cash (${account}) - Transactions Reimbursed!`,
-            text: `Transactions have been reimbursed for (${account})! Log in to Quickbooks view transactions.`,
-            html: `<b>Transactions have been reimbursed for (${account}).</b>`,
+            text: `Reimbursements have been signed for (${account})! Log in to Quickbooks to view transactions. Folder Link: ${folderLink}`,
+            html: `<b>Reimbursements have been signed for (${account}).</b> Folder Link: <a href="${folderLink}">${folderLink}</a>`
         };
-    return emailTemplate;    
-}
+
+        return emailTemplate;
+    } catch (error) {
+        console.error('Error uploading file to Google Drive:', error);
+        throw new Error('Failed to create email template with Google Drive links');
+    }
+};
 
 function sendEmailFactory(templateBuilder) {
     return async function(account){
@@ -124,7 +142,7 @@ function sendEmailFactory(templateBuilder) {
                     pass: 'dcmdgjlbkxsgpysi',
                 },
             });
-            let template = templateBuilder(account)
+            let template = await templateBuilder(account)
             const info = await transporter.sendMail(template);
             console.log('Message sent: %s', info.messageId);
 
@@ -150,3 +168,4 @@ export const sendTransactionForApprovalEmailWithTimeout = timeOutFunctionCall(se
 export const sendApprovalMadeEmailWithTimeout = timeOutFunctionCall(sendEmailFactory(approvalMadeEmailTemplate))
 export const sendReimbursementsMadeWithTimeout = timeOutFunctionCall(sendEmailFactory(reimbursementsMadeEmailTemplate))
 export const sendTransactionDeletedEmail = sendEmailFactory(transactionDeletedEmailTemplate)
+export const sendTransactionSignedEmail = timeOutFunctionCall(sendEmailFactory(transactionSignedEmailTemplate))

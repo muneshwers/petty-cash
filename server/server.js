@@ -9,12 +9,14 @@ import {
   sendNearingLimitEmailWithTimout,
   sendTransactionForApprovalEmailWithTimeout,
   sendReimbursementsMadeWithTimeout,
-  sendTransactionDeletedEmail
+  sendTransactionDeletedEmail,
+  sendTransactionSignedEmail
 } from "./email.js"
 import * as Database from "./database_functions.js"
-import { uploadToDrive } from "./gdrive.js"
+import { uploadFileInDriveFolder } from "./gdrive.js"
 import config from "../config.js"
 import mime from "mime-types"
+import * as path from "path"
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -322,32 +324,46 @@ app.post("/transaction/delete", (req, res) => {
 })
 
 app.post("/reimbursement/sign", async (req, res) => {
-  /** @type {{reimbursement : Reimbursement}} */
-  let { reimbursement } = req.body
-  reimbursement = JSON.parse(reimbursement)
-  /** @type {{account: string }} */
-  let { account } = req.session
-  /** @type {Reimbursement}  */
-  let reimbursementUpdate = {}
-  reimbursementUpdate.reimbursementId = reimbursement.reimbursementId
-  reimbursementUpdate.signed = true
-  reimbursementUpdate.signedBy = req.session.username
-  applyTimeStamp([reimbursementUpdate], "signedTime")
-  
-  let transactions = Object.values(reimbursement.transactions)
-  Database.updateReimbursement(reimbursementUpdate, account)
-  .then(() => res.render("sign", {signApproval : true} ))
-  .then(() => sendReimbursementsToAdaptorServer(transactions))
-  .then(() => {
-    let transactionsWithImages = transactions.filter((transaction) => (transaction?.filename))
-    let promises = transactionsWithImages.map((transaction) => Database.downloadImageFromStorage(transaction.filename))
-    return Promise.all(promises)
-  })
-  .then((responses) => {
-    let images = responses.map((res) => res[0])
+  try {
+    /** @type {{reimbursement : Reimbursement}} */
+    let { reimbursement } = req.body;
+    reimbursement = JSON.parse(reimbursement);
+    /** @type {{account: string }} */
+    let { account } = req.session;
 
-  })
-})
+    /** @type {Reimbursement}  */
+    let reimbursementUpdate = {};
+    reimbursementUpdate.reimbursementId = reimbursement.reimbursementId;
+    reimbursementUpdate.signed = true;
+    reimbursementUpdate.signedBy = req.session.username;
+
+    applyTimeStamp([reimbursementUpdate], "signedTime");
+
+    let transactions = Object.values(reimbursement.transactions);
+
+    await Database.updateReimbursement(reimbursementUpdate, account);
+    await res.render("sign", { signApproval: true });
+    await sendReimbursementsToAdaptorServer(transactions);
+
+    let transactionsWithImages = transactions.filter(transaction => transaction?.filename);
+    let promises = transactionsWithImages.map(transaction => Database.downloadImageFromStorage(transaction.filename));
+    let responses = await Promise.all(promises);
+
+    let writePromises = responses.map((response, index) => {
+      let buffer = response[0];
+      let filePath = path.join('tmp', 'uploads', transactionsWithImages[index].filename);
+      return fs.promises.writeFile(filePath, buffer);
+    });
+
+    await Promise.all(writePromises);
+    console.log('Images have been saved to /tmp/uploads');
+    await sendTransactionSignedEmail(account);
+
+  } catch (error) {
+    console.error(error);
+    res.sendStatus(500);
+  }
+});
 
 
 app.post("/reimbursement/collect", async (req, res) => {
