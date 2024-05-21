@@ -1,43 +1,64 @@
 import google from '@googleapis/drive';
 import fs from 'fs';
 
-const folderId = '1OXEBsZ9ZHEQhYyodYg4IKV2TALqrdmpE';
+export async function createDriveFolder(folderName) {
+    const drive = google.drive({ version: 'v3', auth });
+    
+    const fileMetadata = {
+        'name': folderName,
+        'mimeType': 'application/vnd.google-apps.folder'
+    };
+    const folder = await drive.files.create({
+        resource: fileMetadata,
+        fields: 'id'
+    });
+    const folderId = folder.data.id;
+
+    await drive.permissions.create({
+        resource: {
+            'type': 'anyone',
+            'role': 'reader'
+        },
+        fileId: folderId,
+        fields: 'id'
+    });
+
+    return folderId;
+}
+
 
 /**
  * 
  * @param {string} filePath 
- * @param {string} folderName 
+ * @param {string} fileName
+ * @param {string} folderId 
  */
-export const uploadToDrive = async function(folderName) {
+export async function uploadFileInDriveFolder(filePath, fileName, folderId) {
+
     const drive = google.drive({ version: 'v3', auth });
     const fileMetadata = {
-        name: folderName,
-        mimeType : 'application/vnd.google-apps.folder',
-        parents : [folderId]
+        name: fileName,
+        parents: [folderId]
+    };
+    const media = {
+        mimeType: 'image/jpeg',
+        body: fs.createReadStream(filePath)
     };
 
-    drive.files.create({
+    await drive.files.create({
         resource: fileMetadata,
-        fields : 'id',
-    })
+        media: media,
+        fields: 'webViewLink'
+    });
 
-    // const media = {
-    //     mimeType: 'image/jpeg',
-    //     body: fs.createReadStream(filePath)
-    // }
+    const folderResponse = await drive.files.get({
+        fileId: folderId,
+        fields: 'webViewLink'
+    });
 
-    // const response = await drive.files.create({
-    //     resource: fileMetadata,
-    //     media: media,
-    //     fields: 'webViewLink'
-    // });
-    // /** @type {string} */
-    // let link = response.data.webViewLink;
- 
-    // return link
-
-    return
+    return folderResponse.data.webViewLink;
 }
+
 
 const auth = new google.auth.GoogleAuth({
     keyFile: './projectservers-2779d6d73579.json',

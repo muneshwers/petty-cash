@@ -28,13 +28,12 @@ const transactionMadeEmailTemplate = (account) => ({
  */
 const approvalMadeEmailTemplate = (account) => {
 
-    const approvalRecipients = {
+    const recipientsMap = {
         procurement : 'procurement.coor@muneshwers.com, procurement.clerk@muneshwers.com, procurement.clerk2@muneshwers.com, procurement.supv@muneshwers.com',
         meals : 'acc.snrclerk@muneshwers.com'
     };
 
-    const recipients = approvalRecipients[account]
-    if (!recipients) { recipients = approvalRecipients['procurement']; }
+    const recipients = recipientsMap[account] ?? recipientsMap['procurement']
     const emailTemplate = {
             from: '"Petty Cash Bot" <programmers.muneshwers@gmail.com>',
             to: recipients,
@@ -75,13 +74,13 @@ const reimbursementsMadeEmailTemplate = (account) => {
  */
 const transactionDeletedEmailTemplate = (account) => {
 
-    const deletedRecipients = {
+    const recipientsMap = {
         procurement : 'procurement.coor@muneshwers.com, procurement.clerk@muneshwers.com, procurement.clerk2@muneshwers.com, procurement.supv@muneshwers.com, fin.acct@muneshwers.com',
         meals : 'acc.snrclerk@muneshwers.com'
     };
 
-    const recipients = deletedRecipients[account]
-    if (!recipients) { recipients = deletedRecipients['procurement']; }
+    let recipients = recipientsMap[account] ?? recipientsMap['procurement']
+
     const emailTemplate = {
             from: '"Petty Cash Bot" <programmers.muneshwers@gmail.com>',
             to: recipients,
@@ -90,7 +89,27 @@ const transactionDeletedEmailTemplate = (account) => {
             html: `<b>Transaction Deleted for (${account}).</b>`,
         };
     return emailTemplate;
-};
+}
+
+const transactionSignedEmailTemplate = (account) => {
+    
+    const reimbursementsRecipients = {
+        barges : 'accounts.sup@bargesolutionsgy.com',
+        muneshwers : 'mngt.acct@muneshwers.com',
+        paragon : 'accounts.sup@paragon-transportation.com',
+        meals : 'acc.snrclerk@muneshwers.com'
+    };
+
+    const recipients = reimbursementsRecipients[account]
+    const emailTemplate = {
+            from: '"Petty Cash Bot" <programmers.muneshwers@gmail.com>',
+            to: recipients,
+            subject: `Petty Cash (${account}) - Transactions Reimbursed!`,
+            text: `Transactions have been reimbursed for (${account})! Log in to Quickbooks view transactions.`,
+            html: `<b>Transactions have been reimbursed for (${account}).</b>`,
+        };
+    return emailTemplate;    
+}
 
 function sendEmailFactory(templateBuilder) {
     return async function(account){

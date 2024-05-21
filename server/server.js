@@ -1,3 +1,4 @@
+import fs from "fs";
 import express from "express";
 import "dotenv/config"
 import expressSession from "express-session";
@@ -333,20 +334,19 @@ app.post("/reimbursement/sign", async (req, res) => {
   reimbursementUpdate.signedBy = req.session.username
   applyTimeStamp([reimbursementUpdate], "signedTime")
   
-  //let transactions = Object.values(reimbursement.transactions)
+  let transactions = Object.values(reimbursement.transactions)
   Database.updateReimbursement(reimbursementUpdate, account)
   .then(() => res.render("sign", {signApproval : true} ))
-  .then(() => uploadToDrive(reimbursement.reimbursementId))
-  // .then(() => sendReimbursementsToAdaptorServer(transactions))
-  // .then(() => {
-  //   let transactionsWithImages = transactions.filter((transaction) => (transaction?.filename))
-  //   let promises = transactionsWithImages.map((transaction) => downloadImageFromStorage(transaction.filename))
-  //   return Promise.all(promises)
-  // })
-  // .then((responses) => {
-  //   let images = responses.map((res) => res[0])
+  .then(() => sendReimbursementsToAdaptorServer(transactions))
+  .then(() => {
+    let transactionsWithImages = transactions.filter((transaction) => (transaction?.filename))
+    let promises = transactionsWithImages.map((transaction) => Database.downloadImageFromStorage(transaction.filename))
+    return Promise.all(promises)
+  })
+  .then((responses) => {
+    let images = responses.map((res) => res[0])
 
-  // })
+  })
 })
 
 
@@ -487,16 +487,19 @@ app.post('/upload', upload.single('file'), async (req, res) => {
     /** @type {{account: string}} */
     let {account} = req.session
 
-    /** @type {string} */
-    let transactionId  = req.body.transactionId
+    /** @type {number} */
+    let transactionId  = Number(req.body.transactionId)
 
     if (!transactionId) return res.status(400).send('transaction id is missing.')
-    filename = account+"_"+transactionId+"_"+filename
+    filename = account+"_"+transactionId.toString()+"_"+filename
     let imageUrl = await Database.uploadImageToStorage(file, filename)
 
-    transactionId = Number(transactionId)
     Database.updateTransaction({transactionId, imageUrl, filename}, account)
     .then(() => res.sendStatus(200))
+    .then(() => fs.unlink(file.path, (err) => {
+      console.log(err)
+    }))
+    
   } catch (error) {
     console.error('Upload failed:', error);
     return res.status(500).send('Upload failed. Please try again.');
@@ -529,6 +532,10 @@ app.post('/upload/sign', upload.single('file'), async (req, res) => {
     transaction.filename = filename
     Database.updateReimbursement(reimbursement, account)
     .then(() => res.sendStatus(200))
+    .then(() => fs.unlink(file.path, (err) => {
+      console.log(err)
+    }))
+
   } catch (error) {
     console.error('Upload failed:', error);
     return res.status(500).send('Upload failed. Please try again.');
