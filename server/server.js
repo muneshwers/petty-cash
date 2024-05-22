@@ -340,6 +340,7 @@ app.post("/reimbursement/sign", async (req, res) => {
     applyTimeStamp([reimbursementUpdate], "signedTime");
 
     let transactions = Object.values(reimbursement.transactions);
+    let transactionsWithImages = transactions.filter(transaction => transaction?.filename);
 
     Database.updateReimbursement(reimbursementUpdate, account)
     .then(() => {
@@ -347,7 +348,6 @@ app.post("/reimbursement/sign", async (req, res) => {
 
       sendReimbursementsToAdaptorServer(transactions)
 
-      let transactionsWithImages = transactions.filter(transaction => transaction?.filename);
       let promises = transactionsWithImages.map(transaction => Database.downloadImageFromStorage(transaction.filename));
       return Promise.all(promises);
 
