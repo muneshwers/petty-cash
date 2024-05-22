@@ -376,6 +376,12 @@ app.post("/reimbursement/sign", async (req, res) => {
     })
     .then((folderLink) => {
       sendTransactionSignedEmail(account, {folderLink})
+      for (let index = 0; index < transactionsWithImages.length; index++) {
+        let filePath = path.join('tmp', 'uploads', transactionsWithImages[index].filename);
+        fs.promises.unlink(filePath, (err) => {
+          console.error(err)
+        })
+      }
     })
 
 
