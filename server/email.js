@@ -7,7 +7,13 @@ import * as path from "path"
 
 let {emailsOn, mode} = config
 
-const nearingLimitEmailTemplate = (account) => { 
+/**
+ * 
+ * @param {string} account
+ * @param {Object} options
+ * @returns 
+ */
+const nearingLimitEmailTemplate = (account, options) => { 
     let recipients = (mode == 'development') ? 'programmers.muneshwers@gmail.com' : 'procurement.coor@muneshwers.com, \
     procurement.clerk@muneshwers.com, \
     procurement.clerk2@muneshwers.com, \
@@ -21,7 +27,13 @@ const nearingLimitEmailTemplate = (account) => {
     }
 }
 
-const transactionMadeEmailTemplate = (account) => {
+/**
+ * 
+ * @param {string} account 
+ * @param {Object} options
+ * @returns 
+ */
+const transactionMadeEmailTemplate = (account, options) => {
     let recipients = (mode == 'development') ? 'programmers.muneshwers@gmail.com' : 'fin.acct@muneshwers.com'
     return {
         from: '"Petty Cash Bot" <programmers.muneshwers@gmail.com>',
@@ -35,14 +47,16 @@ const transactionMadeEmailTemplate = (account) => {
 /**
  * 
  * @param {string} account 
+ * @param {Object} options
  */
-const approvalMadeEmailTemplate = (account) => {
+const approvalMadeEmailTemplate = (account, options) => {
 
     const recipientsMap = {
         procurement : 'procurement.coor@muneshwers.com, procurement.clerk@muneshwers.com, procurement.clerk2@muneshwers.com, procurement.supv@muneshwers.com',
         meals : 'acc.snrclerk@muneshwers.com'
-    };
+    }
 
+    /** @type {string} */
     const recipients = (mode == 'development') ? 'programmers.muneshwers@gmail.com' : recipientsMap[account] ?? recipientsMap['procurement']
     const emailTemplate = {
             from: '"Petty Cash Bot" <programmers.muneshwers@gmail.com>',
@@ -52,11 +66,16 @@ const approvalMadeEmailTemplate = (account) => {
             html:`<b>Your transactions have been approved for (${account})! Log in to reimburse.</b>`,
         };
     return emailTemplate;
-};
+}
 
-const reimbursementsMadeEmailTemplate = (account) => {
+/**
+ * 
+ * @param {string} account 
+ * @param {Object} options
+ */
+const reimbursementsMadeEmailTemplate = (account, options) => {
     let recipients = (mode == 'development') ? 'programmers.muneshwers@gmail.com' : 'gm@muneshwers.com'
-    return{
+    return {
         from: '"Petty Cash Bot" <programmers.muneshwers@gmail.com>',
         to: recipients,
         subject: `Petty Cash (${account}) - Transactions Reimbursed!`,
@@ -66,10 +85,10 @@ const reimbursementsMadeEmailTemplate = (account) => {
 }
 
 /**
- * 
  * @param {string} account 
+ * @param {Object} options
  */
-const transactionDeletedEmailTemplate = (account) => {
+const transactionDeletedEmailTemplate = (account, options) => {
 
     const recipientsMap = {
         procurement : 'procurement.coor@muneshwers.com, procurement.clerk@muneshwers.com, procurement.clerk2@muneshwers.com, procurement.supv@muneshwers.com, fin.acct@muneshwers.com',
@@ -90,22 +109,14 @@ const transactionDeletedEmailTemplate = (account) => {
 
 /**
  * 
- * @param {string} account 
- * @returns {Promise<Object>}
+ * @param {string} account
+ * @param {Object} options
  */
-const transactionSignedEmailTemplate = async (account) => {
-    const folderName = `${account}-reimbursements`;
-    const directoryPath = './tmp/uploads';
+const transactionSignedEmailTemplate = async (account, options) => {
 
     try {
-        const { folderId, folderLink } = await createDriveFolder(folderName);
-        const files = fs.readdirSync(directoryPath);
-        const uploadPromises = files.map(async (file) => {
-            const filePath = path.join(directoryPath, file);
-            return uploadFileInDriveFolder(filePath, file, folderId);
-        });
-
-        
+        let {folderLink} = options
+        folderLink = folderLink ?? "" 
         const signedRecipients = {
             barges: 'accounts.sup@bargesolutionsgy.com',
             muneshwers: 'mngt.acct@muneshwers.com',
@@ -130,7 +141,7 @@ const transactionSignedEmailTemplate = async (account) => {
 };
 
 function sendEmailFactory(templateBuilder) {
-    return async function(account){
+    return async function(account, options){
         if (!emailsOn) return
         try {
             const transporter = nodemailer.createTransport({
@@ -142,7 +153,7 @@ function sendEmailFactory(templateBuilder) {
                     pass: 'dcmdgjlbkxsgpysi',
                 },
             });
-            let template = await templateBuilder(account)
+            let template = await templateBuilder(account, options)
             const info = await transporter.sendMail(template);
             console.log('Message sent: %s', info.messageId);
 
@@ -154,10 +165,10 @@ function sendEmailFactory(templateBuilder) {
 
 function timeOutFunctionCall(func) {
     let timeouts = {}
-    return async function(key) {
+    return async function(key, options) {
         let timeout = timeouts[key]
         if (timeout) return
-        func(key)
+        func(key, options)
         timeouts[key] = true
         setTimeout(() => timeouts[key] = false, 3 * 60 * 60 * 1000)
     }

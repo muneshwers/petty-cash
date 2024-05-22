@@ -1,5 +1,5 @@
 import fs from "fs";
-import express from "express";
+import express, { response } from "express";
 import "dotenv/config"
 import expressSession from "express-session";
 import bodyParser from "body-parser";
@@ -13,7 +13,7 @@ import {
   sendTransactionSignedEmail
 } from "./email.js"
 import * as Database from "./database_functions.js"
-import { uploadFileInDriveFolder } from "./gdrive.js"
+import {createDriveFolder , uploadFileInDriveFolder} from "./gdrive.js"
 import config from "../config.js"
 import mime from "mime-types"
 import * as path from "path"
@@ -341,23 +341,43 @@ app.post("/reimbursement/sign", async (req, res) => {
 
     let transactions = Object.values(reimbursement.transactions);
 
-    await Database.updateReimbursement(reimbursementUpdate, account);
-    await res.render("sign", { signApproval: true });
-    await sendReimbursementsToAdaptorServer(transactions);
+    Database.updateReimbursement(reimbursementUpdate, account)
+    .then(() => {
+      res.render("sign", { signApproval: true })
 
-    let transactionsWithImages = transactions.filter(transaction => transaction?.filename);
-    let promises = transactionsWithImages.map(transaction => Database.downloadImageFromStorage(transaction.filename));
-    let responses = await Promise.all(promises);
+      sendReimbursementsToAdaptorServer(transactions)
 
-    let writePromises = responses.map((response, index) => {
-      let buffer = response[0];
-      let filePath = path.join('tmp', 'uploads', transactionsWithImages[index].filename);
-      return fs.promises.writeFile(filePath, buffer);
-    });
+      let transactionsWithImages = transactions.filter(transaction => transaction?.filename);
+      let promises = transactionsWithImages.map(transaction => Database.downloadImageFromStorage(transaction.filename));
+      return Promise.all(promises);
 
-    await Promise.all(writePromises);
-    console.log('Images have been saved to /tmp/uploads');
-    await sendTransactionSignedEmail(account);
+    })
+    .then((responses) => {
+      let writePromises = responses.map((response, index) => {
+        let buffer = response[0];
+        let filePath = path.join('tmp', 'uploads', transactionsWithImages[index].filename);
+        return fs.promises.writeFile(filePath, buffer)
+      })
+  
+      return Promise.all(writePromises) 
+    })
+    .then(async () => {
+
+      const folderName = `${account}-${reimbursement.reimbursementId}`;
+      const directoryPath = './tmp/uploads';
+  
+      const { folderId, folderLink } = await createDriveFolder(folderName)
+      const files = fs.readdirSync(directoryPath);
+      const uploadPromises = files.map(async (file) => {
+        const filePath = path.join(directoryPath, file);
+        return uploadFileInDriveFolder(filePath, file, folderId);
+      })
+      return folderLink
+    })
+    .then((folderLink) => {
+      sendTransactionSignedEmail(account, {folderLink})
+    })
+
 
   } catch (error) {
     console.error(error);
