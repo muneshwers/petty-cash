@@ -2,6 +2,8 @@ import google from '@googleapis/drive';
 import fs from 'fs';
 
 export async function createDriveFolder(folderName) {
+
+    console.log("uploading to drive")
     const drive = google.drive({ version: 'v3', auth });
     
     const fileMetadata = {
@@ -38,6 +40,7 @@ export async function createDriveFolder(folderName) {
  */
 export async function uploadFileInDriveFolder(filePath, fileName, folderId) {
 
+    console.log("uploading to drive")
     const drive = google.drive({ version: 'v3', auth });
     const fileMetadata = {
         name: fileName,

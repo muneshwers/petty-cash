@@ -17,12 +17,13 @@ import {createDriveFolder , uploadFileInDriveFolder} from "./gdrive.js"
 import config from "../config.js"
 import mime from "mime-types"
 import * as path from "path"
+import { tmpdir } from "os";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 const upload = multer({
-  dest: 'tmp/uploads/',
+  dest: '/tmp/',
   fileFilter: (req, file, cb) => {
     const mimeType = mime.lookup(file.originalname);
     if (!mimeType) {
@@ -344,40 +345,71 @@ app.post("/reimbursement/sign", async (req, res) => {
 
     Database.updateReimbursement(reimbursementUpdate, account)
     .then(() => {
-      res.render("sign", { signApproval: true })
+        res.render("sign", { signApproval: true });
 
-      sendReimbursementsToAdaptorServer(transactions)
+        sendReimbursementsToAdaptorServer(transactions);
 
-      let promises = transactionsWithImages.map(transaction => Database.downloadImageFromStorage(transaction.filename));
-      return Promise.all(promises);
-
+        let promises = transactionsWithImages.map(transaction =>
+            Database.downloadImageFromStorage(transaction.filename)
+        );
+        return Promise.all(promises);
     })
     .then((responses) => {
-      let writePromises = responses.map((response, index) => {
-        let buffer = response[0];
-        let filePath = path.join('tmp', 'uploads', transactionsWithImages[index].filename);
-        return fs.promises.writeFile(filePath, buffer)
-      })
-  
-      return Promise.all(writePromises) 
+        console.log("downloaded");
+
+        const tmpDir = '/tmp';
+        const writePromises = responses.map((response, index) => {
+            const buffer = response[0];
+            const filePath = path.join(tmpDir, transactionsWithImages[index].filename);
+            return fs.promises.writeFile(filePath, buffer)
+                .then(() => {
+                    console.log(`Written file: ${filePath}`);
+                })
+                .catch((error) => {
+                    console.error(`Error writing file: ${filePath}`, error);
+                    throw error;
+                });
+        });
+
+        return Promise.all(writePromises);
     })
     .then(async () => {
+        console.log("written");
 
-      const folderName = `${account}-${reimbursement.reimbursementId}`;
-      const directoryPath = './tmp/uploads';
-  
-      const { folderId, folderLink } = await createDriveFolder(folderName)
-      const files = fs.readdirSync(directoryPath);
-      const uploadPromises = files.map(async (file) => {
-        const filePath = path.join(directoryPath, file);
-        return uploadFileInDriveFolder(filePath, file, folderId);
-      })
-      return folderLink
+        const folderName = `${account}-${reimbursement.reimbursementId}`;
+        const directoryPath = '/tmp';
+
+        const { folderId, folderLink } = await createDriveFolder(folderName);
+        const files = fs.readdirSync(directoryPath);
+
+        const uploadPromises = files
+            .filter(file => {
+                const filePath = path.join(directoryPath, file);
+                const fileExt = path.extname(filePath).toLowerCase();
+                return fs.lstatSync(filePath).isFile() && (fileExt === '.png' || fileExt === '.jpeg' || fileExt === '.jpg' || fileExt === '.pdf');
+            })
+            .map(async (file) => {
+                const filePath = path.join(directoryPath, file);
+                console.log(`Uploading file: ${filePath}`);
+                return uploadFileInDriveFolder(filePath, file, folderId)
+                    .then(() => {
+                        console.log(`Uploaded file: ${filePath}`);
+                    })
+                    .catch((error) => {
+                        console.error(`Error uploading file: ${filePath}`, error);
+                        throw error;
+                    });
+            });
+
+        await Promise.all(uploadPromises);
+        return folderLink;
     })
     .then((folderLink) => {
+        console.log("Process completed successfully. Folder link:", folderLink);
+      const tmpDir = '/tmp'
       sendTransactionSignedEmail(account, {folderLink})
       for (let index = 0; index < transactionsWithImages.length; index++) {
-        let filePath = path.join('tmp', 'uploads', transactionsWithImages[index].filename);
+        let filePath = path.join(tmpDir, transactionsWithImages[index].filename);
         fs.promises.unlink(filePath, (err) => {
           console.error(err)
         })

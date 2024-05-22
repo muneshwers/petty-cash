@@ -14,5 +14,5 @@ const config = {
         adaptorServerUrl : "https://adaptor-server-csi5xpfnxa-rj.a.run.app/pettycash/reimbursements"
     }
 }
-const environment= process.env.NODE_ENV || 'development'
+const environment= 'development'
 export default config[environment]
