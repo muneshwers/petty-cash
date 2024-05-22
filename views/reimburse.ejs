@@ -64,6 +64,9 @@
                     uploadButton.title = 'Upload'
                     const icon = document.createElement('i')
                     icon.classList.add('fa-solid')
+                    if (!transaction.filename) {
+                        icon.style.color = '#cd5c5c' 
+                    }
                     icon.classList.add('fa-receipt')
                     uploadButton.appendChild(icon)
                     uploadButton.addEventListener('click', () => {

@@ -42,20 +42,20 @@
                             signButton.classList.add('action-button')
                             signButton.title = 'Sign'
                             signButton.addEventListener('click', () => {
-                                icon.classList.remove('fa-pen-nib')
-                                icon.classList.add('fa-circle-notch')
-                                icon.classList.add('fa-spin')
-                                icon.style.color = '#0047ab'
+                                if (confirm('Are you sure you wish to sign this document?')) {
+                                    icon.classList.remove('fa-pen-nib')
+                                    icon.classList.add('fa-circle-notch')
+                                    icon.classList.add('fa-spin')
+                                    icon.style.color = '#0047ab'
 
-
-                                htmx.ajax('POST', '/reimbursement/sign', {
-                                    target: 'main', 
-                                    swap:'outerHTML', 
-                                    values: {
-                                        reimbursement,
-                                    } 
-                                })
-
+                                    htmx.ajax('POST', '/reimbursement/sign', {
+                                        target: 'main', 
+                                        swap:'outerHTML', 
+                                        values: {
+                                            reimbursement,
+                                        } 
+                                    })
+                                }
                             })
                         }
                         else {
