@@ -208,7 +208,7 @@
                             reimbursedTotal : this.reimbursedTotal,
                         } 
                     })
-                }, 250);
+                }, 300);
             })
         },
         exportTableAsCsv() {
@@ -334,7 +334,7 @@
                             <div class="amount"><div>New Remainder </div> <span class="amount-value remainder" x-text="formatDollar(balance - inputs.amount.value)" ></span></div>
                         </div>
 
-                        <form :class="{'movedown' : editAmount}" hx-post="/transaction/edit" hx-target="main" hx-trigger="submit delay:0.25s">
+                        <form :class="{'movedown' : editAmount}" hx-post="/transaction/edit" hx-target="main" hx-trigger="submit delay:0.3s">
                             <div class="edit-form">
                                 <div class="item">
                                     <span class="errorMessage"></span>
@@ -548,7 +548,7 @@
                             swap:'outerHTML',
                             values: this.inputsDelete
                         })
-                    }, 250);
+                    }, 300);
                 })
             }
         }"

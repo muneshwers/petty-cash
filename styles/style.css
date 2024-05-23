@@ -198,6 +198,7 @@ nav.current:hover {
     position: relative;
     left: 0;
     animation: slide-out 0.25s forwards;
+    padding: 10px 50px 50px 50px;
 }
 
 @keyframes slide-in {

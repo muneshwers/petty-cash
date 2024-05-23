@@ -688,5 +688,4 @@ function sendReimbursementsToAdaptorServer(reimbursements) {
  */
 
 //TODO
-//Upload images to google drive
 //Taxable transactions

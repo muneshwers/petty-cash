@@ -109,7 +109,7 @@
         <div class="title" style="margin: 5px;">
             <div class="history_buttons">
                 <span class="history_button selected">Transaction History</span> 
-                <span @click="swapMain()"  hx-trigger="click delay:0.25s" hx-get="/reimbursement_history" hx-target="main" class="history_button">
+                <span @click="swapMain()"  hx-trigger="click delay:0.3s" hx-get="/reimbursement_history" hx-target="main" class="history_button">
                     Reimbursement History
                 </span>
             </div>
@@ -186,7 +186,7 @@
             transactionData: '',
             previewImage: null,
             async downloadImage() {
-                const image = await fetch(this.previewImage)
+                const image = await fetch(this.transactionData.imageUrl)
                 const imageBlob = await image.blob()
                 const imageURL = URL.createObjectURL(imageBlob)
 
@@ -200,11 +200,23 @@
                 link.click()
                 modal.removeChild(link)
             },
+            findExtName(filename) {
+                let ext = filename.split('.').at(-1)
+                console.log(ext)
+                return ext
+            },
+            findPreviewImage(transaction) {
+                let url = transaction.imageUrl
+                if (!url) return '/static/images/noimage.png'
+                let filename = transaction.filename
+                if (this.findExtName(filename) == 'pdf') return 'https://upload.wikimedia.org/wikipedia/commons/8/87/PDF_file_icon.svg'
+                return url
+            }
         }"
         @upload-modal.window="
             openUploadModal = true;
             transactionData = $event.detail.transaction;
-            previewImage = $event.detail.transaction.imageUrl || '/static/images/noimage.png';
+            previewImage = findPreviewImage(transactionData)
         "
     >
         <div x-show="openUploadModal" class="overlay">
