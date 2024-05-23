@@ -15,7 +15,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 const upload = multer({
-  dest: 'tmp/',
+  dest: '/tmp/',
   fileFilter: (req, file, cb) => {
     const mimeType = mime.lookup(file.originalname);
     if (!mimeType) {
@@ -608,7 +608,7 @@ app.listen(PORT, () => {
   console.log(`App is running on port ${PORT}`);
 });
 
-const transactionApprovalLimit = 10000
+const transactionApprovalLimit = 10001
 
 /**
  * 
