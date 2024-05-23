@@ -877,10 +877,19 @@ button {
 
 .receipt-container {
     margin-top: 10px;
-    border: 1px rgba(182, 182, 182, 0.445) solid;
+    /* border: 1px rgba(182, 182, 182, 0.445) solid; */
     height: 100%;
     object-fit: contain;
     display: flex;
+    border-radius: 16px;
+}
+
+.receipt {
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(7px);
+    -webkit-backdrop-filter: blur(7px);
+    border: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 #file-upload-label {
