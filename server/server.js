@@ -4,14 +4,7 @@ import "dotenv/config"
 import expressSession from "express-session";
 import bodyParser from "body-parser";
 import multer from "multer";
-import { 
-  sendApprovalMadeEmailWithTimeout, 
-  sendNearingLimitEmailWithTimout,
-  sendTransactionForApprovalEmailWithTimeout,
-  sendReimbursementsMadeWithTimeout,
-  sendTransactionDeletedEmail,
-  sendTransactionSignedEmail
-} from "./email.js"
+import * as Email from "./email.js"
 import * as Database from "./database_functions.js"
 import {createDriveFolder , uploadFileInDriveFolder} from "./gdrive.js"
 import config from "../config.js"
@@ -22,7 +15,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 const upload = multer({
-  dest: 'tmp/uploads/',
+  dest: 'tmp/',
   fileFilter: (req, file, cb) => {
     const mimeType = mime.lookup(file.originalname);
     if (!mimeType) {
@@ -213,7 +206,7 @@ app.post("/transaction", async (req ,res) => {
     applyTimeStamp([transaction], 'approvedTime')
   }
   if (amount >= transactionApprovalLimit) {
-    sendTransactionForApprovalEmailWithTimeout(account)
+   Email.sendTransactionForApprovalEmailWithTimeout(account)
   }
   applyTimeStamp([transaction], "timeStamp")
   Database.setTransactions([transaction], account);
@@ -221,7 +214,7 @@ app.post("/transaction", async (req ,res) => {
   let balance = await Database.getCurrentBalance(account)
   balance = balance - amount
   if (balance <= 100000) {
-    sendNearingLimitEmailWithTimout(account)
+    Email.sendNearingLimitEmailWithTimout(account)
   }
   Database.updateBalance(balance, account)
 
@@ -280,7 +273,7 @@ app.post("/transaction/edit", async (req, res) => {
       transaction["approved"] = false
       transaction["approvedBy"] = ''
       transaction["approvedTime"] = ''
-      sendTransactionForApprovalEmailWithTimeout(req.session.account)
+      Email.sendTransactionForApprovalEmailWithTimeout(req.session.account)
     }
 
   }
@@ -315,7 +308,7 @@ app.post("/transaction/delete", (req, res) => {
   })
 
   Database.addToTransactionHistory([transaction], account)
-  .then(() => sendTransactionDeletedEmail(account))
+  .then(() => Email.sendTransactionDeletedEmail(account))
 
   Database.getCurrentBalance(account)
   .then((balance) => balance + transaction.amount)
@@ -348,14 +341,17 @@ app.post("/reimbursement/sign", async (req, res) => {
 
       sendReimbursementsToAdaptorServer(transactions)
 
-      let promises = transactionsWithImages.map(transaction => Database.downloadImageFromStorage(transaction.filename));
+      let promises = transactionsWithImages.map(transaction => 
+        Database.downloadImageFromStorage(transaction.filename)
+      );
       return Promise.all(promises);
 
     })
     .then((responses) => {
+      const tmpDir = '/tmp'
       let writePromises = responses.map((response, index) => {
         let buffer = response[0];
-        let filePath = path.join('tmp', 'uploads', transactionsWithImages[index].filename);
+        let filePath = path.join(tmpDir, transactionsWithImages[index].filename);
         return fs.promises.writeFile(filePath, buffer)
       })
   
@@ -364,24 +360,21 @@ app.post("/reimbursement/sign", async (req, res) => {
     .then(async () => {
 
       const folderName = `${account}-${reimbursement.reimbursementId}`;
-      const directoryPath = './tmp/uploads';
+      const directoryPath = '/tmp';
   
       const { folderId, folderLink } = await createDriveFolder(folderName)
-      const files = fs.readdirSync(directoryPath);
-      const uploadPromises = files.map(async (file) => {
-        const filePath = path.join(directoryPath, file);
-        return uploadFileInDriveFolder(filePath, file, folderId);
+
+      transactionsWithImages.map((transaction) => {
+        let filename = transaction.filename
+        const filePath = path.join(directoryPath, filename)
+        uploadFileInDriveFolder(filePath, filename, folderId)
+        .then(() => fs.promises.unlink(filePath))
       })
+      
       return folderLink
     })
     .then((folderLink) => {
-      sendTransactionSignedEmail(account, {folderLink})
-      for (let index = 0; index < transactionsWithImages.length; index++) {
-        let filePath = path.join('tmp', 'uploads', transactionsWithImages[index].filename);
-        fs.promises.unlink(filePath, (err) => {
-          console.error(err)
-        })
-      }
+      Email.sendTransactionSignedEmail(account, {folderLink})
     })
 
 
@@ -428,7 +421,7 @@ app.post("/reimbursement", async (req,res)=> {
   let {account} = req.session
   Promise.all(Database.deleteTransactions(toBeReimbursed, account))
   .then(() => res.render("reimburse"))
-  .then(() => sendReimbursementsMadeWithTimeout(account))
+  .then(() => Email.sendReimbursementsMadeWithTimeout(account))
 
 
   Database.getCurrentReimbursementId(req.session.account).then(
@@ -516,72 +509,84 @@ app.post("/transaction/approve", (req, res) => {
   applyTimeStamp([transactionUpdate], "approvedTime")
   Database.updateTransaction(transactionUpdate, account)
   .then(() => res.sendStatus(200))
-  .then(() => sendApprovalMadeEmailWithTimeout(account))
+  .then(() => Email.sendApprovalMadeEmailWithTimeout(account))
 });
 
 app.post('/upload', upload.single('file'), async (req, res) => {
-  try {
 
-    if (!req.file) return res.status(400).send('No files were uploaded.');
-    const file = req.file;
-    let filename = file.originalname
-  
-    /** @type {{account: string}} */
-    let {account} = req.session
+  if (!req.file) return res.status(400).send('No files were uploaded.');
+  const file = req.file
 
-    /** @type {number} */
-    let transactionId  = Number(req.body.transactionId)
+  let filename = file.originalname
 
-    if (!transactionId) return res.status(400).send('transaction id is missing.')
-    filename = account+"_"+transactionId.toString()+"_"+filename
-    let imageUrl = await Database.uploadImageToStorage(file, filename)
-
-    Database.updateTransaction({transactionId, imageUrl, filename}, account)
-    .then(() => res.sendStatus(200))
-    .then(() => fs.unlink(file.path, (err) => {
-      console.log(err)
-    }))
-    
-  } catch (error) {
-    console.error('Upload failed:', error);
-    return res.status(500).send('Upload failed. Please try again.');
+  let ext = findExtName(filename)
+  let allowedExtension = ['jpeg', 'jpg', 'png', 'pdf']
+  if(!ext || !allowedExtension.includes(ext.toLowerCase())){
+    res.sendStatus(400)
+    fs.unlink(file.path, (err) => {
+      if (err) console.error(err)
+    })
+    return
   }
+
+  /** @type {{account: string}} */
+  let {account} = req.session
+
+  /** @type {number} */
+  let transactionId  = Number(req.body.transactionId)
+
+  if (!transactionId) return res.status(400).send('transaction id is missing.')
+  filename = account+"_"+transactionId.toString()+"_"+filename
+  let imageUrl = await Database.uploadImageToStorage(file, filename)
+
+  Database.updateTransaction({transactionId, imageUrl, filename}, account)
+  .then(() => res.sendStatus(200))
+  .then(() => fs.unlink(file.path, (err) => {
+    if (err) {console.log(err)}
+  }))
+    
+
 });
 
 
 app.post('/upload/sign', upload.single('file'), async (req, res) => {
-  try {
-
-    if (!req.file) return res.status(400).send('No files were uploaded.');
-    const file = req.file;
-    let filename = file.originalname
   
-    /** @type {{account: string}} */
-    let {account} = req.session
+  if (!req.file) return res.status(400).send('No files were uploaded.');
+  const file = req.file;
+  let filename = file.originalname
 
-    /** @type {string} */
-    let transactionId  = req.body.transactionId
-
-    /** @type {Reimbursement} */
-    let reimbursement = JSON.parse(req.body.reimbursement)
-
-    if (!transactionId) return res.status(400).send('transaction id is missing.')
-    filename = account+"_"+transactionId+"_"+filename
-    let imageUrl = await Database.uploadImageToStorage(file, filename)
-
-    let transaction = reimbursement.transactions[transactionId]
-    transaction.imageUrl = imageUrl
-    transaction.filename = filename
-    Database.updateReimbursement(reimbursement, account)
-    .then(() => res.sendStatus(200))
-    .then(() => fs.unlink(file.path, (err) => {
-      console.log(err)
-    }))
-
-  } catch (error) {
-    console.error('Upload failed:', error);
-    return res.status(500).send('Upload failed. Please try again.');
+  let ext = findExtName(filename)
+  let allowedExtension = ['jpeg', 'jpg', 'png', 'pdf']
+  if(!ext || !allowedExtension.includes(ext.toLowerCase())){
+    res.sendStatus(400)
+    fs.unlink(file.path, (err) => {
+      if (err) console.error(err)
+    })
+    return
   }
+
+  /** @type {{account: string}} */
+  let {account} = req.session
+
+  /** @type {string} */
+  let transactionId  = req.body.transactionId
+
+  /** @type {Reimbursement} */
+  let reimbursement = JSON.parse(req.body.reimbursement)
+
+  if (!transactionId) return res.status(400).send('transaction id is missing.')
+  filename = account+"_"+transactionId+"_"+filename
+  let imageUrl = await Database.uploadImageToStorage(file, filename)
+
+  let transaction = reimbursement.transactions[transactionId]
+  transaction.imageUrl = imageUrl
+  transaction.filename = filename
+  Database.updateReimbursement(reimbursement, account)
+  .then(() => res.sendStatus(200))
+  .then(() => fs.unlink(file.path, (err) => {
+    if (err) {console.log(err)}
+  }))
+
 });
 
 
@@ -592,6 +597,7 @@ app.post('/upload/delete', (req, res) => {
   try{
     Database.deleteImageFromStorage(filename)
     .then(() => res.sendStatus(200))
+    .catch(() => res.sendStatus(500))
   }catch {
     res.sendStatus(500)
   }
@@ -617,6 +623,9 @@ function applyTimeStamp(objects, purpose) {
     object[purpose] = formattedDate
   }
 }
+
+/** @param {string} filename */
+const findExtName = (filename) => filename.split(".").at(-1)
 
 /**
  * 

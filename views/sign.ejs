@@ -42,7 +42,8 @@
                             signButton.classList.add('action-button')
                             signButton.title = 'Sign'
                             signButton.addEventListener('click', () => {
-                                if (confirm('Are you sure you wish to sign this document?')) {
+                                if (confirm('Are you sure you wish to sign this reimbursement?')){
+
                                     icon.classList.remove('fa-pen-nib')
                                     icon.classList.add('fa-circle-notch')
                                     icon.classList.add('fa-spin')
@@ -402,19 +403,21 @@
                     previewImage: null,
                     uploadErrorMessage: '',
                     fileName: '',
+                    findExtName(filename) {
+                        let ext = filename.split('.').at(-1)
+                        console.log(ext)
+                        return ext
+                    },
+                    findPreviewImage(transaction) {
+                        let url = transaction.imageUrl
+                        if (!url) return '/static/images/noimage.png'
+                        let filename = transaction.filename
+                        if (this.findExtName(filename) == 'pdf') return 'https://upload.wikimedia.org/wikipedia/commons/8/87/PDF_file_icon.svg'
+                        return url
+                    },
                     async uploadFileHandler() {
                         try {
-                            fetch('/upload/delete', {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type' : 'application/json',
-                                },
-                                body: JSON.stringify({filename: this.transactionData.filename})
-                            })    
-
-                            this.openUploadModal = false
-                            this.openViewModal = false
-                            this.swapMain()
+                            this.$refs.uploadButton.disabled = true
 
                             const formData = new FormData();
                             formData.append('file', this.uploadFile)
@@ -424,14 +427,33 @@
                                 method : 'POST',
                                 body: formData
                             })
-                            .then(() => {
+                            .then((response) => {
+                                if (!response.ok) {
+                                    throw new Error('Upload was invalid')
+                                }
+                                this.openUploadModal = false
+                                this.openViewModal = false
+                                this.swapMain()
+                                fetch('/upload/delete', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type' : 'application/json',
+                                    },
+                                    body: JSON.stringify({filename: this.transactionData.filename})
+                                })                           
                                 this.previewImage = null
                             })
                             .then(() => {
-                                htmx.ajax('GET', '/transaction_sign', {
-                                    target: 'main',
-                                    swap:'outerHTML'
-                                })
+                                setTimeout(() => {
+                                    htmx.ajax('GET', '/transaction_sign', {
+                                        target: 'main',
+                                        swap:'outerHTML'
+                                    })  
+                                }, 300)
+                            })
+                            .catch(() => {
+                                this.$refs.uploadButton.disabled = false
+                                this.uploadErrorMessage = 'File is incorrect type'
                             })
 
                         } catch (error) {
@@ -440,7 +462,7 @@
                         }
                     },
                     async downloadImage() {
-                        const image = await fetch(this.previewImage)
+                        const image = await fetch(this.transactionData.imageUrl)
                         const imageBlob = await image.blob()
                         const imageURL = URL.createObjectURL(imageBlob)
 
@@ -461,8 +483,7 @@
                 @upload-modal.window="
                     openUploadModal = true;
                     transactionData = $event.detail.transaction;
-                    previewImage = $event.detail.transaction.imageUrl || '/static/images/noimage.png';
-
+                    previewImage = findPreviewImage(transactionData)
                     buttonToggle = false;
                     uploadErrorMessage = '';
                     uploadFile = null;
@@ -486,9 +507,9 @@
                             <input id="file-upload" type="file"
                                 x-ref="uploadFileInput"
                                 @change="uploadFile = $event.target.files[0]; uploadErrorMessage=''; buttonToggle=true;"
-                                accept="image/png, image/gif, image/jpeg">
+                                accept="image/png, image/jpeg, application/pdf">
                             <span id="file-upload-name" x-text="fileName"></span>
-                            <button type="submit" x-show="buttonToggle" class="submit-button" @click="uploadFileHandler()">Upload</button>
+                            <button x-ref="uploadButton" type="submit" x-show="buttonToggle" class="submit-button" @click="uploadFileHandler()">Upload</button>
                             <div x-show="uploadErrorMessage" class="error-message" x-text="uploadErrorMessage"></div>
                         </div>
 
