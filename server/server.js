@@ -177,9 +177,10 @@ app.get("/saved", (req, res) => {
 
 app.post("/transaction", async (req ,res) => {
   /** @type {Transaction} */
-  let { transactionId, recipient, supplier, description, amount, date} = req.body
+  let { transactionId, recipient, supplier, description, amount, date, tax, taxable} = req.body
   transactionId = Number(transactionId)
   amount = Number(amount)
+  tax = Number(tax)
   let {account} = req.session
   /** @type {Transaction} */
   let transaction = {
@@ -194,6 +195,11 @@ app.post("/transaction", async (req ,res) => {
     editable : true,
     deleteable : true,
   }
+  if (tax > 0) {
+    transaction.taxable = true
+    transaction.tax = tax
+  }
+
   let currentId = await Database.getCurrentTransactionId(account) 
   currentId = Number(currentId)
   if (currentId > transactionId) {
@@ -230,8 +236,16 @@ app.post("/transaction", async (req ,res) => {
 
 app.post("/transaction/edit", async (req, res) => {
   /** @type {Transaction} */
-  let { transactionId, recipient, supplier, description, amount, date } = req.body
+  let { transactionId, recipient, supplier, description, amount, date, tax, taxable } = req.body
   transactionId = Number(transactionId)
+  tax = Number(tax)
+  if (!taxable) {
+    tax = 0
+  }
+  if (tax == 0) {
+    taxable = false
+  }
+  console.log({taxable, tax})
   let amountChanged = (amount) ? true : false
   amount = Number(amount)
   let transaction = {
@@ -241,6 +255,8 @@ app.post("/transaction/edit", async (req, res) => {
     description,
     amount,
     date,
+    tax,
+    taxable
   };
 
   let originalTransaction = await Database.getTransaction(
@@ -670,6 +686,8 @@ function sendReimbursementsToAdaptorServer(reimbursements) {
  * @property {string?} deleteReason - the reason the user deleted the transaction
  * @property {string?} filename - the file name for the receipt image in storage
  * @property {string?} imageUrl - the image url for the transaction receipt
+ * @property {boolean} taxable - if the transcation can be taxed
+ * @property {number} tax - the tax that the item carries
  */
 
 /**

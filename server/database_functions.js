@@ -418,6 +418,8 @@ export async function downloadImageFromStorage(filename) {
  * @property {string?} deleteReason - the reason the user deleted the transaction
  * @property {string?} filename - the file name for the receipt image in storage
  * @property {string?} imageUrl - the image url for the transaction receipt
+ * @property {boolean} taxable - if the transcation can be taxed
+ * @property {number} tax - the tax that the item carries
  */
 
 /**

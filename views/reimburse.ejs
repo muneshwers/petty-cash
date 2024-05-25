@@ -95,6 +95,12 @@
                     headerName : 'Voucher Number'},
                     { field: 'description'},
                     { field: 'amount' },
+                    {headerName: 'Tax', valueGetter: function (params) {
+                        if (params.data.taxable){
+                            return params.data.tax
+                        }
+                        return null 
+                    },},
                     { field : 'approved'},
                     { field: 'recipient' },
                     { field: 'supplier' },
@@ -283,8 +289,11 @@
                     supplier : {value: '', valid: true},
                     description : {value: '', valid: true},
                     date : {value: '', valid: true},
+                    tax : {value: '', valid : true},
                     originalAmount :  {value: '', valid: true},
+                    originalTax : {value: '', valid: true},
                 },
+                checked : true,
                 validateEdit() {
                     let keys = Object.keys(this.inputs)
                     for (let key of keys) {
@@ -307,6 +316,9 @@
                 inputs.description.value = transaction.description
                 inputs.originalAmount.value = transaction.amount
                 inputs.date.value = transaction.date
+                inputs.tax.value = transaction.tax ?? ''
+                inputs.originalTax.value = transaction.tax ?? ''
+                checked = !!(transaction.taxable)
                 inputs.amount.value = ''
                 balance += Number(inputs.originalAmount.value)
             "
@@ -362,16 +374,16 @@
                                     }"
                                     @modal.window="input = inputs.recipient.value"
                                 >
-                                <span class="errorMessage"  x-text="errorMessage"></span>
-                                <input
-                                    x-on:input="let valid = validate(); $dispatch('validation', {valid, field : 'recipient', input})"
-                                    x-model="input"
-                                    x-bind:class="{'error' : errorMessage}"
-                                    type="text"
-                                    name="recipient"
-                                    id="recipient"
-                                >
-                                <span class="label">Recipient</span>
+                                    <span class="errorMessage"  x-text="errorMessage"></span>
+                                    <input
+                                        x-on:input="let valid = validate(); $dispatch('validation', {valid, field : 'recipient', input})"
+                                        x-model="input"
+                                        x-bind:class="{'error' : errorMessage}"
+                                        type="text"
+                                        name="recipient"
+                                        id="recipient"
+                                    >
+                                    <span class="label">Recipient</span>
                                 <div
                                 @validation="
                                     inputs[$event.detail.field].value = $event.detail.input;
@@ -481,36 +493,113 @@
                                     >
                                     <span class="label">Amount</span>
                                 </div>
-                                <div class="item" x-data="{
-                                    input : (new Date()).toISOString().split('T')[0],
+                                <div x-show="editAmount" class="item">
+                                    <span class="errorMessage"></span>
+                                    <input style="width: min-content; margin: 12px;" type="checkbox" x-model="checked" name="taxable" id="taxable">
+                                    <span class="label">Taxable</span>
+                                </div>
+                                <div x-show="editAmount"  @validation="
+                                inputs[$event.detail.field].value = $event.detail.input;
+                                inputs[$event.detail.field].valid = $event.detail.valid;
+                                " 
+                                class="item"
+                                x-data="{
+                                    input : '',
                                     errorMessage : '',
-                                    initialized : false,
                                     validate() {
-                                        this.initialized = true
-                                        if (!this.input) {
-                                            this.errorMessage = 'date required'
+                                        if (isNaN(Number(this.input))) {
+                                            this.errorMessage = 'Number required'
+                                            return false
+                                        }
+                                        if(this.input === '' || this.input == 0 || this.input == null) {
+                                            this.errorMessage = ''
+                                            return true
+                                        }
+                                        if (this.input < 0) {
+                                            this.errorMessage = 'Positive values only'
+                                            return false
+                                        }
+                                        if (!this.inputs.amount.valid){
+                                            this.errorMessage = 'Amount is invalid'
+                                            return false
+                                        }
+                                        let amount = Number(this.inputs.amount.value)
+                                        let input = Number(this.input)
+                                        if (input > amount) {
+                                            this.errorMessage = 'Tax cannot be greater than Amount'
                                             return false
                                         }
                                         this.errorMessage = ''
                                         return true
                                     }
                                 }"
-                                @modal.window="input = inputs.date.value"
-                                >
-                                    <span class="errorMessage" x-text="errorMessage"></span>
+                                x-init="
+                                $watch('inputs.amount.value',
+                                    function(amount) {
+                                        if (!checked) return
+                                        let valid = validate()
+                                        $dispatch('validation', {valid, field : 'tax', input})
+                                    })
+    
+                                $watch('checked', 
+                                    function(checked){
+                                        if (checked) {
+                                            return
+                                        }
+                                        input = inputs.originalTax.value
+                                        inputs.tax.value = inputs.originalTax.value
+                                        errorMessage = ''
+                                        inputs.tax.valid = true
+                                        return
+                                    })
+                                "
+                                @modal.window="input = inputs.tax.value"
+    
+                            >
+                                <span x-show="checked" class="errorMessage" x-text="errorMessage"></span>
+                                <template x-if="checked">
                                     <input
-                                        x-on:input="let valid = validate(); $dispatch('validation', {valid, field : 'date', input})"
-                                        x-model="input"
-                                        x-bind:class="{'error' : errorMessage}"
-                                        type="date"
-                                        name="date"
-                                        id="date"
+                                    x-model="input"
+                                    x-on:input="let valid = validate(); $dispatch('validation', {valid, field : 'tax', input})"
+                                    type="text"
+                                    name="tax"
+                                    id="tax"
+                                    x-bind:class="{'error' : errorMessage}"
                                     >
-                                    <span class="label">Date</span>
-                                </div>
+                                </template>
+    
+                                <span x-show="checked" class="label">Tax</span>
+                            </div>
+                            <div class="item" x-data="{
+                                input : (new Date()).toISOString().split('T')[0],
+                                errorMessage : '',
+                                initialized : false,
+                                validate() {
+                                    this.initialized = true
+                                    if (!this.input) {
+                                        this.errorMessage = 'date required'
+                                        return false
+                                    }
+                                    this.errorMessage = ''
+                                    return true
+                                }
+                            }"
+                            @modal.window="input = inputs.date.value"
+                            >
+                                <span class="errorMessage" x-text="errorMessage"></span>
+                                <input
+                                    x-on:input="let valid = validate(); $dispatch('validation', {valid, field : 'date', input})"
+                                    x-model="input"
+                                    x-bind:class="{'error' : errorMessage}"
+                                    type="date"
+                                    name="date"
+                                    id="date"
+                                >
+                                <span class="label">Date</span>
+                            </div>
                             </div>
                             <div  class="modal-btns">
-                                <button class="submit-button" @click="openEditModal =false; swapMain()" type="submit" :disabled="!validateEdit()" >Update</button>
+                                <button class="submit-button" @click="editAmount = true; openEditModal =false; swapMain()" type="submit" :disabled="!validateEdit()" >Update</button>
                                 <button
                                 class="edit-amount"
                                 type="button"
@@ -628,6 +717,12 @@
                             { field: 'transactionId', headerName : 'Voucher Number'},
                             { field: 'description'},
                             { field: 'amount' },
+                            {headerName: 'Tax', valueGetter: function (params) {
+                                if (params.data.taxable){
+                                    return params.data.tax
+                                }
+                                return null 
+                            },},
                             { field: 'recipient' },
                             { field: 'supplier' },
                             { field: 'createdBy' },
