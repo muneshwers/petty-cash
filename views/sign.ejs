@@ -265,6 +265,12 @@
                         headerName : 'Voucher Number'},
                         { field: 'description'},
                         { field: 'amount' },
+                        {headerName: 'Tax', valueGetter: function (params) {
+                            if (params.data.taxable){
+                                return params.data.tax
+                            }
+                            return null 
+                        },},
                         { field : 'approved'},
                         { field: 'recipient' },
                         { field: 'supplier' },
@@ -356,6 +362,12 @@
                                     { field: 'transactionId', headerName : 'Voucher Number'},
                                     { field: 'description'},
                                     { field: 'amount' },
+                                    {headerName: 'Tax', valueGetter: function (params) {
+                                        if (params.data.taxable){
+                                            return params.data.tax
+                                        }
+                                        return null 
+                                    },},
                                     { field: 'recipient' },
                                     { field: 'supplier' },
                                     { field: 'createdBy' },

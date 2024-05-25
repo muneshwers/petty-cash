@@ -237,17 +237,16 @@ app.post("/transaction", async (req ,res) => {
 app.post("/transaction/edit", async (req, res) => {
   /** @type {Transaction} */
   let { transactionId, recipient, supplier, description, amount, date, tax, taxable } = req.body
-  transactionId = Number(transactionId)
+  
+
   tax = Number(tax)
-  if (!taxable) {
-    tax = 0
-  }
-  if (tax == 0) {
-    taxable = false
-  }
-  console.log({taxable, tax})
+  taxable = (taxable == 'on') ? true : false
+  tax = (taxable) ? tax : 0
+  taxable = (tax == 0) ? false : taxable
+
   let amountChanged = (amount) ? true : false
   amount = Number(amount)
+  transactionId = Number(transactionId)
   let transaction = {
     transactionId,
     recipient,
@@ -355,7 +354,21 @@ app.post("/reimbursement/sign", async (req, res) => {
     .then(() => {
       res.render("sign", { signApproval: true })
 
-      sendReimbursementsToAdaptorServer(transactions)
+      let transactionForAdaptorServer = transactions.flatMap((transaction) => {
+        if (!transaction.taxable) {
+          return [transaction]
+        }
+    
+        let transactionNoTax = {...transaction}
+        transactionNoTax.amount = transaction.amount - transaction.tax
+    
+        let transactionTax = {...transaction}
+        transactionTax.amount = transaction.tax
+        transactionTax.description = `Tax ${transaction.description}`
+    
+        return [transactionNoTax, transactionTax]
+      })
+      sendReimbursementsToAdaptorServer(transactionForAdaptorServer)
 
       let promises = transactionsWithImages.map(transaction => 
         Database.downloadImageFromStorage(transaction.filename)
@@ -645,16 +658,16 @@ const findExtName = (filename) => filename.split(".").at(-1)
 
 /**
  * 
- * @param {Array<Transaction>} reimbursements 
+ * @param {Array<Transaction>} transactions 
  */
-function sendReimbursementsToAdaptorServer(reimbursements) {
+function sendReimbursementsToAdaptorServer(transactions) {
   let {adaptorServerUrl} = config
   fetch(adaptorServerUrl, {
-      method : "POST",
-      headers : {
-          "Content-Type" : "application/json"
-      },
-      body : JSON.stringify({reimbursements})
+    method : "POST",
+    headers : {
+        "Content-Type" : "application/json"
+    },
+    body : JSON.stringify({reimbursements: transactions})
   }).then(
       (response) => console.log(response)
   )
