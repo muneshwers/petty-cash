@@ -62,8 +62,8 @@ app.get("/", (req, res) => {
 })
 
 app.get("/home", (req, res) => {
-  let {role, account} = req.session
-  res.render("home", {role, account})
+  let {account, views, landingInfo} = req.session
+  res.render("home", {account, views, landingInfo})
 })
 
 app.get("/login", (req, res) => {
@@ -88,15 +88,30 @@ app.post("/login/user", async (req, res) => {
     return
   }
 
-  let {role} = user
-  role = role ?? 'basic'
+  let {views, landing, permissions} = user
+  
+  let pageMap = {
+    "create" : {link : "/create_transaction", tab : "transactions"},
+    "reimburse" : {link : "/reimburse", tab : "reimburse"} ,
+    "history" : {link : "/transaction_history", tab : "history"},
+    "sign" : {link : "/transaction_sign", tab : "sign"},
+    "approve" : {link : "/approve", tab : "approve"},
+  }
+  let landingInfo = pageMap[landing.page]
+  if (!landingInfo) {
+    errorMessage = "User has no landing info"
+    res.render("login", {errorMessage})
+    return
+  }
 
   req.session.loggedIn = true;
   req.session.username = username;
-  req.session.account = 'muneshwers';
-  req.session.role = role
+  req.session.account = landing.account;
   req.session.saved = {}
-  res.render("home", {role, account : req.session.account})
+  req.session.views = views
+  req.session.landingInfo = landingInfo
+  req.session.permissions = permissions
+  res.render("home", {account : req.session.account, views, landingInfo})
   return
   
 })
@@ -164,8 +179,8 @@ app.get("/reimbursement_history", (req, res) => {
 })
 
 app.get("/transaction_sign", (req, res) => {
-  let { role } = req.session
-  let signApproval = (role == 'approver') ? true : false
+  let { permissions } = req.session
+  let { signApproval } = permissions
   res.render("sign", {signApproval})
 })
 
@@ -299,11 +314,11 @@ app.post("/transaction/edit", async (req, res) => {
 })
 
 app.post("/transaction/delete", (req, res) => {
-  /** @type {{transaction: Transaction, reason : string}} */
-  let {transaction, reason} = req.body
+  /** @type {{transaction: Transaction, reason : string, source : string}} */
+  let {transaction, reason, source} = req.body
   transaction = JSON.parse(transaction)
-  /** @type {{account:string, role:string}} */
-  let {account, role} = req.session
+  /** @type {{account:string}} */
+  let {account} = req.session
 
   applyTimeStamp([transaction], "deletedTime")
   applyTimeStamp([transaction], "timeStamp")
@@ -312,14 +327,8 @@ app.post("/transaction/delete", (req, res) => {
 
   Database.deleteTransaction(transaction, account)
   .then(() => {
-    if (role == 'basic') {
-      res.render("reimburse")
-      return
-    }
-    if (role == 'approver') {
-      res.render("approve")
-      return
-    }
+    res.render(source)
+    return
   })
 
   Database.addToTransactionHistory([transaction], account)
@@ -507,14 +516,8 @@ app.post("/reimbursement/completed", async (req, res) => {
 app.post("/account", (req, res) => {
   const {account} = req.body;
   req.session.account = account
-  if (req.session.role === 'approver'){
-    res.render("approve")
-    return
-  }
-  if (req.session.role === 'basic'){
-    res.render("create_transaction")
-    return
-  }
+  res.redirect(req.session.landingInfo.link)
+  return
 })
 
 app.post("/saved", (req, res) => {
