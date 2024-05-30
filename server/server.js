@@ -31,9 +31,12 @@ const checkLoggedIn = (req, res, next) => {
     "/",
     "/login",
     "/login/user",
-    "/styles/style.css"
+    "/styles/style.css",
+    "/upload"
   ]
-  if (unprotectedUrl.includes(req.url)){
+  let url = req.url
+  console.log(url)
+  if (unprotectedUrl.includes(url)){
     next()
     return
   }
@@ -530,22 +533,22 @@ app.post('/upload', upload.single('file'), async (req, res) => {
   }
 
   /** @type {{account: string}} */
-  let {account} = req.session
+  let account = req.session.account || req.body.account
+
+  if (!account) return res.status(400).send('Account is missing.')
 
   /** @type {number} */
   let transactionId  = Number(req.body.transactionId)
 
-  if (!transactionId) return res.status(400).send('transaction id is missing.')
-  filename = account+"_"+transactionId.toString()+"_"+filename
+  if (!transactionId) return res.status(400).send('Transaction id is missing.')
+  filename = account + "_" + transactionId.toString() + "_" + filename
   let imageUrl = await Database.uploadImageToStorage(file, filename)
 
   Database.updateTransaction({transactionId, imageUrl, filename}, account)
   .then(() => res.sendStatus(200))
   .then(() => fs.unlink(file.path, (err) => {
-    if (err) {console.log(err)}
+    if (err) { console.log(err) }
   }))
-    
-
 });
 
 
@@ -566,7 +569,9 @@ app.post('/upload/sign', upload.single('file'), async (req, res) => {
   }
 
   /** @type {{account: string}} */
-  let {account} = req.session
+  let account = req.session.account || req.body.account
+
+  if (!account) return res.status(400).send('Account is missing.')
 
   /** @type {string} */
   let transactionId  = req.body.transactionId
@@ -574,8 +579,8 @@ app.post('/upload/sign', upload.single('file'), async (req, res) => {
   /** @type {Reimbursement} */
   let reimbursement = JSON.parse(req.body.reimbursement)
 
-  if (!transactionId) return res.status(400).send('transaction id is missing.')
-  filename = account+"_"+transactionId+"_"+filename
+  if (!transactionId) return res.status(400).send('Transaction id is missing.')
+  filename = account + "_" + transactionId + "_" + filename
   let imageUrl = await Database.uploadImageToStorage(file, filename)
 
   let transaction = reimbursement.transactions[transactionId]
@@ -584,10 +589,10 @@ app.post('/upload/sign', upload.single('file'), async (req, res) => {
   Database.updateReimbursement(reimbursement, account)
   .then(() => res.sendStatus(200))
   .then(() => fs.unlink(file.path, (err) => {
-    if (err) {console.log(err)}
+    if (err) { console.log(err) }
   }))
-
 });
+
 
 
 app.post('/upload/delete', (req, res) => {
