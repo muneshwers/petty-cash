@@ -73,7 +73,7 @@ app.get("/login", (req, res) => {
 
 app.post("/login/user", async (req, res) => {
   const { username, password } = req.body;
-  const user = await Database.getUsers(username);
+  const user = await Database.getUser(username);
 
   let errorMessage = ''; 
 
@@ -96,6 +96,7 @@ app.post("/login/user", async (req, res) => {
     "history" : {link : "/transaction_history", tab : "history"},
     "sign" : {link : "/transaction_sign", tab : "sign"},
     "approve" : {link : "/approve", tab : "approve"},
+    "users" : {link: "/create_user", tab : "users"}
   }
   let landingInfo = pageMap[landing.page]
   if (!landingInfo) {
@@ -114,6 +115,67 @@ app.post("/login/user", async (req, res) => {
   res.render("home", {account : req.session.account, views, landingInfo})
   return
   
+})
+
+app.post("/user/create", (req ,res) => {
+  let {name, password, pages, landingPage, accounts, landingAccount, permissions} = req.body
+  pages =  (typeof pages == "string") ? [pages] : pages
+  accounts = (typeof accounts == "string") ? [accounts] : accounts
+  permissions = permissions ?? ["placeholder"]
+  permissions = (typeof permissions == "string") ? [permissions] : permissions
+  /** @type {Landing} */
+  let landing = {
+    account : landingAccount,
+    page : landingPage
+  }
+  /** @type {User} */
+  let user = {
+    username : name,
+    password : password,
+    permissions : Object.fromEntries(permissions.map((permission) => [permission, true])),
+    landing,
+    views : Object.fromEntries(pages.concat(accounts).map((view) => [view, true]))
+  }
+  Database.createUser(user)
+  res.redirect("/create_user")
+
+})
+
+app.post("/user/edit", (req ,res) => {
+  let {name, password, pages, landingPage, accounts, landingAccount, permissions} = req.body
+  pages =  (typeof pages == "string") ? [pages] : pages
+  accounts = (typeof accounts == "string") ? [accounts] : accounts
+  permissions = permissions ?? ["placeholder"]
+  permissions = (typeof permissions == "string") ? [permissions] : permissions
+  /** @type {Landing} */
+  let landing = {
+    account : landingAccount,
+    page : landingPage
+  }
+  /** @type {User} */
+  let user = {
+    username : name,
+    password : password,
+    permissions : Object.fromEntries(permissions.map((permission) => [permission, true])),
+    landing,
+    views : Object.fromEntries(pages.concat(accounts).map((view) => [view, true]))
+  }
+  Database.createUser(user)
+  res.redirect("/edit_user")
+
+})
+
+app.get("/user/:username", (req, res) => {
+  let {username} = req.params
+  Database.getUser(username)
+  .then((user) => {
+    if (user) {
+      res.status(200).json({user})
+      return
+    }
+    res.sendStatus(400)
+  })
+  .catch(() => res.sendStatus(400))
 })
 
 app.get("/approve", (req, res) => {
@@ -166,6 +228,14 @@ app.get("/create_transaction", (req, res) => {
   res.render("create_transaction")
 })
 
+app.get("/create_user", (req, res) => {
+  res.render("create_user")
+})
+
+app.get("/edit_user", (req, res) => {
+  res.render("edit_user")
+})
+
 app.get("/reimburse", (req, res) => {
   res.render("reimburse")
 })
@@ -181,6 +251,7 @@ app.get("/reimbursement_history", (req, res) => {
 app.get("/transaction_sign", (req, res) => {
   let { permissions } = req.session
   let { signApproval } = permissions
+  signApproval = signApproval ?? false
   res.render("sign", {signApproval})
 })
 
@@ -636,7 +707,7 @@ app.post('/upload/delete', (req, res) => {
 })
 
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`App is running on port ${PORT}`);
 });
 
@@ -675,6 +746,24 @@ function sendReimbursementsToAdaptorServer(transactions) {
       (response) => console.log(response)
   )
 }
+
+/**
+ * Represents a user
+ * @typedef {Object} User
+ * @property {string} username - The username
+ * @property {string} password - The password
+ * @property {Object<string, boolean>} views - The views that the user can see
+ * @property {Object<string, boolean>} permissions - The permissions that the user has
+ * @property {Landing} landing - The user's landing information
+ */
+
+/**
+ * The information object about the user upon loading and landing on the site
+ * @typedef {Object} Landing
+ * @property {string} account - The account the user lands
+ * @property {string} page - The page that the user lands
+ */
+
 
 /**
  * Represents a transaction.
@@ -722,4 +811,9 @@ function sendReimbursementsToAdaptorServer(transactions) {
  */
 
 //TODO
-//Taxable transactions
+//Bug fix overflow from modal and ag grid y-overflow : auto
+//make email query the database
+//separate the routes in to transactions, reimbursement and user
+//accounts have to look first 
+//add unprotected url for phones
+//redo the reimburse page

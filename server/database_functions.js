@@ -17,17 +17,33 @@ const {database} = config
 
 /**
  * 
- * @param {string} user 
- * @returns 
+ * @param {string} username 
+ * @returns {Promise<User?>}
  */
-export async function getUsers(user) {
+export async function getUser(username) {
   return (await firestore
     .collection(database)
     .doc('Users')
     .collection('users')
-    .doc(user)
+    .doc(username)
     .get()).data()
 }
+
+/**
+ * 
+ * @param {User} user 
+ * @returns 
+ */
+export async function createUser(user) {
+  return (firestore
+    .collection(database)
+    .doc('Users')
+    .collection('users')
+    .doc(user.username)
+    .set(user)
+  )
+}
+
 /**
  * 
  * @param {string} account 
@@ -112,6 +128,18 @@ export async function getReimbursements(account) {
     reimbursements.push(doc.data())
   })
   return reimbursements
+}
+
+/**
+ * 
+ * @param {string} account 
+ * @param {string} reimbursementId 
+ * @returns 
+ */
+export async function getReimbursement(account, reimbursementId) {
+  return (await 
+    (firestore.collection(database).doc(account).collection('Reimbursements').doc(reimbursementId).get())
+  ).data()
 }
 
 /**
@@ -391,6 +419,24 @@ export async function deleteImageFromStorage(path) {
 export async function downloadImageFromStorage(filename) {
   return storage.bucket().file(filename).download()
 }
+
+
+/**
+ * Represents a user
+ * @typedef {Object} User
+ * @property {string} username - The username
+ * @property {string} password - The password
+ * @property {Object<string, boolean>} views - The views that the user can see
+ * @property {Object<string, boolean>} permissions - The permissions that the user has
+ * @property {Landing} landing - The user's landing information
+ */
+
+/**
+ * The information object about the user upon loading and landing on the site
+ * @typedef {Object} Landing
+ * @property {string} account - The account the user lands
+ * @property {string} page - The page that the user lands
+ */
 
 /**
  * Represents a transaction.

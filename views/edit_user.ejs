@@ -1,0 +1,125 @@
+<main x-ref="main" style="font-family: 'Inter', sans-serif;" class="swappable">
+    <div class="history_buttons">
+        <span @click="swapMain()"  hx-trigger="click delay:0.3s" hx-get="/create_users" hx-target="main" class="history_button">
+            Create User
+        </span> 
+        <span class="history_button selected">
+            Edit User
+        </span>
+    </div>
+    <div x-data="
+    {
+        name : '',
+        password : '',
+        pages : ['approve', 'create', 'history', 'reimburse', 'sign'],
+        pageLanding : '',
+        accounts : ['barges', 'meals', 'muneshwers', 'paragon'],
+        accountLanding : '',
+        pagesChecked : [],
+        accountsChecked : [],
+        permissionsMap : {
+            'signApproval' : 'Sign Approval'
+        },
+        permissionsChecked : [],
+        found : false,
+        errorMessage : '',
+        capitalizeFirstLetter(str) {
+            return str.charAt(0).toUpperCase() + str.slice(1);
+        },
+        validate() {
+            if (this.name.trim().length == 0) return false
+            if (this.password.trim().length == 0) return false
+            if (this.pageLanding.length == 0) return false
+            if (this.accountLanding.length == 0) return false
+            return true
+        },
+        getUser() {
+            let username = this.name
+            this.$refs.findButton.disabled = true
+            fetch(`/user/${username}`)
+            .then((response) => {
+                if (!response.ok) {
+                    this.errorMessage = 'User not found'
+                    this.$refs.findButton.disabled = false
+                    return
+                }
+                return response.json()
+            })
+            .then((json) => {
+                let {user} = json
+                let {password, permissions, views, landing} = user
+                this.password = password
+
+                landing = landing ?? {account : '', page : ''}
+                this.accountLanding = landing['account']
+                this.pageLanding = landing['page']
+
+                views = views ?? {}
+                views = Object.keys(views)
+                this.pagesChecked = views.filter((view) => this.pages.includes(view))
+                this.accountsChecked = views.filter((view) => this.accounts.includes(view))
+
+                permissions = permissions ?? {}
+                this.permissionsChecked = Object.keys(permissions).filter((permission) => permission !== 'placeholder')
+
+                this.found = true
+            })
+        }
+    }">
+        <form hx-trigger="submit delay:0.3s" hx-post="/user/edit" hx-target="main">
+            <h2>Views</h2>
+            <h3>Info</h3>
+            <div class="item" style="width: 30%;">
+                <input x-model="name" type="text" name="name" id="name">
+                <span class="label">Name</span>
+            </div>
+            <template x-if="found">
+                <div>
+                    <div class="item" style="width: 30%;">
+                        <input x-model="password" type="text" name="password" id="password">
+                        <span class="label">Password</span>
+                    </div>
+                    <h3>Pages</h3>
+                    <template x-for="page in pages" >
+                        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                            <input x-model="pagesChecked" type="checkbox" name="pages" :value="page" :id="page"> <label :for="page" x-text="capitalizeFirstLetter(page)"></label>
+                        </div>
+                    </template>
+                    <h3>Landing Page</h3>
+                    <template x-for="page in pagesChecked">
+                        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                            <input x-model="pageLanding" :value="page" required type="radio" name="landingPage"> <label x-text="capitalizeFirstLetter(page)"></label>
+                        </div>
+                    </template>
+                    <h3>Accounts</h3>
+                    <template x-for="account in accounts">
+                        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                            <input x-model="accountsChecked" type="checkbox" name="accounts" :value="account" :id="account"> <label :for="account" x-text="capitalizeFirstLetter(account)"></label>
+                        </div>
+                    </template>
+                    <h3>Landing Account</h3>
+                    <template x-for="account in accountsChecked">
+                        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                            <input x-model="accountLanding" :value="account" type="radio" name="landingAccount"> <label x-text="capitalizeFirstLetter(account)"></label>
+                        </div>
+                    </template>
+                    <h3>Permissions</h3>
+                    <template x-for="permission in Object.keys(permissionsMap)">
+                        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                            <input x-model="permissionsChecked" type="checkbox" name="permissions" :value="permission" :id="permission"> <label :for="permission" x-text="permissionsMap[permission]"></label>
+                        </div>
+                    </template>
+                    <div style="margin-top: 30px;" x-show="validate()">
+                        <button x-on:click="swapMain()" class="submit-button" type="submit">Create</button>
+                    </div>
+                </div>
+            </template>
+            <template x-if="!found">
+                <div class="item" style="width: 30%; max-width: 300px;">
+                    <div x-text="errorMessage" class="errorMessage"></div>
+                    <button @click="getUser" x-ref="findButton" type="button" class="submit-button">Find</button>
+                </div>
+            </template>
+        </form>
+    </div>
+</main>
