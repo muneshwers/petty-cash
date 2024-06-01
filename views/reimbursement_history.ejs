@@ -228,7 +228,7 @@
                                 </button>
                             </div>
                         </div>
-                        <div x-ref="viewGrid" class="table ag-theme-quartz ag-center-cols-viewport" style="width: auto"></div> 
+                        <div x-ref="viewGrid" class="table ag-theme-quartz ag-center-cols-viewport" style="width: auto; overflow-y: scroll;"></div> 
                     </div>
                 </div>
 
@@ -286,7 +286,7 @@
                             <span>Loading...</span>
                         </div>
                         <div x-show="!loading" style="height: 100%;">
-                            <div x-ref="queryGrid" class="table ag-theme-quartz ag-center-cols-viewport" style="width: auto">
+                            <div x-ref="queryGrid" class="table ag-theme-quartz ag-center-cols-viewport" style="width: auto; overflow-y: scroll;">
                         </div>
                         </div>
                     </div>

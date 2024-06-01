@@ -31,7 +31,10 @@ const checkLoggedIn = (req, res, next) => {
     "/",
     "/login",
     "/login/user",
-    "/styles/style.css"
+    "/styles/style.css",
+    "/upload",
+    "/upload/sign",
+    "/reimbursement/get"
   ]
   if (unprotectedUrl.includes(req.url)){
     next()
@@ -195,6 +198,16 @@ app.get("/transactions", async (req, res) => {
 app.get("/reimbursements", async (req, res) => {
   let reimbursements = await Database.getReimbursements(req.session.account)
   res.json({reimbursements})
+})
+
+// A hack so that we can pass the reimbursement id in the body and get passed the sign-in filter
+app.post("/reimbursement/get", async (req, res) => {
+  /** @type {{reimbursementId : string}} */
+  let {reimbursementId} = req.body
+  console.log({reimbursementId})
+  let account = req.session.account ?? req.body.account
+  Database.getReimbursement(account, reimbursementId.toString())
+  .then((reimbursement) => res.json({reimbursement}))
 })
 
 app.get("/reimbursements/history", async (req, res) => {
@@ -632,8 +645,8 @@ app.post('/upload', upload.single('file'), async (req, res) => {
     return
   }
 
-  /** @type {{account: string}} */
-  let {account} = req.session
+  /** @type {string} */
+  let account = req.session.account ?? req.body.account
 
   /** @type {number} */
   let transactionId  = Number(req.body.transactionId)
@@ -668,8 +681,8 @@ app.post('/upload/sign', upload.single('file'), async (req, res) => {
     return
   }
 
-  /** @type {{account: string}} */
-  let {account} = req.session
+  /** @type {string} */
+  let account = req.session.account ?? req.body.account
 
   /** @type {string} */
   let transactionId  = req.body.transactionId
@@ -811,9 +824,7 @@ function sendReimbursementsToAdaptorServer(transactions) {
  */
 
 //TODO
-//Bug fix overflow from modal and ag grid y-overflow : auto
-//make email query the database
 //separate the routes in to transactions, reimbursement and user
-//accounts have to look first 
-//add unprotected url for phones
+//accountants have to look first 
 //redo the reimburse page
+//create the landing info, views and permissions for existing users

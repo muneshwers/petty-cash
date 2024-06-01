@@ -336,7 +336,7 @@
                                 <i style="padding: 5px;" class="fa-solid fa-download"></i>
                             </button>
                         </div>
-                        <div x-ref="viewGrid" class="table ag-theme-quartz ag-center-cols-viewport" style="width: auto"></div> 
+                        <div x-ref="viewGrid" class="table ag-theme-quartz ag-center-cols-viewport" style="width: auto; overflow-y: scroll;"></div> 
                     </div>
                 </div>
 
@@ -401,7 +401,7 @@
                         <div x-show="loading">
                             <span>Loading...</span>
                         </div>
-                        <div x-show="!loading" x-ref="queryGrid" class="table ag-theme-quartz ag-center-cols-viewport" style="width: auto">
+                        <div x-show="!loading" x-ref="queryGrid" class="table ag-theme-quartz ag-center-cols-viewport" style="width: auto; overflow-y: scroll;">
                         </div>
                     </div>
                  </div>

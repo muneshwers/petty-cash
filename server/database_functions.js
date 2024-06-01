@@ -138,7 +138,13 @@ export async function getReimbursements(account) {
  */
 export async function getReimbursement(account, reimbursementId) {
   return (await 
-    (firestore.collection(database).doc(account).collection('Reimbursements').doc(reimbursementId).get())
+    (firestore
+      .collection(database)
+      .doc(account)
+      .collection('Reimbursements')
+      .doc(reimbursementId)
+      .get()
+    )
   ).data()
 }
 
@@ -383,6 +389,23 @@ export async function queryTransaction(account, transactionId) {
   .where('transactionId', "==", transactionId)
   .orderBy("timeStamp")
   .get()
+}
+
+/**
+ * 
+ * @param {string} account 
+ * @param {string} email 
+ * @returns {Promise<string>}
+ */
+export async function getRecipients(account, email) {
+  let {recipient} = await firestore
+  .collection(database)
+  .doc(account)
+  .collection('Email')
+  .doc(email)
+  .get()
+
+  return recipient
 }
 
 /**

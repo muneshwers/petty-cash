@@ -1,11 +1,9 @@
-import fs from "fs"
 import nodemailer from "nodemailer"
 import config from "../config.js"
-import { uploadFileInDriveFolder } from './gdrive.js'
-import { createDriveFolder } from './gdrive.js'
-import * as path from "path"
+import * as Email from "./database_functions.js"
+let {emailsOn} = config
 
-let {emailsOn, mode} = config
+let webLink = "https://petty-cash-dot-projectservers.ue.r.appspot.com"
 
 /**
  * 
@@ -13,16 +11,13 @@ let {emailsOn, mode} = config
  * @param {Object} options
  * @returns 
  */
-const nearingLimitEmailTemplate = (account, options) => { 
-    let recipients = (mode == 'development') ? 'programmers.muneshwers@gmail.com' : 'procurement.coor@muneshwers.com, \
-    procurement.clerk@muneshwers.com, \
-    procurement.clerk2@muneshwers.com, \
-    procurement.supv@muneshwers.com'
+const nearingLimitEmailTemplate = async (account, options) => { 
+    let recipients = await Email.getRecipients(account, 'nearingLimit')
     return {
         from: '"Petty Cash Bot" <programmers.muneshwers@gmail.com>',
         to: recipients,
         subject: `Petty Cash (${account}) - Nearing account limit. Reimburse as soon as possible!`,
-        text: `Nearing account limit for (${account}). Reimburse as soon as possible!`,
+        text: `Nearing account limit for (${account}). Reimburse as soon as possible! Web link : ${webLink}`,
         html: `<b>Nearing account limit for (${account}). Reimburse as soon as possible!</b>`,
     }
 }
@@ -33,13 +28,13 @@ const nearingLimitEmailTemplate = (account, options) => {
  * @param {Object} options
  * @returns 
  */
-const transactionMadeEmailTemplate = (account, options) => {
-    let recipients = (mode == 'development') ? 'programmers.muneshwers@gmail.com' : 'fin.acct@muneshwers.com'
+const transactionMadeEmailTemplate = async (account, options) => {
+    let recipients = await Email.getRecipients(account, 'transactionMade')
     return {
         from: '"Petty Cash Bot" <programmers.muneshwers@gmail.com>',
         to: recipients,
         subject: `Petty Cash (${account}) - New Transactions Made`,
-        text: `New Transaction were made (${account}). Log in to Approve!`,
+        text: `New Transaction were made (${account}). Log in to Approve! ${webLink}`,
         html: `<b>New Transaction were made for (${account}). Log in to Approve!</b>`,
     }
 }
@@ -49,20 +44,13 @@ const transactionMadeEmailTemplate = (account, options) => {
  * @param {string} account 
  * @param {Object} options
  */
-const approvalMadeEmailTemplate = (account, options) => {
-
-    const recipientsMap = {
-        procurement : 'procurement.coor@muneshwers.com, procurement.clerk@muneshwers.com, procurement.clerk2@muneshwers.com, procurement.supv@muneshwers.com',
-        meals : 'acc.snrclerk@muneshwers.com'
-    }
-
-    /** @type {string} */
-    const recipients = (mode == 'development') ? 'programmers.muneshwers@gmail.com' : recipientsMap[account] ?? recipientsMap['procurement']
+const approvalMadeEmailTemplate = async (account, options) => {
+    const recipients = await Email.getRecipients(account, 'approvalMade')
     const emailTemplate = {
             from: '"Petty Cash Bot" <programmers.muneshwers@gmail.com>',
             to: recipients,
             subject:`Petty Cash (${account}) - Transactions Approved!`,
-            text: `Your transactions have been approved for (${account})! Log in to reimburse.`,
+            text: `Your transactions have been approved for (${account})! Log in to reimburse. ${webLink}`,
             html:`<b>Your transactions have been approved for (${account})! Log in to reimburse.</b>`,
         };
     return emailTemplate;
@@ -73,13 +61,13 @@ const approvalMadeEmailTemplate = (account, options) => {
  * @param {string} account 
  * @param {Object} options
  */
-const reimbursementsMadeEmailTemplate = (account, options) => {
-    let recipients = (mode == 'development') ? 'programmers.muneshwers@gmail.com' : 'gm@muneshwers.com'
+const reimbursementsMadeEmailTemplate = async (account, options) => {
+    let recipients = await Email.getRecipients(account, 'reimbursementsMade')
     return {
         from: '"Petty Cash Bot" <programmers.muneshwers@gmail.com>',
         to: recipients,
         subject: `Petty Cash (${account}) - Transactions Reimbursed!`,
-        text: `Transactions have been reimbursed for (${account})! Log in to Petty Cash to sign reimbursements.`,
+        text: `Transactions have been reimbursed for (${account})! Log in to Petty Cash to sign reimbursements. ${webLink}`,
         html: `<b>Transactions have been reimbursed for (${account}).</b>`,
     }
 }
@@ -88,20 +76,13 @@ const reimbursementsMadeEmailTemplate = (account, options) => {
  * @param {string} account 
  * @param {Object} options
  */
-const transactionDeletedEmailTemplate = (account, options) => {
-
-    const recipientsMap = {
-        procurement : 'procurement.coor@muneshwers.com, procurement.clerk@muneshwers.com, procurement.clerk2@muneshwers.com, procurement.supv@muneshwers.com, fin.acct@muneshwers.com',
-        meals : 'acc.snrclerk@muneshwers.com'
-    };
-
-    let recipients = (mode == 'development') ? 'programmers.muneshwers@gmail.com' : recipientsMap[account] ?? recipientsMap['procurement']
-
+const transactionDeletedEmailTemplate = async (account, options) => {
+    let recipients = await Email.getRecipients(account, 'transactionDeleted')
     const emailTemplate = {
             from: '"Petty Cash Bot" <programmers.muneshwers@gmail.com>',
             to: recipients,
             subject: `Petty Cash (${account}) - Transactions Deleted!`,
-            text: `Warning! A transaction has been deleted. For more information look at History page.`,
+            text: `Warning! A transaction has been deleted. For more information look at History page. Web link: ${webLink}`,
             html: `<b>Transaction Deleted for (${account}).</b>`,
         };
     return emailTemplate;
@@ -117,14 +98,7 @@ const transactionSignedEmailTemplate = async (account, options) => {
     try {
         let {folderLink} = options
         folderLink = folderLink ?? "" 
-        const signedRecipients = {
-            barges: 'accounts.sup@bargesolutionsgy.com',
-            muneshwers: 'mngt.acct@muneshwers.com',
-            paragon: 'accounts.sup@paragon-transportation.com',
-            meals: 'acc.snrclerk@muneshwers.com'
-        };
-
-        const recipients = (mode == 'development') ? 'programmers.muneshwers@gmail.com' : signedRecipients[account];
+        let recipients = await Email.getRecipients(account, 'transactionSigned')
         const emailTemplate = {
             from: '"Petty Cash Bot" <programmers.muneshwers@gmail.com>',
             to: recipients,
@@ -136,7 +110,6 @@ const transactionSignedEmailTemplate = async (account, options) => {
         return emailTemplate;
     } catch (error) {
         console.error('Error uploading file to Google Drive:', error);
-        throw new Error('Failed to create email template with Google Drive links');
     }
 };
 
