@@ -1,6 +1,6 @@
 <main x-ref="main" style="font-family: 'Inter', sans-serif;" class="swappable">
     <div class="history_buttons">
-        <span @click="swapMain()"  hx-trigger="click delay:0.3s" hx-get="/create_users" hx-target="main" class="history_button">
+        <span @click="swapMain()"  hx-trigger="click delay:0.3s" hx-get="/create_user" hx-target="main" class="history_button">
             Create User
         </span> 
         <span class="history_button selected">
@@ -110,7 +110,7 @@
                         </div>
                     </template>
                     <div style="margin-top: 30px;" x-show="validate()">
-                        <button x-on:click="swapMain()" class="submit-button" type="submit">Create</button>
+                        <button x-on:click="swapMain()" class="submit-button" type="submit">Update</button>
                     </div>
                 </div>
             </template>

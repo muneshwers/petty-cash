@@ -38,18 +38,6 @@
                 async init() {
                     let data = (await (await fetch('/transactionId')).json())
                     this.inputs.transactionId.value = data.transactionId
-
-                    fetch('/reimbursement/get', {
-                        method : 'POST',
-                        headers : {
-                            'Content-Type' : 'application/json'
-                        },
-                        body : JSON.stringify({
-                            reimbursementId : 37
-                        })
-                    })
-                    .then((res) => res.json())
-                    .then((reimbursement) => console.log(reimbursement))
                 },
                 async updateTransactionId() {
                     let data = (await (await fetch('/transactionId')).json())

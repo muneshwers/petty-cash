@@ -163,7 +163,7 @@ app.post("/user/edit", (req ,res) => {
     landing,
     views : Object.fromEntries(pages.concat(accounts).map((view) => [view, true]))
   }
-  Database.createUser(user)
+  Database.updateUser(user)
   res.redirect("/edit_user")
 
 })
@@ -825,6 +825,6 @@ function sendReimbursementsToAdaptorServer(transactions) {
 
 //TODO
 //separate the routes in to transactions, reimbursement and user
-//accountants have to look first 
 //redo the reimburse page
-//create the landing info, views and permissions for existing users
+//sign out button
+//accountants should be the ones to reimburse

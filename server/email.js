@@ -18,7 +18,7 @@ const nearingLimitEmailTemplate = async (account, options) => {
         to: recipients,
         subject: `Petty Cash (${account}) - Nearing account limit. Reimburse as soon as possible!`,
         text: `Nearing account limit for (${account}). Reimburse as soon as possible! Web link : ${webLink}`,
-        html: `<b>Nearing account limit for (${account}). Reimburse as soon as possible!</b>`,
+        html: `Nearing account limit for (${account}). Reimburse as soon as possible! Web link : ${webLink}`,
     }
 }
 
@@ -35,7 +35,7 @@ const transactionMadeEmailTemplate = async (account, options) => {
         to: recipients,
         subject: `Petty Cash (${account}) - New Transactions Made`,
         text: `New Transaction were made (${account}). Log in to Approve! ${webLink}`,
-        html: `<b>New Transaction were made for (${account}). Log in to Approve!</b>`,
+        html: `New Transaction were made (${account}). Log in to Approve! ${webLink}`,
     }
 }
 
@@ -51,7 +51,7 @@ const approvalMadeEmailTemplate = async (account, options) => {
             to: recipients,
             subject:`Petty Cash (${account}) - Transactions Approved!`,
             text: `Your transactions have been approved for (${account})! Log in to reimburse. ${webLink}`,
-            html:`<b>Your transactions have been approved for (${account})! Log in to reimburse.</b>`,
+            html:`Your transactions have been approved for (${account})! Log in to reimburse. ${webLink}`,
         };
     return emailTemplate;
 }
@@ -68,7 +68,7 @@ const reimbursementsMadeEmailTemplate = async (account, options) => {
         to: recipients,
         subject: `Petty Cash (${account}) - Transactions Reimbursed!`,
         text: `Transactions have been reimbursed for (${account})! Log in to Petty Cash to sign reimbursements. ${webLink}`,
-        html: `<b>Transactions have been reimbursed for (${account}).</b>`,
+        html: `Transactions have been reimbursed for (${account})! Log in to Petty Cash to sign reimbursements. ${webLink}`,
     }
 }
 
@@ -83,7 +83,7 @@ const transactionDeletedEmailTemplate = async (account, options) => {
             to: recipients,
             subject: `Petty Cash (${account}) - Transactions Deleted!`,
             text: `Warning! A transaction has been deleted. For more information look at History page. Web link: ${webLink}`,
-            html: `<b>Transaction Deleted for (${account}).</b>`,
+            html: `Warning! A transaction has been deleted. For more information look at History page. Web link: ${webLink}`,
         };
     return emailTemplate;
 }
@@ -104,7 +104,7 @@ const transactionSignedEmailTemplate = async (account, options) => {
             to: recipients,
             subject: `Petty Cash (${account}) - Transactions Reimbursed!`,
             text: `Reimbursements have been signed for (${account})! Log in to Quickbooks to view transactions. Folder Link: ${folderLink}`,
-            html: `<b>Reimbursements have been signed for (${account}).</b> Folder Link: <a href="${folderLink}">${folderLink}</a>`
+            html: `Reimbursements have been signed for (${account})! Log in to Quickbooks to view transactions. Folder Link: ${folderLink}`
         };
 
         return emailTemplate;

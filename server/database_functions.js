@@ -46,6 +46,21 @@ export async function createUser(user) {
 
 /**
  * 
+ * @param {User} user 
+ * @returns 
+ */
+export async function updateUser(user) {
+  return (firestore
+    .collection(database)
+    .doc('Users')
+    .collection('users')
+    .doc(user.username)
+    .update(user)
+  )
+}
+
+/**
+ * 
  * @param {string} account 
  * @returns {Promise<number>}
  */
@@ -398,14 +413,15 @@ export async function queryTransaction(account, transactionId) {
  * @returns {Promise<string>}
  */
 export async function getRecipients(account, email) {
-  let {recipient} = await firestore
+
+  let doc = await firestore
   .collection(database)
   .doc(account)
   .collection('Email')
   .doc(email)
   .get()
-
-  return recipient
+  let {recipients} = doc.data()
+  return recipients
 }
 
 /**
