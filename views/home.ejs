@@ -6,7 +6,7 @@ x-data="{
         'muneshwers' : 'Muneshwers',
         'paragon' : 'Paragon',
         'barges' : 'Barges',
-        'meals' : 'Meals'
+        'meals' : 'GRA Meals'
     },
     open : false,
     toggle () {
@@ -48,12 +48,29 @@ x-data="{
     changeTab(newTab){
         this.tab = newTab
         this.swapMain()
-    }
+    },
+    openHamburger() {
+        let navOverlay = this.$refs.navOverlay
+        let navMenu = this.$refs.navMenu
+        navOverlay.classList.add('active')
+        navMenu.classList.add('active')
+        navOverlay.addEventListener('click', () => {
+            navOverlay.classList.remove('active')
+            navMenu.classList.remove('active')
+        })
+    },
     }">
     <header>
         <div class="header-top">
             <div class="header-app-name">
-                <img src="/static/images/nav-bars.svg" height="17px" width="17px" alt="">
+                <img 
+                    class="hover-background" 
+                    style="padding: 10px;" 
+                    src="/static/images/nav-bars.svg" 
+                    height="17px" 
+                    width="17px" 
+                    @click="openHamburger()"
+                >
                 <img src="/static/images/logo.png" alt="muneshwers logo" height="50px" width="50px">
                 <div class="header-app-title">Petty Cash</div>
             </div>
@@ -110,8 +127,14 @@ x-data="{
                 <% } %>
             </div>
         </div>
-        
     </header>
+    <div x-ref="navOverlay" class="nav-overlay">
+    </div>
+    <ul x-ref="navMenu" class="nav-menu">
+        <li class="nav-item" hx-trigger="click" hx-get="/user/logout" hx-target="body">
+            <span class="nav-text" >Sign out</span>
+        </li>
+    </ul>
     <main hx-trigger="load" hx-target="this" hx-swap="outerHTML" hx-get="<%= landingInfo.link %>">
     </main>
 </div>

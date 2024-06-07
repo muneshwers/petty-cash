@@ -36,7 +36,7 @@
         getUser() {
             let username = this.name
             this.$refs.findButton.disabled = true
-            fetch(`/user/${username}`)
+            fetch(`/user/id/${username}`)
             .then((response) => {
                 if (!response.ok) {
                     this.errorMessage = 'User not found'

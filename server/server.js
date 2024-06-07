@@ -168,7 +168,7 @@ app.post("/user/edit", (req ,res) => {
 
 })
 
-app.get("/user/:username", (req, res) => {
+app.get("/user/id/:username", (req, res) => {
   let {username} = req.params
   Database.getUser(username)
   .then((user) => {
@@ -179,6 +179,12 @@ app.get("/user/:username", (req, res) => {
     res.sendStatus(400)
   })
   .catch(() => res.sendStatus(400))
+})
+
+app.get("/user/logout", async (req, res) => {
+  req.session.destroy((err) => {
+    res.render("login", {errorMessage : ''})
+  })
 })
 
 app.get("/approve", (req, res) => {
