@@ -1,5 +1,5 @@
 import fs from "fs";
-import express, { response } from "express";
+import express from "express";
 import "dotenv/config"
 import expressSession from "express-session";
 import bodyParser from "body-parser";

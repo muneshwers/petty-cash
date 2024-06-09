@@ -1,13 +1,19 @@
 <main x-ref="main" class="swappable">
     <div x-data="{
-        saveText : 'Save',
         transactionLog : [],
         toBeReimbursed : [],
-        saved : [],
         grid : null,
-        grid2 : null,
         reimbursedTotal: 0,
-        async init(){
+        rowsSelected : 0,
+        formatDollar(number) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency : 'USD',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0,
+            }).format(number)
+        },
+        async init() {
             const actionRenderer = function(params) {
                 let transaction = params.data
                 const container = document.createElement('div');
@@ -79,29 +85,30 @@
             }
             
             let {transactions} = (await (await fetch('/transactions')).json())
-            let {savedOnAccount} = (await (await fetch('/saved')).json())
-            this.saved = savedOnAccount
             this.grid = agGrid.createGrid(this.$refs.myGrid, {
                 rowData : transactions,
                 domLayout: 'autoHeight',
                 components: {actionRenderer},
                 columnDefs : [
-                    { field: 'transactionId', 
-                    checkboxSelection: function (params) {
-                        return params.data.approved
+                    {
+                        field: 'transactionId', 
+                        checkboxSelection: function (params) {
+                            return params.data.approved
                         },
-                    sortable: false,
-                    headerCheckboxSelection: true,
-                    headerName : 'Voucher Number'},
+                        headerCheckboxSelection: true,
+                        headerName : 'Voucher Number'
+                    },
                     { field: 'description'},
                     { field: 'amount' },
-                    {headerName: 'Tax', valueGetter: function (params) {
-                        if (params.data.taxable){
-                            return params.data.tax
-                        }
-                        return null 
-                    },},
-                    { field : 'approved'},
+                    {
+                        headerName: 'Tax', 
+                        valueGetter: function (params) {
+                            if (params.data.taxable){
+                                return params.data.tax
+                            }
+                            return null
+                        },
+                    },
                     { field: 'recipient' },
                     { field: 'supplier' },
                     { field: 'createdBy' },
@@ -125,84 +132,44 @@
                     width: 120,
                 },
                 rowSelection: 'multiple',
+                getRowId: (params) => params.data.transactionId,
                 isRowSelectable: function(params) {
                     return params.data.approved
                 },
                 onRowSelected: (event) => {
-                    this.saveText = 'Save'
-                    if (event.node.isSelected()) {
-                        this.toBeReimbursed.push(event.node.data);
-                        this.reimbursedTotal = this.reimbursedTotal + Number(event.node.data.amount);
-                        this.grid2.setRowData([...this.toBeReimbursed, {description: 'Total', amount : this.reimbursedTotal}])
-                        this.grid2.refreshCells()
+                    this.toBeReimbursed = []
+                    this.grid.getSelectedNodes().map((node) => this.toBeReimbursed.push(node.data))
+                    console.log(this.toBeReimbursed)
+
+                    let node = event.node
+                    let rowIndex = node.rowIndex
+                    if (node.isSelected()) {
+                        this.reimbursedTotal = this.reimbursedTotal + Number(node.data.amount);
+
+                        let rowData = []
+                        this.grid.forEachNodeAfterFilterAndSort((node) => rowData.push(node.data))
+                        let selectedRow = rowData.splice(rowIndex, 1)[0]
+                        rowData.splice(this.rowsSelected, 0, selectedRow)
+                        this.grid.setGridOption('rowData', rowData)
+                        ++this.rowsSelected
                         return
                     }
 
-                    const index = this.toBeReimbursed.indexOf(event.node.data);
-                    if (index < 0) {
+                    if (!node.isSelected()) {
+                        this.reimbursedTotal = this.reimbursedTotal - Number(event.node.data.amount);
+
+
+                        let rowData = []
+                        this.grid.forEachNodeAfterFilterAndSort((node) => rowData.push(node.data))
+                        let unselectedRow = rowData.splice(rowIndex, 1)[0]
+                        --this.rowsSelected
+                        rowData.splice(this.rowsSelected, 0, unselectedRow)
+                        this.grid.setGridOption('rowData', rowData)
+
                         return
                     }
-                    this.toBeReimbursed.splice(index, 1);
-                    this.reimbursedTotal = this.reimbursedTotal - Number(event.node.data.amount);
-                    let toBeReimbursed = [...this.toBeReimbursed]
-                    if (this.reimbursedTotal > 0) {
-                        toBeReimbursed.push({description: 'Total', amount : this.reimbursedTotal})
-                    }
-                    this.grid2.setRowData(toBeReimbursed);
-                    this.grid2.refreshCells()
-                },
-                onFirstDataRendered : (params) => {
-                    const selectedNodes = []
-                    let saved = this.saved.map(id => Number(id)).sort((a,b) => a-b)
-                    console.log(saved)
-                    let currentIndex = 0
-                    params.api.forEachNode((node) => {
-                        let id = node.data.transactionId
-                        while (id > saved[currentIndex] && currentIndex < saved.length) {
-                            ++currentIndex
-                        }
-                        if (id == saved[currentIndex]){
-                            selectedNodes.push(node)
-                            ++currentIndex
-                            return
-                        }
-                        if (id < saved[currentIndex]){
-                            return
-                        }
-                    })
-                    params.api.setNodesSelected({ nodes : selectedNodes,  newValue : true})
                 },
             })
-            let account = this.accountTextMap[this.currAccount]
-            this.grid2 = agGrid.createGrid(this.$refs.myGrid2, {
-                rowData : this.toBeReimbursed,
-                domLayout: 'autoHeight',
-                columnDefs : [
-                    { field: 'description'},
-                    { field: 'amount' },
-                    {field: 'transactionId', headerName : 'Voucher Number'},
-                    { field: 'recipient' },
-                    { field: 'supplier' },
-                    { field: 'createdBy' },
-                    { field: 'date'},
-                    { field: 'approvedBy'},
-                    { field: 'approvedTime'},
-                    {headerName: 'Account', valueGetter: function (params) {
-                        return account 
-                    },}
-                ],
-                defaultColDef: {
-                    filter: 'agTextColumnFilter',
-                    floatingFilter: true,
-                },
-                getRowStyle: function(params) {
-                    if (params.node.rowIndex === params.api.getDisplayedRowCount() - 1) {
-                        return { fontWeight: 'bold', color : '#0047ab'}
-                    }
-                    return null;
-                },
-            })
-    
             htmx.on('#reimburse_button', 'click', (event) => {
                 this.swapMain()
                 setTimeout(() => {
@@ -217,39 +184,6 @@
                 }, 300);
             })
         },
-        exportTableAsCsv() {
-            let account = this.currAccount
-            console.log(account)
-            let accountToCodeMap = {
-                muneshwers : 'ML',
-                barges : 'BS',
-                paragon : 'PT',
-                meals : 'M'
-            }
-            let code = accountToCodeMap[account]
-            const processCellCallback = (params) => {                
-                if (params.column.getId() === 'transactionId' ){
-                    if (params.value){
-                        return code + params.value
-                    }
-                    return
-                }
-                return params.value
-            }
-            this.grid2.exportDataAsCsv({processCellCallback})
-        },
-        save() {
-            let toSave = this.toBeReimbursed.map(node => node.transactionId)
-            fetch('/saved', {
-                method: 'POST',
-                headers: {
-                    'Content-Type' : 'application/json',
-                },
-                body: JSON.stringify({toSave})
-            }).then((data) => {
-                this.saveText = '✓' + ' Saved'
-            })
-        }
     }">
         <div class="reimburse_container">
             <div class="section1">
@@ -258,27 +192,17 @@
                     <div x-ref="myGrid" class="table ag-theme-quartz ag-center-cols-viewport" style="width: auto"></div>
                 </div>
             </div>
-            <div class="section2">
-                    <div>
-                        <div class="title" >
-                            <h2>Reimbursing</h2>
-                            <div class="title_btns">
-                                <button type="button" @click="exportTableAsCsv()">
-                                    <img src="/static/images/download.svg" alt="download button" height="25" width="25">
-                                </button>
-                                <button type="button" class="reverse" @click="save()" x-text="saveText"></button>
-                            </div>
-                        </div>
-                        <div class="table-card">
-                            <div x-ref="myGrid2" id="myGrid2" class="table ag-theme-quartz ag-center-cols-viewport"></div>
-                        </div>
-                        <div class="table_btns" x-show="toBeReimbursed.length > 0">
-                            <button id="reimburse_button" class="reverse" type="button">Reimburse</button>
-                        </div>
-                    </div>
-            </div>
         </div>
     
+        <div class="reimburse-tab" x-show="toBeReimbursed.length > 0">
+            <div class="reimburse-total">
+                <span class="amount-value remainder" x-text="formatDollar(reimbursedTotal)"></span>
+                <span style="font-size: smaller; color:  rgba(255, 255, 255, 0.5);">Total</span>
+            </div>
+            <div class="table_btns" >
+                <button id="reimburse_button" class="reverse" type="button">Reimburse</button>
+            </div>
+        </div>
         <div id="edit-modal"
             x-data="{  
                 openEditModal: false,
