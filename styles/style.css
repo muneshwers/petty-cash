@@ -95,7 +95,7 @@ body {
 
 header {
     border-bottom: 0.5px solid #dcdcdc;
-    width: 100%;
+    /* width: 100%; */
     font-size: large;
     box-shadow: 0px 3px 5px rgba(0, 0, 0, 0.123);
     background-color: white;
@@ -106,10 +106,10 @@ header {
     display: flex;
     flex-direction: row;
     justify-content: space-between;
-    gap: 20px;
+    gap: 5px;
     align-items: center;
     /* margin: 2vh; */
-    margin-left: 3vw;
+    margin-left: 1vw;
     margin-top: 2;
 }
 
@@ -491,9 +491,16 @@ input.error:focus {
     flex-direction: row;
 }
 
-.amount-value {
-    margin-left: 10px;
+.reimburse-tab-description {
+    font-size: 28px;
     font-weight: 500;
+}
+
+.amount-value {
+    /* margin-left: 10px; */
+    font-size: 24px;
+    font-weight: 400;
+    color: #0047ab;
 }
 
 .current {
@@ -566,6 +573,25 @@ h2 {
     cursor: not-allowed;
 }
 
+.reimburse-button {
+    background-color: #0047ab;
+    color: white;
+    border: none;
+    padding: 20px;
+    font-size: 15px;
+    cursor: pointer;
+}
+
+.reimburse-button:hover {
+    background-color: #003580;
+}
+
+.reimburse-button:disabled {
+    background-color: #d3d3d3;
+    color: #a9a9a9;
+    cursor: not-allowed;
+}
+
 .readonly {
     color: #686868;
     cursor: not-allowed;
@@ -633,7 +659,7 @@ button {
 }
 
 .table_btns button[type="button"] {
-    margin-top: 10px;
+    /* margin-top: 10px; */
     padding: 10px;
     font-size: 16px;
     cursor: pointer;
@@ -733,23 +759,31 @@ button {
 
 .reimburse_container > .section1 {
     flex: 1;
-    margin-right: 20px;
+    /* margin-right: 20px; */
 }
 
 .reimburse-tab {
-    width: 90vw;
+    width: 20vw;
     position: fixed;
     border-radius: 16px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
     backdrop-filter: blur(7px);
     -webkit-backdrop-filter: blur(7px);
     border: 1px solid rgba(0, 0, 0, 0.08);
-    padding : 50px;
+    padding : 45px;
+    gap: 20px;
     display: flex;
-    justify-content: center;
+    align-items: center;
+    justify-content: space-between;
     bottom: 1vw;
-    margin-left: 10px;
-    margin-right: 10px;
+    right: 3vw;
+}
+
+.reimburse-tab-info {
+    gap: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .reimburse-total {
