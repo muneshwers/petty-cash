@@ -156,7 +156,7 @@
 
             },
         }">
-            <h2>Reimbursements To Sign</h2>
+            <h2><span x-text="accountTextMap[currAccount]"></span> Reimbursements To Sign</h2>
 
             <div class="to-sign">
                 <div x-ref="grid" class="table ag-theme-quartz ag-center-cols-viewport" style="width: auto"></div>
@@ -271,7 +271,6 @@
                             }
                             return null 
                         },},
-                        { field : 'approved'},
                         { field: 'recipient' },
                         { field: 'supplier' },
                         { field: 'createdBy' },

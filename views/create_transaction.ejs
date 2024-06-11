@@ -75,7 +75,7 @@
             <div class="input-column">
                 
                 <form hx-post="/transaction" hx-target="main" hx-trigger="submit delay:0.25s">
-                    <h2> Create Transaction </h2>
+                    <h2> Create <span x-text="accountTextMap[currAccount]"></span> Transaction </h2>
                     <div class="transaction-form">
                         
                         <div class="item">

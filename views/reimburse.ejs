@@ -187,21 +187,24 @@
     }">
         <div class="reimburse_container">
             <div class="section1">
-                <h2>Current Transactions</h2>
+                <h2>Current <span x-text="accountTextMap[currAccount]"></span> Transactions</h2>
                 <div class="table-card">
                     <div x-ref="myGrid" class="table ag-theme-quartz ag-center-cols-viewport" style="width: auto"></div>
                 </div>
             </div>
         </div>
     
-        <div class="reimburse-tab" x-show="toBeReimbursed.length > 0">
-                <div class="reimburse-total">
-                    <span class="amount-value poppins-medium" x-text="formatDollar(reimbursedTotal)"></span>
-                    <span style="font-size: smaller; color:  rgba(0, 0, 0, 0.5);">Total</span>
-                </div>
-                <div class="table_btns">
-                    <button id="reimburse_button" class="reimburse-button" type="button">Reimburse</button>
-                </div>
+        <div 
+            class="reimburse-tab" 
+            x-show="toBeReimbursed.length > 0"
+        >
+            <div class="reimburse-total">
+                <span class="amount-value poppins-medium" x-text="formatDollar(reimbursedTotal)"></span>
+                <span style="font-size: smaller; color:  rgba(0, 0, 0, 0.5);">Total</span>
+            </div>
+            <div class="table_btns">
+                <button id="reimburse_button" class="reimburse-button" type="button">Reimburse</button>
+            </div>
         </div>
         <div id="edit-modal"
             x-data="{  

@@ -776,7 +776,18 @@ button {
     align-items: center;
     justify-content: space-between;
     bottom: 1vw;
-    right: 3vw;
+    right: -100%;
+    animation: slide-from-right 0.25s forwards;
+}
+
+@keyframes slide-from-right {
+    0% {
+        right: -100%;
+    }
+    100% {
+        right: 3vw;
+    }
+
 }
 
 .reimburse-tab-info {
