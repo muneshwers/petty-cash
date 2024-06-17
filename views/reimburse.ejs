@@ -84,9 +84,8 @@
                 return container;
             }
             
-            let {transactions} = (await (await fetch('/transactions')).json())
             this.grid = agGrid.createGrid(this.$refs.myGrid, {
-                rowData : transactions,
+                rowData : [],
                 domLayout: 'autoHeight',
                 components: {actionRenderer},
                 columnDefs : [
@@ -170,6 +169,15 @@
                     }
                 },
             })
+
+            this.snapShotFunc = onSnapshot(collection(fireStore, `${this.database}/${this.currAccount}/Transactions`), 
+                (collection) => {
+                    let transactions = collection.docs.map(doc => doc.data())
+                    this.grid.setGridOption('rowData', transactions)
+                    this.grid.redrawRows()
+                }
+            )
+
             htmx.on('#reimburse_button', 'click', (event) => {
                 this.swapMain()
                 setTimeout(() => {

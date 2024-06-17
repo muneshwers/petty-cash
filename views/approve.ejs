@@ -70,13 +70,30 @@
                     container.appendChild(approveButton)
                 }
 
+
+                if (transaction) {
+                    const uploadButton= document.createElement('button')
+                    uploadButton.classList.add('action-button')
+                    uploadButton.title = 'Upload'
+                    const icon = document.createElement('i')
+                    icon.classList.add('fa-solid')
+                    if (!transaction.filename) {
+                        icon.style.color = '#cd5c5c' 
+                    }
+                    icon.classList.add('fa-receipt')
+                    uploadButton.appendChild(icon)
+                    uploadButton.addEventListener('click', () => {
+                        $dispatch('upload-modal', {transaction});
+                    })
+
+                    container.appendChild(uploadButton)
+                }
+
                 return container;
             }
 
-            let {transactions} = (await (await fetch('/transactions')).json())
-            this.transactions = transactions.filter((transaction) => !transaction.approved)
             this.grid = agGrid.createGrid(this.$refs.grid, {
-                rowData : this.transactions,
+                rowData : [],
                 domLayout: 'autoHeight',
                 components: {actionRenderer},
                 columnDefs : [
@@ -84,7 +101,7 @@
                         field : 'Actions',
                         headerName : 'Actions',
                         cellRenderer: 'actionRenderer',
-                        maxWidth: 100,
+                        maxWidth: 150,
                         suppressMenu: true,
                         cellStyle: { textAlign: 'center' }
                     },
@@ -109,6 +126,17 @@
                     floatingFilter: true,
                 },
             })
+
+            this.snapShotFunc = onSnapshot(collection(fireStore, `${this.database}/${this.currAccount}/Transactions`), 
+                (collection) => {
+                    let transactions = collection.docs
+                    .map(doc => doc.data())
+                    .filter(transaction => !transaction.approved)
+                    this.transactions = transactions
+                    this.grid.setGridOption('rowData', transactions)
+                    this.grid.redrawRows()
+                }
+            )
         }
         }" >
         <div class="title">
@@ -202,6 +230,130 @@
                 </div>
             </div>
         </div>
+        <div id="upload-modal"
+        x-data="{
+            openUploadModal: false,
+            uploadFile: null,
+            transactionData: '',
+            buttonToggle: false,
+            previewImage: null,
+            uploadErrorMessage: '',
+            fileName: '',
+            async uploadFileHandler() {
+                try {
+                    this.$refs.uploadButton.disabled = true
+
+                    const formData = new FormData();
+                    formData.append('file', this.uploadFile)
+                    formData.append('transactionId', this.transactionData.transactionId)
+                    fetch('/upload', {
+                        method : 'POST',
+                        body: formData
+                    })
+                    .then((response) => {
+                        if (!response.ok) {
+                            throw new Error('Upload was invalid')
+                        }
+                        this.openUploadModal = false
+                        this.swapMain()
+                        fetch('/upload/delete', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type' : 'application/json',
+                            },
+                            body: JSON.stringify({filename: this.transactionData.filename})
+                        })                           
+                        this.previewImage = null
+                    })
+                    .then(() => {
+                        setTimeout(() => {
+                            htmx.ajax('GET', '/approve', {
+                                target: 'main',
+                                swap:'outerHTML'
+                            })  
+                        }, 300)
+                    })
+                    .catch(() => {
+                        this.$refs.uploadButton.disabled = false
+                        this.uploadErrorMessage = 'File is incorrect type'
+                    })
+
+                } catch (error) {
+                    console.error('Upload failed:', error);
+                    this.uploadErrorMessage = 'Upload failed. Please try again.';
+                }
+            },
+            async downloadImage() {
+                const image = await fetch(this.transactionData.imageUrl)
+                const imageBlob = await image.blob()
+                const imageURL = URL.createObjectURL(imageBlob)
+
+                const link = document.createElement('a')
+                link.href = imageURL
+                link.download = this.transactionData.filename
+
+                let modal = document.querySelector('#upload-modal').querySelector('.modal')
+
+                modal.appendChild(link)
+                link.click()
+                modal.removeChild(link)
+            },
+            findExtName(filename) {
+                let ext = filename.split('.').at(-1)
+                console.log(ext)
+                return ext
+            },
+            findPreviewImage(transaction) {
+                let url = transaction.imageUrl
+                if (!url) return '/static/images/noimage.png'
+                let filename = transaction.filename
+                if (this.findExtName(filename) == 'pdf') return 'https://upload.wikimedia.org/wikipedia/commons/8/87/PDF_file_icon.svg'
+                return url
+            }
+
+        }"
+        @upload-modal.window="
+            openUploadModal = true;
+            transactionData = $event.detail.transaction;
+            previewImage = findPreviewImage(transactionData)
+            buttonToggle = false;
+            uploadErrorMessage = '';
+            uploadFile = null;
+        "
+        x-init="$watch('uploadFile', uploadFile => {
+            fileName = uploadFile?.name;
+            if (!uploadFile) {
+                $refs.uploadFileInput.value = null
+            }
+        })"
+    >
+        <div x-show="openUploadModal" class="overlay">
+            <div class="modal" @click.outside="previewImage = null; openUploadModal = false;">
+
+                <button class="close-button" @click="previewImage = null; openUploadModal = false;">&times;</button>
+
+                <h2>Upload File</h2>
+
+                <div class="upload-buttons">
+                    <label for="file-upload" id="file-upload-label">Choose File</label>
+                    <input id="file-upload" type="file"
+                        x-ref="uploadFileInput"
+                        @change="uploadFile = $event.target.files[0]; uploadErrorMessage=''; buttonToggle=true;"
+                        accept="image/png, image/jpeg, application/pdf">
+                    <span id="file-upload-name" x-text="fileName"></span>
+                    <button x-ref="uploadButton" type="submit" x-show="buttonToggle" class="submit-button" @click="uploadFileHandler()">Upload</button>
+                    <div x-show="uploadErrorMessage" class="error-message" x-text="uploadErrorMessage"></div>
+                </div>
+                <div x-show="previewImage != '/static/images/noimage.png' " class="download-button">
+                    <i @click="downloadImage()" class="fa-solid fa-download"></i>
+                </div>
+                <div class="receipt-container">
+                    <img x-bind:src="previewImage" alt="receipt preview" class="receipt-image receipt">
+                </div>
+                
+            </div>
+        </div>
+        </div>    
         <div id="query-modal"
         x-data="{
             queryGrid : null,

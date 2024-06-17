@@ -124,9 +124,8 @@
 
                 }
 
-                let {reimbursements} = (await (await fetch('/reimbursements')).json())
                 this.grid = agGrid.createGrid(this.$refs.grid, {
-                    rowData : reimbursements,
+                    rowData : [],
                     components : {actionRenderer},
                     domLayout : 'autoHeight',
                     columnDefs : [
@@ -147,12 +146,24 @@
                     ],
                 })
 
-                for (let reimbursement of reimbursements) {
-                    if (reimbursement.signed && reimbursement.collected) {
-                        $dispatch('complete-modal', {reimbursement})
-                        break
+
+                this.snapShotFunc = onSnapshot(collection(fireStore, `${this.database}/${this.currAccount}/Reimbursements`), 
+                    (collection) => {
+                        let reimbursements = collection.docs
+                        .map(doc => doc.data())
+                        
+                        this.grid.setGridOption('rowData', reimbursements)
+                        this.grid.redrawRows()
+
+                        for (let reimbursement of reimbursements) {
+                            if (reimbursement.signed && reimbursement.collected) {
+                                $dispatch('complete-modal', {reimbursement})
+                                break
+                            }
+                        }
                     }
-                }
+                )
+
 
             },
         }">

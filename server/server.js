@@ -53,6 +53,8 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use("/styles", express.static("styles"));
 app.use("/static", express.static("static"));
+app.use("/dist", express.static("dist"));
+app.use("/javascript", express.static("javascript"))
 app.use(expressSession({
   secret: 'secret',
   resave: false,
@@ -66,7 +68,8 @@ app.get("/", (req, res) => {
 
 app.get("/home", (req, res) => {
   let {account, views, landingInfo} = req.session
-  res.render("home", {account, views, landingInfo})
+  let {database} = config
+  res.render("home", {account, views, landingInfo, database})
 })
 
 app.get("/login", (req, res) => {
@@ -115,7 +118,15 @@ app.post("/login/user", async (req, res) => {
   req.session.views = views
   req.session.landingInfo = landingInfo
   req.session.permissions = permissions
-  res.render("home", {account : req.session.account, views, landingInfo})
+
+  let {database} = config
+  
+  res.render("home", {
+    account : req.session.account, 
+    views, 
+    landingInfo, 
+    database
+  })
   return
   
 })
@@ -830,7 +841,4 @@ function sendReimbursementsToAdaptorServer(transactions) {
  */
 
 //TODO
-//separate the routes in to transactions, reimbursement and user
-//redo the reimburse page
-//sign out button
-//accountants should be the ones to reimburse
+//test

@@ -12,8 +12,11 @@ const firebaseApp = initializeApp({
 const firestore = getFirestore(firebaseApp)
 const storage = getStorage(firebaseApp)
 
-/** @type {{database : string }} */
+/** @type {{database : string}} */
 const {database} = config
+
+/** @type {{bucketName : string}} */
+const {bucketName} = config
 
 /**
  * 
@@ -431,10 +434,9 @@ export async function getRecipients(account, email) {
  * @returns {Promise<string>}
  */
 export async function uploadImageToStorage(file, filename) {
-  const uploadResponse = await storage.bucket().upload(file.path, {destination: filename})
+  const uploadResponse = await storage.bucket(bucketName).upload(file.path, {destination: filename})
   const url = (await uploadResponse[0].getSignedUrl({action: 'read', expires : "01-01-3000"}))[0]
   return url
-
 }
 
 /**

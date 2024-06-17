@@ -2,6 +2,7 @@
 x-data="{
     tab : '<%= landingInfo.tab %>' ,
     currAccount : '<%=account%>',
+    database : '<%=database%>',
     accountTextMap : {
         'muneshwers' : 'Muneshwers',
         'paragon' : 'Paragon',
@@ -9,6 +10,7 @@ x-data="{
         'meals' : 'GRA Meals'
     },
     open : false,
+    snapShotFunc : null,
     toggle () {
         if (this.open) {
             this.close()
@@ -59,7 +61,16 @@ x-data="{
             navMenu.classList.remove('active')
         })
     },
-    }">
+    init() {
+        document.body.addEventListener('htmx:beforeSwap', (event) => {
+            if (this.snapShotFunc) {
+                this.snapShotFunc()
+                this.snapShotFunc = null
+            }
+        })
+    }
+    }"
+    >
     <header>
         <div class="header-top">
             <div class="header-app-name">

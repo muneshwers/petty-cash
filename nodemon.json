@@ -1,4 +1,4 @@
 {
-    "ignore": ["database/**"]
+    "ignore": ["database/**","javascript/**"]
 }
   
