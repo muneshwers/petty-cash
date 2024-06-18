@@ -48,13 +48,13 @@
                                     icon.classList.add('fa-circle-notch')
                                     icon.classList.add('fa-spin')
                                     icon.style.color = '#0047ab'
-
-                                    htmx.ajax('POST', '/reimbursement/sign', {
-                                        target: 'main', 
-                                        swap:'outerHTML', 
-                                        values: {
-                                            reimbursement,
-                                        } 
+                                    console.log(reimbursement)
+                                    fetch('/reimbursement/sign', {
+                                        method : 'POST',
+                                        headers: {
+                                            'Content-Type' : 'application/json',
+                                        },
+                                        body: JSON.stringify({reimbursement})
                                     })
                                 }
                             })
@@ -89,12 +89,12 @@
                                 icon.style.color = '#0047ab'
 
 
-                                htmx.ajax('POST', '/reimbursement/collect', {
-                                    target: 'main', 
-                                    swap:'outerHTML', 
-                                    values: {
-                                        reimbursement,
-                                    } 
+                                fetch('/reimbursement/collect', {
+                                    method : 'POST',
+                                    headers: {
+                                        'Content-Type' : 'application/json',
+                                    },
+                                    body: JSON.stringify({reimbursement})
                                 })
 
                             })
@@ -182,14 +182,16 @@
                     this.$refs.confirm.addEventListener('click', () => {
                         this.openCompleteModal = false
                         swapMain()
-                        htmx.ajax('POST', '/reimbursement/completed', 
-                        {
-                            target: 'main', 
-                            swap:'outerHTML', 
-                            values: {
-                                reimbursement : this.reimbursement,
-                            } 
-                        })
+                        setTimeout(() => {
+                            htmx.ajax('POST', '/reimbursement/completed', 
+                            {
+                                target: 'main', 
+                                swap:'outerHTML', 
+                                values: {
+                                    reimbursement : this.reimbursement,
+                                } 
+                            })
+                        }, 300);
                     })
                 }
             }"

@@ -255,7 +255,7 @@ app.get("/transactions/history", async (req, res) => {
 })
 
 app.get("/create_transaction", (req, res) => {
-  res.render("create_transaction")
+  res.render("create_transaction", {balance : 200000, transactionId : ''})
 })
 
 app.get("/create_user", (req, res) => {
@@ -292,11 +292,14 @@ app.get("/saved", (req, res) => {
 })
 
 app.post("/transaction", async (req ,res) => {
+
   /** @type {Transaction} */
-  let { transactionId, recipient, supplier, description, amount, date, tax, taxable} = req.body
+  let { transactionId, recipient, supplier, description, amount, date, tax, balance} = req.body
   transactionId = Number(transactionId)
   amount = Number(amount)
   tax = Number(tax)
+  balance = Number(balance)
+  
   let {account} = req.session
   /** @type {Transaction} */
   let transaction = {
@@ -316,12 +319,6 @@ app.post("/transaction", async (req ,res) => {
     transaction.tax = tax
   }
 
-  let currentId = await Database.getCurrentTransactionId(account) 
-  currentId = Number(currentId)
-  if (currentId > transactionId) {
-    transactionId = currentId
-    transaction.transactionId = transactionId
-  }
   if (amount < transactionApprovalLimit) {
     transaction['approved'] = true
     transaction['approvedBy'] = 'System'
@@ -333,7 +330,6 @@ app.post("/transaction", async (req ,res) => {
   applyTimeStamp([transaction], "timeStamp")
   Database.setTransactions([transaction], account);
   
-  let balance = await Database.getCurrentBalance(account)
   balance = balance - amount
   if (balance <= 100000) {
     Email.sendNearingLimitEmailWithTimout(account)
@@ -342,11 +338,8 @@ app.post("/transaction", async (req ,res) => {
 
   transactionId = Number(transactionId) + 1
   Database.updateTransactionId(transactionId, account)
-  .then(() => {
-    res.render("create_transaction")
-  })
 
-  
+  res.render("create_transaction", {balance, transactionId})
   
 })
 
@@ -443,9 +436,10 @@ app.post("/transaction/delete", (req, res) => {
 
 app.post("/reimbursement/sign", async (req, res) => {
   try {
+    console.log("here")
+    console.log(req.body)
     /** @type {{reimbursement : Reimbursement}} */
     let { reimbursement } = req.body;
-    reimbursement = JSON.parse(reimbursement);
     /** @type {{account: string }} */
     let { account } = req.session;
 
@@ -462,8 +456,7 @@ app.post("/reimbursement/sign", async (req, res) => {
 
     Database.updateReimbursement(reimbursementUpdate, account)
     .then(() => {
-      res.render("sign", { signApproval: true })
-
+      res.sendStatus(200)
       let transactionForAdaptorServer = transactions.flatMap((transaction) => {
         if (!transaction.taxable) {
           return [transaction]
@@ -527,7 +520,6 @@ app.post("/reimbursement/sign", async (req, res) => {
 app.post("/reimbursement/collect", async (req, res) => {
   /** @type {{reimbursement : Reimbursement}} */
   let { reimbursement } = req.body
-  reimbursement = JSON.parse(reimbursement)
 
   /** @type {{account: string }} */
   let { account } = req.session
@@ -540,7 +532,7 @@ app.post("/reimbursement/collect", async (req, res) => {
   applyTimeStamp([reimbursementUpdate], "collectedTime")
 
   Database.updateReimbursement(reimbursementUpdate, account).then(() => {
-    res.redirect("/transaction_sign")
+    res.sendStatus(200)
   })
 
   Database.getCurrentBalance(account).then((balance) => {

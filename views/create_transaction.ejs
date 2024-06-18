@@ -2,9 +2,9 @@
     <div 
         class="transaction-container" 
         x-data="{
-            balance  : 200000,
+            balance  : <%=balance%>,
             inputs : {
-                transactionId : {value: '', valid: true},
+                transactionId : {value: '<%=transactionId%>', valid: true},
                 amount :  {value: '', valid: false},
                 recipient : {value: '', valid: false},
                 supplier : {value: '', valid: false},
@@ -30,8 +30,29 @@
                     maximumFractionDigits: 0,
                 }).format(number)
             },
+            submit() {
+                this.swapMain()
+                let inputs = this.inputs
+                let balance = this.balance
+                setTimeout(() => {
+                    htmx.ajax('POST', '/transaction', {
+                        target: 'main',
+                        swap:'outerHTML',
+                        values: {
+                            transactionId : inputs.transactionId.value,
+                            amount : inputs.amount.value,
+                            recipient : inputs.recipient.value,
+                            supplier : inputs.supplier.value,
+                            description : inputs.description.value,
+                            date : inputs.date.value,
+                            tax : inputs.tax.value,
+                            balance : balance
+                        }
+                    })
+                }, 300);
+            },
             async init() {
-                this.snapShotFunc = onSnapshot(doc(fireStore, `Mock/${currAccount}`), (doc) => {
+                this.snapShotFunc = onSnapshot(doc(fireStore, `${this.database}/${this.currAccount}`), (doc) => {
                     let {balance , transactionId} = doc.data()
                     this.balance = balance
                     this.inputs.transactionId.value = transactionId
@@ -68,7 +89,7 @@
         </div>
         <div class="input-column">
             
-            <form hx-post="/transaction" hx-target="main" hx-trigger="submit delay:0.25s">
+            <form>
                 <h2> Create <span x-text="accountTextMap[currAccount]"></span> Transaction </h2>
                 <div class="transaction-form">
                     
@@ -286,7 +307,7 @@
 
                         <span x-show="checked" class="label">Tax</span>
                     </div>
-                    <button class="submit-button" @click="swapMain()" type="submit" :disabled="!validate()">Submit</button>
+                    <button class="submit-button" @click="submit()" type="button" :disabled="!validate()">Submit</button>
                 </div>
                 
             </form>
