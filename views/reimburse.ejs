@@ -328,10 +328,23 @@
                                     input : '',
                                     errorMessage : '',
                                     initialized : false,
+                                    containsSpecialChar(str) {
+                                        const specialChars = '!#$%^&*()_+[]{}|;:\'.<>/?`~\\'
+                                        for (let char of specialChars) {
+                                            if (str.includes(char)) {
+                                                return true
+                                            }
+                                        }
+                                        return false
+                                    },
                                     validate() {
                                         this.initialized = true
                                         if (!this.input) {
                                             this.errorMessage = 'Supplier required'
+                                            return false
+                                        }
+                                        if (this.containsSpecialChar(this.input)) {
+                                            this.errorMessage = 'Do not use special characters'
                                             return false
                                         }
                                         this.errorMessage = ''
@@ -359,15 +372,28 @@
                                     input : '',
                                     errorMessage : '',
                                     initialized : false,
+                                    containsSpecialChar(str) {
+                                        const specialChars = '!#$%^&*()_+[]{}|;:\'.<>/?`~\\'
+                                        for (let char of specialChars) {
+                                            if (str.includes(char)) {
+                                                return true
+                                            }
+                                        }
+                                        return false
+                                    },
                                     validate() {
                                         this.initialized = true
                                         if (!this.input) {
                                             this.errorMessage = 'Description required'
                                             return false
                                         }
+                                        if (this.containsSpecialChar(this.input)) {
+                                            this. errorMessage = 'Do not use special characters'
+                                            return false
+                                        }
                                         this.errorMessage = ''
                                         return true
-                                        }
+                                    }
                                     }"
                                     @modal.window="input = inputs.description.value"
                                 >
